@@ -44,6 +44,21 @@ export type AssistantMetadata = {
 /** What a write tool returns alongside its own result: the rows it saved. */
 export type SavedItem = { label: string; icon?: string };
 
+/** A background assistant run as the history UI sees it. */
+export type AssistantRun = {
+  id: string;
+  input: string;
+  reply: string | null;
+  status: "running" | "done" | "error";
+  error: string | null;
+  parts: import("@/db/schema").AiPart[];
+  saved: number;
+  undone: boolean;
+  model: string;
+  ms: number | null;
+  createdAt: number;
+};
+
 export const EFFORT_LABEL: Record<Effort, string> = {
   auto: "Auto",
   none: "Off",

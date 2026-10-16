@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { Download, LogOut, Sparkles } from "lucide-react";
+import { Bell, Download, LogOut, Palette, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { logout } from "@/app/(auth)/actions";
@@ -7,7 +7,8 @@ import { Card, PageHeader, Row, Section, Skeleton } from "@/components/ui/primit
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import pkg from "../../../../package.json";
-import { DayHoursRow, DeleteAccountRow, InstallHint, NameRow, TimezoneRow } from "./settings-rows";
+import { InstallRow } from "@/components/shell/install";
+import { DayHoursRow, DeleteAccountRow, NameRow, TimezoneRow } from "./settings-rows";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -75,6 +76,29 @@ async function SettingsContent() {
         </Card>
       </Section>
 
+      <Section title="Preferences">
+        <Card>
+          <Row href="/settings/appearance">
+            <IconTile className="bg-[var(--c-violet-soft)] text-[var(--c-violet)]">
+              <Palette />
+            </IconTile>
+            <div className="min-w-0">
+              <div className="text-[15px] font-medium text-ink">Appearance</div>
+              <div className="text-[13px] text-ink-3">Theme and light or dark</div>
+            </div>
+          </Row>
+          <Row href="/settings/notifications">
+            <IconTile className="bg-[var(--c-amber-soft)] text-[var(--c-amber)]">
+              <Bell />
+            </IconTile>
+            <div className="min-w-0">
+              <div className="text-[15px] font-medium text-ink">Notifications</div>
+              <div className="text-[13px] text-ink-3">Reminders on this device</div>
+            </div>
+          </Row>
+        </Card>
+      </Section>
+
       <Section title="Assistant">
         <Card>
           <Row href="/settings/ai">
@@ -118,7 +142,7 @@ async function SettingsContent() {
 
       <Section title="App">
         <Card>
-          <InstallHint />
+          <InstallRow />
           <Row>
             <span className="flex-1 text-[15px] font-medium text-ink">Version</span>
             <span className="tnum text-[14px] text-ink-3">{pkg.version}</span>

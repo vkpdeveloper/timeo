@@ -402,7 +402,7 @@ export function Logger({
               setFinishing(true);
               void flushAll();
             }}
-            className="tap h-10 rounded-full bg-tint px-5 text-[15px] font-semibold text-white"
+            className="tap h-10 rounded-full bg-tint px-5 text-[15px] font-semibold text-tint-ink"
           >
             {editing ? "Save" : "Finish"}
           </button>

@@ -29,6 +29,27 @@
       "when": 1792176185453,
       "tag": "0003_gym_programs",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792182328274,
+      "tag": "0004_push_theme",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792182529842,
+      "tag": "0005_user_themes",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792182842723,
+      "tag": "0006_ai_runs",
+      "breakpoints": true
     }
   ]
 }

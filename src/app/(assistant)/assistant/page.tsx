@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { Suspense } from "react";
 import { Assistant } from "@/components/ai/assistant";
 import { Skeleton } from "@/components/ui/primitives";
 import { db, t } from "@/db";
+import { toClient } from "@/lib/ai/background";
 import { findModel } from "@/lib/ai/catalog";
-import { requireUser } from "@/lib/auth";
 import { DEFAULT_AI_MODEL } from "@/lib/ai/shared";
+import { requireUser } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Ask Timeo" };
 
@@ -20,9 +21,12 @@ export default function AssistantPage() {
 
 async function AssistantContent() {
   const user = await requireUser();
-  const settings = await db.select({ aiModel: t.users.aiModel }).from(t.users).where(eq(t.users.id, user.id)).get();
+  const [settings, rows] = await Promise.all([
+    db.select({ aiModel: t.users.aiModel }).from(t.users).where(eq(t.users.id, user.id)).get(),
+    db.select().from(t.aiCommands).where(eq(t.aiCommands.userId, user.id)).orderBy(desc(t.aiCommands.createdAt)).limit(40),
+  ]);
   const model = await findModel(settings?.aiModel ?? DEFAULT_AI_MODEL);
-  return <Assistant modelName={model.name} />;
+  return <Assistant modelName={model.name} timezone={user.timezone} initialRuns={rows.reverse().map(toClient)} />;
 }
 
 function AssistantSkeleton() {

@@ -1,5 +1,5 @@
 import { and, asc, eq, isNull, lt, or } from "drizzle-orm";
-import { ArrowRight, Droplet, Dumbbell, Play, Settings2 } from "lucide-react";
+import { ArrowRight, Droplet, Dumbbell, Play, Settings2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CommandBar } from "@/components/ai/command-bar";
@@ -15,6 +15,7 @@ import { CoachAction } from "./goals/[id]/goal-client";
 import { getDailyRead, getGoalHealth } from "@/lib/coach";
 import { getTodayTraining, type TodayTraining } from "@/lib/fitness";
 import { ProgressBar, ProgressRing, StatusPill } from "@/components/ui/primitives";
+import { InstallBanner } from "@/components/shell/install";
 import { TodayTasks } from "./today-tasks";
 
 export default function TodayPage() {
@@ -71,6 +72,9 @@ async function Today() {
               <span className="text-ink-3"> / {progress.total}</span>
             </Link>
           )}
+          <Link href="/assistant" aria-label="Ask Timeo" className="tap grid size-9 place-items-center rounded-full bg-accent-soft text-accent shadow-soft ring-1 ring-line">
+            <Sparkles className="size-[17px]" />
+          </Link>
           <Link href="/settings" aria-label="Settings" className="tap grid size-9 place-items-center rounded-full bg-surface text-ink-2 shadow-soft ring-1 ring-line">
             <Settings2 className="size-[17px]" />
           </Link>
@@ -78,6 +82,7 @@ async function Today() {
       </header>
 
       <CommandBar />
+      <InstallBanner />
 
       {!season && (
         <Card className="mt-5 overflow-hidden p-5">

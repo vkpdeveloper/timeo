@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Dumbbell, LineChart, Sun, Target, type LucideIcon } from "lucide-react";
+import { CalendarDays, Dumbbell, LineChart, Sparkles, Sun, Target, type LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -99,7 +99,17 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="mt-auto">
+      <div className="mt-auto space-y-2">
+        <Link
+          href="/assistant"
+          className={cn(
+            "tap flex h-11 items-center gap-3 rounded-xl px-3 text-[14.5px] font-medium",
+            pathname.startsWith("/assistant") ? "bg-surface text-ink shadow-soft" : "text-ink-2 hover:bg-sunken",
+          )}
+        >
+          <Sparkles className="size-[18px] text-accent" />
+          Ask Timeo
+        </Link>
         <QuickAdd variant="wide" />
       </div>
     </aside>

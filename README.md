@@ -45,6 +45,35 @@ program is loaded for you. Switch programs any time in Fitness → Programs.
 | `TURSO_DATABASE_URL` | `libsql://…` database URL |
 | `TURSO_AUTH_TOKEN` | Turso auth token |
 | `OPENCODE_API_KEY` | OpenCode Go (or Zen) key for the assistant. Optional; the rest of the app works without it. |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push public key (`npx web-push generate-vapid-keys`) |
+| `VAPID_PRIVATE_KEY` | Web Push private key |
+| `VAPID_SUBJECT` | `mailto:` contact for the push service |
+| `CRON_SECRET` | Protects `/api/cron/notify` (sent as `Authorization: Bearer …`) |
+
+### Reminders (push notifications)
+
+Notifications use the standard Web Push protocol with your own VAPID keys, delivered by the
+service worker (`public/sw.js`). No Firebase SDK. Each device opts in under
+Settings → Notifications. On iPhone, add Timeo to the Home Screen first (iOS 16.4+).
+
+Time-based reminders (block starting, gym session, morning read, evening check-in, Sunday review,
+water) are sent by `/api/cron/notify`, which needs to be called every ~5 minutes:
+
+- **Any plan:** the included GitHub Actions workflow (`.github/workflows/reminders.yml`). Add the
+  repository secrets `TIMEO_URL` (your site URL) and `CRON_SECRET`.
+- **Vercel Pro:** alternatively add `"crons": [{ "path": "/api/cron/notify", "schedule": "*/5 * * * *" }]`
+  to `vercel.json` (Vercel sends the `CRON_SECRET` automatically). Hobby only allows daily crons.
+
+Assistant messages run in the background and push "Done" when the app isn't open.
+
+### Speed and offline
+
+- Functions run in Mumbai (`vercel.json` → `regions: ["bom1"]`), next to the Turso database.
+- The service worker keeps a snapshot of every page you visit in IndexedDB. Opening the app shows
+  the last copy instantly (no cold start), fetches a fresh one in the background, then refreshes the
+  data in place. A small "Updated X ago · Refresh" pill shows while you're looking at a saved copy.
+- Visited screens stay in the in-memory router cache for 5 minutes (`staleTimes`), so tab switches
+  are instant; any change you make refreshes them. Pull down at the top of a page to refresh.
 
 ### Database
 
@@ -65,10 +94,13 @@ npm run db:migrate    # applies it
 AI commands can take up to ~2 minutes on high reasoning effort; the app segment sets
 `maxDuration = 120`.
 
-## Install on your phone
+## Install
 
-- **iPhone:** open the site in Safari → Share → *Add to Home Screen*.
-- **Android:** open in Chrome → menu → *Install app*.
+Timeo is a full PWA (manifest with screenshots and shortcuts, offline fallback, push).
+
+- **iPhone / iPad:** Safari → Share → *Add to Home Screen*.
+- **Android:** Chrome shows *Install app*; Settings → App → Install also works.
+- **Desktop (Chrome, Edge):** the install icon in the address bar, or Settings → Install.
 
 ## Project layout
 

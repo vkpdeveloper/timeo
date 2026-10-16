@@ -44,6 +44,11 @@ export const users = sqliteTable("users", {
   aiEffort: text("ai_effort").notNull().default("low"),
   // program-wide training notes, e.g. "Aim for ~2 reps in reserve"
   trainingNotes: text("training_notes"),
+  // Appearance: colour theme id (src/lib/themes.ts) and light/dark/system
+  theme: text("theme").notNull().default("paper"),
+  colorMode: text("color_mode", { enum: ["system", "light", "dark"] }).notNull().default("system"),
+  // Which reminders to push (see src/lib/push/types.ts)
+  notifyPrefs: text("notify_prefs", { mode: "json" }).$type<NotifyPrefs>(),
   createdAt: createdAt(),
 });
 
@@ -553,6 +558,72 @@ export const dailyLogs = sqliteTable(
   (t) => [uniqueIndex("daily_logs_unique").on(t.userId, t.date)],
 );
 
+// ─────────────────────────── Custom themes ───────────────────────────
+
+/** Token values for one colour mode of a custom theme (CSS colours). */
+export type ThemeTokens = Record<string, string>;
+
+// Themes a user designs and names. The active theme id is users.theme
+// ("custom:<id>" for these).
+export const userThemes = sqliteTable(
+  "user_themes",
+  {
+    id: id(),
+    userId: userId(),
+    name: text("name").notNull(),
+    light: text("light", { mode: "json" }).$type<ThemeTokens>().notNull(),
+    dark: text("dark", { mode: "json" }).$type<ThemeTokens>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("user_themes_user_idx").on(t.userId)],
+);
+
+// ─────────────────────────── Push notifications ───────────────────────────
+
+export type NotifyPrefs = {
+  blocks: boolean; // a time block is about to start
+  blockLeadMin: number; // how many minutes before
+  morning: boolean; // morning coach read
+  morningMin: number; // minutes from midnight
+  workout: boolean; // gym session reminder
+  evening: boolean; // evening reflection
+  eveningMin: number;
+  weekly: boolean; // Sunday weekly review
+  water: boolean; // gentle water nudges
+};
+
+// One row per device/browser that allowed notifications (Web Push, VAPID).
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: id(),
+    userId: userId(),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+    lastSentAt: integer("last_sent_at", { mode: "number" }),
+  },
+  (t) => [index("push_subs_user_idx").on(t.userId)],
+);
+
+// Dedupe: each reminder (e.g. "block:<id>", "morning:2026-10-17") is sent once.
+export const notificationLog = sqliteTable(
+  "notification_log",
+  {
+    id: id(),
+    userId: userId(),
+    key: text("key").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    sentAt: integer("sent_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (t) => [uniqueIndex("notification_log_unique").on(t.userId, t.key)],
+);
+
 // ─────────────────────────── AI commands ───────────────────────────
 
 // Each "tell Timeo" command: what was typed, what the model did, and the rows
@@ -571,6 +642,12 @@ export const aiCommands = sqliteTable(
     error: text("error"),
     durationMs: integer("duration_ms"),
     undoneAt: integer("undone_at", { mode: "number" }),
+    // background runs: running → done | error
+    status: text("status", { enum: ["running", "done", "error"] }).notNull().default("done"),
+    // what to render in the history (text, reasoning and tool steps)
+    parts: text("parts", { mode: "json" }).$type<AiPart[]>().notNull().default([]),
+    // last time an open app looked at this run (decides whether to push)
+    seenAt: integer("seen_at", { mode: "number" }),
     createdAt: createdAt(),
   },
   (t) => [index("ai_commands_user_idx").on(t.userId, t.createdAt)],
@@ -578,8 +655,15 @@ export const aiCommands = sqliteTable(
 
 export type AiAction = { table: string; id: string; label: string; icon?: string };
 
+export type AiPart =
+  | { type: "text"; text: string }
+  | { type: "reasoning"; text: string }
+  | { type: "tool"; name: string; state: "done" | "error"; input?: unknown; output?: unknown; error?: string };
+
 export type User = typeof users.$inferSelect;
 export type AiCommand = typeof aiCommands.$inferSelect;
+export type UserTheme = typeof userThemes.$inferSelect;
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type Season = typeof seasons.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type Milestone = typeof milestones.$inferSelect;

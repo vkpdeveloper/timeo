@@ -20,7 +20,10 @@ Mobile UX comes first; desktop must work but is secondary.
 - Drizzle ORM on Turso/libSQL. Schema: `src/db/schema.ts`. Client: `import { db, t } from "@/db"`.
   Change schema → `npm run db:generate` → `npm run db:migrate`. Never hand-edit `drizzle/`.
 - Tailwind v4, tokens in `src/app/globals.css` (`bg-surface`, `text-ink-2`, `border-line`, `bg-tint`, …).
-- AI: Vercel AI SDK against OpenCode Go (`src/lib/ai`). No chat UI; one-shot commands only.
+- AI: Vercel AI SDK against OpenCode Go (`src/lib/ai`). Assistant messages run in the background
+  (`/api/assistant/runs` + `after()`), are stored in `ai_commands` as history, and notify via Web Push.
+- Offline/speed: `public/sw.js` serves IndexedDB page snapshots (stale-while-revalidate) and caches
+  static assets; `src/components/shell/sw-register.tsx` refreshes data when the fresh copy arrives.
 
 ## Data rules
 - Days are `"YYYY-MM-DD"` strings in the user's timezone (`user.today`); times of day are minutes

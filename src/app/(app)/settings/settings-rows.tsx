@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, LocateFixed, Share, SquarePlus, Trash2 } from "lucide-react";
+import { ChevronRight, LocateFixed, Trash2 } from "lucide-react";
 import { useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/controls";
@@ -223,51 +223,3 @@ export function DeleteAccountRow() {
   );
 }
 
-type InstallState = "standalone" | "ios" | "other";
-
-function installState(): InstallState {
-  const standalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  if (standalone) return "standalone";
-  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  return ios ? "ios" : "other";
-}
-
-/** "Add to Home Screen" steps on iOS Safari when the app isn't installed yet. */
-export function InstallHint() {
-  const state = useSyncExternalStore(
-    () => () => {},
-    installState,
-    () => null,
-  );
-  if (state === "standalone") {
-    return (
-      <div className="flex items-center gap-3 border-b border-line px-4 py-3.5">
-        <span className="flex-1 text-[15px] font-medium text-ink">Home Screen app</span>
-        <span className="text-[14px] text-ink-3">Installed</span>
-      </div>
-    );
-  }
-  if (state !== "ios") return null;
-  return (
-    <div className="border-b border-line px-4 py-4">
-      <div className="text-[15px] font-medium text-ink">Add to Home Screen</div>
-      <p className="mt-0.5 text-[13.5px] text-ink-3">Opens full screen, like an app.</p>
-      <ol className="mt-3 flex flex-col gap-2 text-[14px] text-ink-2">
-        <li className="flex items-center gap-2.5">
-          <span className="grid size-7 place-items-center rounded-lg bg-sunken text-ink">
-            <Share className="size-[15px]" />
-          </span>
-          Tap Share in Safari
-        </li>
-        <li className="flex items-center gap-2.5">
-          <span className="grid size-7 place-items-center rounded-lg bg-sunken text-ink">
-            <SquarePlus className="size-[15px]" />
-          </span>
-          Choose Add to Home Screen
-        </li>
-      </ol>
-    </div>
-  );
-}

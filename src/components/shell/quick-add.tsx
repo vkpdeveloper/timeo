@@ -52,7 +52,7 @@ export function QuickAdd({ variant = "fab" }: { variant?: "fab" | "wide" }) {
       )}
 
       <Sheet open={mode === "menu"} onClose={close} title="Add">
-        <CommandBar className="mb-4" />
+        <CommandBar className="mb-4" onSent={close} />
         <div className="grid grid-cols-2 gap-2.5 pb-2">
           {items.map((it) => {
             const Icon = it.icon;
