@@ -113,14 +113,16 @@ export function DailyReflection({ today, saved }: { today: string; saved: Reflec
       <p className="mt-0.5 text-[14px] text-ink-3">Two taps, three lines.</p>
       <form
         className="mt-5"
-        action={(fd) => {
+        onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
           setError(null);
           start(async () => {
             try {
               await saveDailyReflection(fd);
               setEditing(false);
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Couldn't save");
+            } catch {
+              setError("Couldn't save. Try again.");
             }
           });
         }}
@@ -128,7 +130,7 @@ export function DailyReflection({ today, saved }: { today: string; saved: Reflec
         <input type="hidden" name="date" value={today} />
         <input type="hidden" name="mood" value={mood ?? ""} />
         <input type="hidden" name="energy" value={energy ?? ""} />
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           <Scale label="Mood" low="Low" high="Great" value={mood} onChange={setMood} />
           <Scale label="Energy" low="Drained" high="Charged" value={energy} onChange={setEnergy} />
         </div>

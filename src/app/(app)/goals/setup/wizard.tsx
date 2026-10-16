@@ -225,7 +225,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
                   Count only the time left after work, sleep and life. Most people have 10 to 20 hours.
                 </p>
                 {currentSeason && (
-                  <p className="mt-5 rounded-2xl bg-sunken px-4 py-3 text-[13.5px] text-ink-2">
+                  <p className="mt-5 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
                     {currentSeason} will be archived when you finish.
                   </p>
                 )}
@@ -274,7 +274,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
         <div className="pointer-events-auto bg-bg pb-[max(16px,var(--safe-bottom))]">
           <div className="mx-auto w-full max-w-[640px] px-4 sm:px-6 lg:max-w-[760px]">
             {error && <p className="mb-2 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
-            <Button size="lg" onClick={next} disabled={!canNext} loading={pending}>
+            <Button size="lg" variant={canNext ? "primary" : "secondary"} className="disabled:opacity-100 disabled:text-ink-3" onClick={next} disabled={!canNext} loading={pending}>
               {primaryLabel}
             </Button>
           </div>

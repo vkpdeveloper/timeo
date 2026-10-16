@@ -1,41 +1,25 @@
 import "server-only";
 import { tool } from "ai";
-import { and, asc, desc, eq, gte, inArray, isNull, lte, max, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, t } from "@/db";
 import type { AiAction } from "@/db/schema";
 import type { CurrentUser } from "@/lib/auth";
-import { addDays, formatMin, isValidISODate, parseTime, startOfWeek, weekday } from "@/lib/dates";
+import type { ActionSink } from "./run";
+import { addDays, formatMin, isValidISODate, parseTime, weekday } from "@/lib/dates";
 import { getActiveSeason } from "@/lib/queries";
+import { bestMatch } from "./match";
 
 /*
  * Tools the command bar model can call. Write tools record every row they
  * create in `actions` so a command can be undone in one tap.
  */
 
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-
-function bestMatch<T extends { name: string }>(rows: T[], query: string): T | undefined {
-  const q = norm(query);
-  if (!q) return undefined;
-  const exact = rows.find((r) => norm(r.name) === q);
-  if (exact) return exact;
-  const qWords = new Set(q.split(" "));
-  let best: { row: T; score: number } | undefined;
-  for (const r of rows) {
-    const words = norm(r.name).split(" ");
-    const hits = words.filter((w) => qWords.has(w) || qWords.has(w.replace(/s$/, ""))).length;
-    const score = hits / Math.max(words.length, qWords.size);
-    if (score > (best?.score ?? 0)) best = { row: r, score };
-  }
-  return best && best.score >= 0.5 ? best.row : undefined;
-}
-
 const day = (user: CurrentUser, d?: string | null) => (d && isValidISODate(d) ? d : user.today);
 
 const DateArg = z.string().describe("YYYY-MM-DD. Omit for today.").optional();
 
-export function buildTools(user: CurrentUser, actions: AiAction[]) {
+export function buildTools(user: CurrentUser, actions: ActionSink) {
   const push = (a: AiAction) => actions.push(a);
 
   return {
@@ -306,29 +290,6 @@ export function buildTools(user: CurrentUser, actions: AiAction[]) {
       },
     }),
 
-    add_block: tool({
-      description: "Put a time block on the calendar.",
-      inputSchema: z.object({
-        title: z.string(),
-        date: DateArg,
-        start: z.string().describe("HH:MM 24h"),
-        end: z.string().describe("HH:MM 24h"),
-        kind: z.enum(["focus", "meeting", "workout", "meal", "life", "admin"]).default("focus"),
-        goal: z.string().optional(),
-      }),
-      execute: async (x) => {
-        const start = parseTime(x.start);
-        const end = parseTime(x.end);
-        if (start == null || end == null || end <= start) return { ok: false, error: "Bad times" };
-        const goal = x.goal ? await findGoal(user.id, x.goal) : undefined;
-        const id = crypto.randomUUID();
-        const d = day(user, x.date);
-        await db.insert(t.blocks).values({ id, userId: user.id, title: x.title, kind: x.kind, goalId: goal?.id ?? null, date: d, startMin: start, endMin: end });
-        push({ table: "blocks", id, label: `${x.title} · ${formatMin(start, true)}–${formatMin(end, true)}${d !== user.today ? ` · ${d}` : ""}`, icon: "calendar" });
-        return { ok: true };
-      },
-    }),
-
     // ───────────────────────────── Reads ─────────────────────────────
 
     get_day: tool({
@@ -436,12 +397,6 @@ export function buildTools(user: CurrentUser, actions: AiAction[]) {
           .from(t.bodyMetrics)
           .where(and(eq(t.bodyMetrics.userId, user.id), gte(t.bodyMetrics.date, from ?? addDays(user.today, -90)), lte(t.bodyMetrics.date, to ?? user.today)))
           .orderBy(asc(t.bodyMetrics.date)),
-    }),
-
-    get_goals: tool({
-      description: "Current season, goals (tier, status, weekly hours), milestones, and this week's planned/done time per goal.",
-      inputSchema: z.object({}),
-      execute: async () => goalsOverview(user),
     }),
 
     get_focus: tool({
@@ -554,35 +509,5 @@ export async function dayOverview(user: CurrentUser, d: string) {
     steps: daily?.steps ?? null,
     sleepHours: daily?.sleepHours ?? null,
     focusMin: focus?.min ?? 0,
-  };
-}
-
-async function goalsOverview(user: CurrentUser) {
-  const season = await getActiveSeason(user.id);
-  if (!season) return { season: null };
-  const ws = startOfWeek(user.today);
-  const [goals, milestones, weekBlocks] = await Promise.all([
-    db.select().from(t.goals).where(eq(t.goals.seasonId, season.id)),
-    db
-      .select({ goalId: t.milestones.goalId, title: t.milestones.title, due: t.milestones.dueDate, done: t.milestones.doneAt })
-      .from(t.milestones)
-      .where(eq(t.milestones.userId, user.id)),
-    db
-      .select({ goalId: t.blocks.goalId, min: sql<number>`sum(${t.blocks.endMin} - ${t.blocks.startMin})`, last: max(t.blocks.doneAt) })
-      .from(t.blocks)
-      .where(and(eq(t.blocks.userId, user.id), gte(t.blocks.date, ws), lte(t.blocks.date, addDays(ws, 6))))
-      .groupBy(t.blocks.goalId),
-  ]);
-  return {
-    season: { name: season.name, start: season.startDate, end: season.endDate },
-    goals: goals.map((g) => ({
-      title: g.title,
-      tier: g.tier,
-      status: g.status,
-      weeklyHoursTarget: g.weeklyHours,
-      plannedThisWeekMin: weekBlocks.find((b) => b.goalId === g.id)?.min ?? 0,
-      done: !!g.completedAt,
-      milestones: milestones.filter((m) => m.goalId === g.id).map((m) => `${m.done ? "[x]" : "[ ]"} ${m.title}${m.due ? ` (${m.due})` : ""}`),
-    })),
   };
 }

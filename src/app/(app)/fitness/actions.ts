@@ -24,7 +24,7 @@ async function emptyMarks(userId: string, day: string) {
     .select({
       id: t.workoutLogs.id,
       status: t.workoutLogs.status,
-      sets: sql<number>`(select count(*) from ${t.setLogs} where ${t.setLogs.workoutLogId} = ${t.workoutLogs.id})`,
+      sets: sql<number>`(select count(*) from "set_logs" s where s.workout_log_id = "workout_logs"."id")`,
     })
     .from(t.workoutLogs)
     .where(
@@ -44,9 +44,15 @@ async function emptyMarks(userId: string, day: string) {
 export async function startWorkout(templateId: string | null, day?: string) {
   const user = await requireUser();
   const date = day && isValidISODate(day) ? day : user.today;
-  const template = templateId ? await ownTemplate(user.id, templateId) : null;
-
-  const [scheduled, open, marks] = await Promise.all([
+  const [template, exercises, scheduled, open, marks] = await Promise.all([
+    templateId ? ownTemplate(user.id, templateId) : null,
+    templateId
+      ? db
+          .select()
+          .from(t.templateExercises)
+          .where(eq(t.templateExercises.templateId, templateId))
+          .orderBy(asc(t.templateExercises.sortOrder))
+      : [],
     scheduledFor(user.id, date),
     db
       .select({ id: t.workoutLogs.id, templateId: t.workoutLogs.templateId })
@@ -56,14 +62,6 @@ export async function startWorkout(templateId: string | null, day?: string) {
   ]);
   const resume = open.find((l) => l.templateId === (template?.id ?? null));
   if (resume) redirect(`/fitness/workout/${resume.id}`);
-
-  const exercises = template
-    ? await db
-        .select()
-        .from(t.templateExercises)
-        .where(eq(t.templateExercises.templateId, template.id))
-        .orderBy(asc(t.templateExercises.sortOrder))
-    : [];
 
   const values = {
     userId: user.id,
@@ -76,15 +74,8 @@ export async function startWorkout(templateId: string | null, day?: string) {
     startedAt: Date.now(),
     endedAt: null,
   };
-  let id: string;
   const reuse = marks[0];
-  if (reuse) {
-    id = reuse.id;
-    await db.update(t.workoutLogs).set(values).where(eq(t.workoutLogs.id, id));
-  } else {
-    id = crypto.randomUUID();
-    await db.insert(t.workoutLogs).values({ id, ...values });
-  }
+  const id = reuse?.id ?? crypto.randomUUID();
   const sets = exercises.flatMap((e, order) =>
     Array.from({ length: Math.max(1, e.sets) }, (_, i) => ({
       workoutLogId: id,
@@ -95,7 +86,11 @@ export async function startWorkout(templateId: string | null, day?: string) {
       reps: null,
     })),
   );
-  if (sets.length) await db.insert(t.setLogs).values(sets);
+  const write = reuse
+    ? db.update(t.workoutLogs).set(values).where(eq(t.workoutLogs.id, id))
+    : db.insert(t.workoutLogs).values({ id, ...values });
+  if (sets.length) await db.batch([write, db.insert(t.setLogs).values(sets)]);
+  else await write;
   redirect(`/fitness/workout/${id}`);
 }
 

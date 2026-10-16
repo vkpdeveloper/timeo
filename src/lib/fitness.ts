@@ -47,10 +47,13 @@ export async function getRoutines(userId: string): Promise<RoutineSummary[]> {
 }
 
 /** The weekly split, always 7 entries (Mon..Sun). */
-export async function getSchedule(userId: string, routines?: RoutineSummary[]): Promise<ScheduleDay[]> {
+export async function getSchedule(
+  userId: string,
+  routines?: RoutineSummary[] | Promise<RoutineSummary[]>,
+): Promise<ScheduleDay[]> {
   const [rows, list] = await Promise.all([
     db.select().from(t.gymSchedule).where(eq(t.gymSchedule.userId, userId)),
-    routines ? Promise.resolve(routines) : getRoutines(userId),
+    routines ?? getRoutines(userId),
   ]);
   const byId = new Map(list.map((r) => [r.id, r]));
   return Array.from({ length: 7 }, (_, wd) => {
@@ -105,7 +108,7 @@ function dayStatus(scheduled: ScheduleDay, log: TrainingDay["log"], date: string
 export async function getTrainingWeek(userId: string, day: string, today: string, schedule?: ScheduleDay[]) {
   const weekStart = startOfWeek(day);
   const weekEnd = addDays(weekStart, 6);
-  const [sched, logs, routines] = await Promise.all([
+  const [sched, logs, routines, workingSets] = await Promise.all([
     schedule ? Promise.resolve(schedule) : getSchedule(userId),
     db
       .select({
@@ -123,6 +126,7 @@ export async function getTrainingWeek(userId: string, day: string, today: string
       .select({ id: t.workoutTemplates.id, color: t.workoutTemplates.color })
       .from(t.workoutTemplates)
       .where(eq(t.workoutTemplates.userId, userId)),
+    countWorkingSets(userId, weekStart, weekEnd),
   ]);
   const colorOf = new Map(routines.map((r) => [r.id, r.color]));
   const days: TrainingDay[] = weekDays(weekStart).map((date) => {
@@ -148,7 +152,6 @@ export async function getTrainingWeek(userId: string, day: string, today: string
 
   const done = days.filter((d) => d.status === "completed" || d.status === "unlogged").length;
   const planned = sched.filter((d) => d.routine).length;
-  const workingSets = await countWorkingSets(userId, weekStart, weekEnd);
   return { weekStart, days, done, planned, workingSets };
 }
 

@@ -37,7 +37,7 @@ export function FocusWeekChart({ days, today }: { days: { date: string; focusMin
             {h > 0 ? (
               <path
                 d={`M${x},${base} V${y + r} Q${x},${y} ${x + r},${y} H${x + barW - r} Q${x + barW},${y} ${x + barW},${y + r} V${base} Z`}
-                fill={isToday ? "var(--accent)" : "color-mix(in oklab, var(--accent) 38%, var(--surface))"}
+                fill={isToday ? "var(--accent)" : "color-mix(in oklab, var(--ink) 20%, var(--surface))"}
               />
             ) : (
               <rect

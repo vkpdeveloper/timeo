@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Dumbbell,
   History,
+  LayoutGrid,
   ListChecks,
   Play,
   Scale,
@@ -26,7 +27,7 @@ import {
   getWeights,
   type TrainingDay,
 } from "@/lib/fitness";
-import { fmtKg } from "@/lib/fitness-math";
+import { fmtKg, rollingAverage } from "@/lib/fitness-math";
 import { startWorkout } from "./actions";
 import { IconBadge, MacroSummary, Sparkline, StatTile, StatusChip, WeekStrip } from "./_components/bits";
 import { MarkDayButtons, StartOtherButton, UndoMarkButton, type RoutineOption } from "./_components/day-actions";
@@ -56,15 +57,16 @@ function HubSkeleton() {
 
 async function Hub() {
   const user = await requireUser();
-  const routines = await getRoutines(user.id);
-  const schedule = await getSchedule(user.id, routines);
-  const [week, nutrition, weights, latest] = await Promise.all([
-    getTrainingWeek(user.id, user.today, user.today, schedule),
+  const routinesP = getRoutines(user.id);
+  const scheduleP = getSchedule(user.id, routinesP);
+  const [routines, week, { streak, target }, nutrition, weights, latest] = await Promise.all([
+    routinesP,
+    scheduleP.then((s) => getTrainingWeek(user.id, user.today, user.today, s)),
+    scheduleP.then((s) => getWeekStreak(user.id, user.today, s.filter((d) => d.routine).length)),
     getNutritionDay(user.id, user.today),
     getWeights(user.id, addDays(user.today, -30)),
     getLatestWeight(user.id),
   ]);
-  const { streak, target } = await getWeekStreak(user.id, user.today, week.planned);
   const today = week.days.find((d) => d.isToday)!;
   const options: RoutineOption[] = routines.map((r) => ({
     id: r.id,
@@ -144,13 +146,20 @@ async function Hub() {
               </div>
             )}
           </div>
-          <Sparkline values={weights.map((w) => w.weightKg)} width={128} height={44} />
+          <Sparkline values={rollingAverage(weights.map((w) => ({ date: w.date, value: w.weightKg })))} width={128} height={44} />
           <ChevronRight className="size-4 shrink-0 text-ink-3" />
         </Link>
       </Section>
 
       <Section title="Training">
         <Card>
+          <Row href="/fitness/programs">
+            <IconBadge color="var(--c-teal)"><LayoutGrid /></IconBadge>
+            <span className="flex-1">
+              <span className="block text-[15px] font-medium text-ink">Programs</span>
+              <span className="block text-[12.5px] text-ink-3">Load a whole split in one tap</span>
+            </span>
+          </Row>
           <Row href="/fitness/routines">
             <IconBadge color="var(--c-coral)"><Dumbbell /></IconBadge>
             <span className="flex-1 text-[15px] font-medium text-ink">Routines</span>
@@ -174,7 +183,7 @@ async function Hub() {
             {nutrition.target && <span className="truncate text-[13px] text-ink-3">{nutrition.target.planName}</span>}
           </Row>
           <Row href="/fitness/body">
-            <IconBadge color="var(--c-teal)"><Scale /></IconBadge>
+            <IconBadge color="var(--c-rose)"><Scale /></IconBadge>
             <span className="flex-1 text-[15px] font-medium text-ink">Body</span>
           </Row>
           <Row href="/fitness/import">

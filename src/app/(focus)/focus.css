@@ -1,0 +1,67 @@
+/* Focus mode is always dark and immersive, whatever the system theme. */
+.focus-theme {
+  --bg: #0a0a0b;
+  --surface: #151517;
+  --surface-2: #1b1b1e;
+  --sunken: #19191c;
+  --line: rgb(255 255 255 / 0.07);
+  --line-strong: rgb(255 255 255 / 0.13);
+  --ink: #f3f2ee;
+  --ink-2: #aaa69f;
+  --ink-3: #6c6963;
+  --accent: #ff7a52;
+  --accent-ink: #1a0d08;
+  --ok: #5cc28f;
+  --warn: #ebb04b;
+  --bad: #f0715d;
+  --shadow-sm: 0 0 0 1px rgb(255 255 255 / 0.02);
+  --shadow-lg: 0 24px 60px -12px rgb(0 0 0 / 0.7);
+  --glass: rgb(10 10 11 / 0.72);
+
+  --c-coral: #ff7a52;
+  --c-amber: #ebb04b;
+  --c-sage: #6cc08c;
+  --c-teal: #4cc2bf;
+  --c-sky: #63a8ec;
+  --c-indigo: #8288f0;
+  --c-violet: #ad86ee;
+  --c-rose: #f07c9f;
+  --c-slate: #9a9ea8;
+
+  --c-coral-soft: color-mix(in oklab, var(--c-coral) 16%, var(--surface));
+  --c-amber-soft: color-mix(in oklab, var(--c-amber) 16%, var(--surface));
+  --c-sage-soft: color-mix(in oklab, var(--c-sage) 16%, var(--surface));
+  --c-teal-soft: color-mix(in oklab, var(--c-teal) 16%, var(--surface));
+  --c-sky-soft: color-mix(in oklab, var(--c-sky) 16%, var(--surface));
+  --c-indigo-soft: color-mix(in oklab, var(--c-indigo) 16%, var(--surface));
+  --c-violet-soft: color-mix(in oklab, var(--c-violet) 16%, var(--surface));
+  --c-rose-soft: color-mix(in oklab, var(--c-rose) 16%, var(--surface));
+  --c-slate-soft: color-mix(in oklab, var(--c-slate) 14%, var(--surface));
+  --accent-soft: color-mix(in oklab, var(--accent) 16%, var(--surface));
+  --ok-soft: color-mix(in oklab, var(--ok) 16%, var(--surface));
+  --warn-soft: color-mix(in oklab, var(--warn) 16%, var(--surface));
+  --bad-soft: color-mix(in oklab, var(--bad) 16%, var(--surface));
+  --tint: var(--accent);
+  --tint-soft: var(--accent-soft);
+
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.focus-glow {
+  background: radial-gradient(60% 45% at 50% 38%, color-mix(in oklab, var(--glow, var(--accent)) 22%, transparent), transparent 70%);
+  animation: focus-breathe 8s ease-in-out infinite;
+}
+
+@keyframes focus-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}

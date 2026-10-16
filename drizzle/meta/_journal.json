@@ -22,6 +22,13 @@
       "when": 1792174480389,
       "tag": "0002_fitness_detail",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792176185453,
+      "tag": "0003_gym_programs",
+      "breakpoints": true
     }
   ]
 }

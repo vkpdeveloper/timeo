@@ -153,7 +153,7 @@ export function MacroSummary({
         value={target ? totals.calories / Math.max(1, target.calories) : 0}
         size={ringSize}
         stroke={compact ? 8 : 9}
-        color={left != null && left < 0 ? "var(--warn)" : "var(--c-amber)"}
+        color={totals.calories === 0 || !target ? "transparent" : left != null && left < 0 ? "var(--warn)" : "var(--c-amber)"}
       >
         <div className="text-center leading-none">
           <div className={cn("tnum font-semibold tracking-tight text-ink", compact ? "text-[20px]" : "text-[24px]")}>

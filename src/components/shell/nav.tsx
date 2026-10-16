@@ -19,7 +19,7 @@ const TABS: Tab[] = [
 ];
 
 // Screens that take over the whole display
-const IMMERSIVE = [/^\/fitness\/workout\//, /^\/goals\/setup/];
+const IMMERSIVE = [/^\/fitness\/workout\//, /^\/goals\/setup/, /^\/review\/week/];
 
 export function TabBar() {
   const pathname = usePathname();

@@ -252,12 +252,13 @@ export function Logger({
     const patch: Partial<LSet> = { done: true };
     if (!set.weight && prev?.weightKg != null) patch.weight = String(prev.weightKg);
     if (!set.reps) {
-      const fallback = prev?.reps ?? prescriptions[block.exerciseId]?.repsMin ?? null;
-      if (fallback == null) {
-        document.getElementById(`reps-${set.id}`)?.focus();
+      // Only copy what was actually done last time; never invent values.
+      if (prev?.reps == null) {
+        const focusId = !set.weight && !patch.weight && exById.get(block.exerciseId)?.type === "weight" ? `w-${set.id}` : `reps-${set.id}`;
+        document.getElementById(focusId)?.focus();
         return;
       }
-      patch.reps = String(fallback);
+      patch.reps = String(prev.reps);
     }
     patchSet(set.id, patch, "now");
     const restSec = set.warmup ? 60 : (prescriptions[block.exerciseId]?.restSec ?? 90);
@@ -517,6 +518,7 @@ export function Logger({
         defaultFeeling={log.feeling}
         defaultNotes={log.notes}
         flush={flushAll}
+        color={color}
       />
     </div>
   );
@@ -633,7 +635,7 @@ function ExerciseCard({
                 <NumInput
                   id={`reps-${s.id}`}
                   value={s.reps}
-                  placeholder={prev?.reps != null ? String(prev.reps) : "reps"}
+                  placeholder={prev?.reps != null ? String(prev.reps) : p && !s.warmup ? repsLabel(p.repsMin, p.repsMax, "reps") : "reps"}
                   done={s.done}
                   onChange={(v) => onChange(s.id, { reps: v })}
                   onBlur={() => onBlurSet(s.id)}

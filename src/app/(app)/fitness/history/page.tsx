@@ -53,9 +53,9 @@ async function HistoryList() {
       templateId: t.workoutLogs.templateId,
       plannedTemplateId: t.workoutLogs.plannedTemplateId,
       color: t.workoutTemplates.color,
-      sets: sql<number>`(select count(*) from ${t.setLogs} s where s.workout_log_id = ${t.workoutLogs.id} and s.warmup = 0 and s.done = 1)`,
-      volume: sql<number>`(select coalesce(sum(s.weight_kg * s.reps), 0) from ${t.setLogs} s where s.workout_log_id = ${t.workoutLogs.id} and s.warmup = 0 and s.done = 1 and s.weight_kg is not null)`,
-      unknown: sql<number>`(select count(*) from ${t.setLogs} s where s.workout_log_id = ${t.workoutLogs.id} and s.warmup = 0 and s.done = 1 and s.weight_kg is null)`,
+      sets: sql<number>`(select count(*) from ${t.setLogs} s where s.workout_log_id = "workout_logs"."id" and s.warmup = 0 and s.done = 1)`,
+      volume: sql<number>`(select coalesce(sum(s.weight_kg * s.reps), 0) from ${t.setLogs} s where s.workout_log_id = "workout_logs"."id" and s.warmup = 0 and s.done = 1 and s.weight_kg is not null)`,
+      unknown: sql<number>`(select count(*) from ${t.setLogs} s where s.workout_log_id = "workout_logs"."id" and s.warmup = 0 and s.done = 1 and s.weight_kg is null)`,
     })
     .from(t.workoutLogs)
     .leftJoin(t.workoutTemplates, eq(t.workoutTemplates.id, t.workoutLogs.templateId))

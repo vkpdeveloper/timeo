@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/primitives";
@@ -29,18 +29,22 @@ function LoggerSkeleton() {
 async function WorkoutContent({ params }: { params: PageProps<"/fitness/workout/[id]">["params"] }) {
   const user = await requireUser();
   const { id } = await params;
-  const log = await ownWorkout(user.id, id).catch(() => null);
-  if (!log) notFound();
-
-  const [sets, prescriptionRows, exercises, routine] = await Promise.all([
+  const ownLog = and(eq(t.workoutLogs.id, id), eq(t.workoutLogs.userId, user.id));
+  const [log, sets, prescriptionRows, exercises, routine] = await Promise.all([
+    ownWorkout(user.id, id).catch(() => null),
     db
-      .select()
+      .select({ s: t.setLogs })
       .from(t.setLogs)
-      .where(eq(t.setLogs.workoutLogId, log.id))
-      .orderBy(asc(t.setLogs.exerciseOrder), asc(t.setLogs.setIndex)),
-    log.templateId
-      ? db.select().from(t.templateExercises).where(eq(t.templateExercises.templateId, log.templateId))
-      : Promise.resolve([]),
+      .innerJoin(t.workoutLogs, eq(t.workoutLogs.id, t.setLogs.workoutLogId))
+      .where(ownLog)
+      .orderBy(asc(t.setLogs.exerciseOrder), asc(t.setLogs.setIndex))
+      .then((rows) => rows.map((r) => r.s)),
+    db
+      .select({ p: t.templateExercises })
+      .from(t.templateExercises)
+      .innerJoin(t.workoutLogs, eq(t.workoutLogs.templateId, t.templateExercises.templateId))
+      .where(ownLog)
+      .then((rows) => rows.map((r) => r.p)),
     db
       .select({
         id: t.exercises.id,
@@ -54,14 +58,14 @@ async function WorkoutContent({ params }: { params: PageProps<"/fitness/workout/
       .from(t.exercises)
       .where(eq(t.exercises.userId, user.id))
       .orderBy(asc(t.exercises.name)),
-    log.templateId
-      ? db
-          .select({ color: t.workoutTemplates.color })
-          .from(t.workoutTemplates)
-          .where(eq(t.workoutTemplates.id, log.templateId))
-          .get()
-      : Promise.resolve(undefined),
+    db
+      .select({ color: t.workoutTemplates.color })
+      .from(t.workoutTemplates)
+      .innerJoin(t.workoutLogs, eq(t.workoutLogs.templateId, t.workoutTemplates.id))
+      .where(ownLog)
+      .get(),
   ]);
+  if (!log) notFound();
 
   const exIds = [...new Set(sets.map((s) => s.exerciseId))];
   const history = await getExerciseHistory(user.id, exIds, log.id);

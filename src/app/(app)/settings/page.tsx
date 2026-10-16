@@ -45,9 +45,9 @@ async function SettingsContent() {
   const zones = Intl.supportedValuesOf("timeZone");
   const initial = user.name.trim().charAt(0).toUpperCase() || "?";
   const created = await db.select({ createdAt: t.users.createdAt }).from(t.users).where(eq(t.users.id, user.id)).get();
-  const since = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: user.timezone }).format(
-    new Date(created?.createdAt ?? Date.now()),
-  );
+  const since = created
+    ? new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: user.timezone }).format(created.createdAt)
+    : null;
 
   return (
     <div className="fade-up">
@@ -58,7 +58,7 @@ async function SettingsContent() {
           </span>
           <div className="min-w-0">
             <div className="truncate text-[18px] font-semibold tracking-tight text-ink">{user.name}</div>
-            <div className="text-[13.5px] text-ink-3">With Timeo since {since}</div>
+            {since && <div className="text-[13.5px] text-ink-3">With Timeo since {since}</div>}
           </div>
         </div>
         <NameRow name={user.name} />

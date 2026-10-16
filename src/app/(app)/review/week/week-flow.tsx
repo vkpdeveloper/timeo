@@ -101,7 +101,7 @@ export function WeekFlow({
     setPending(true);
     save()
       .then(() => go(1))
-      .catch((e) => setError(e instanceof Error ? e.message : "Couldn't save"))
+      .catch(() => setError("Couldn't save. Try again."))
       .finally(() => setPending(false));
   };
 

@@ -87,6 +87,7 @@ async function Session({ params }: { params: PageProps<"/fitness/history/[id]">[
       });
   }
   const duration = log.endedAt ? (log.endedAt - log.startedAt) / 60000 : null;
+  const hasDuration = duration != null && duration >= 1 && duration < 600;
   const volume = volumeOf(sets);
   const working = workingSetCount(sets);
   const unknownLoads = sets.filter((s) => !s.warmup && s.done && s.weightKg == null).length;
@@ -111,11 +112,15 @@ async function Session({ params }: { params: PageProps<"/fitness/history/[id]">[
         <div className="card grid grid-cols-3 divide-x divide-line">
           <Stat label="Working sets" value={log.status === "unlogged" ? "?" : String(working)} />
           <Stat label="Volume" value={volume ? fmtVolume(volume) : "—"} sub={unknownLoads ? `+${unknownLoads} unknown` : undefined} />
-          <Stat
-            label={log.feeling ? "Felt" : "Duration"}
-            value={log.feeling ? FEEL[log.feeling] : duration != null && duration < 600 ? formatDuration(duration) : "—"}
-            sub={log.feeling && duration != null && duration < 600 ? formatDuration(duration) : undefined}
-          />
+          {log.feeling || hasDuration ? (
+            <Stat
+              label={log.feeling ? "Felt" : "Duration"}
+              value={log.feeling ? FEEL[log.feeling] : formatDuration(duration!)}
+              sub={log.feeling && hasDuration ? formatDuration(duration!) : undefined}
+            />
+          ) : (
+            <Stat label="Exercises" value={log.status === "unlogged" ? "?" : String(blocks.length)} />
+          )}
         </div>
       )}
 

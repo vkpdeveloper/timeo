@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db, t } from "@/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
+import { DEFAULT_AI_MODEL } from "@/lib/ai/shared";
 import { seedNewUser } from "@/lib/seed";
 
 export type AuthState = { error?: string; email?: string; name?: string } | undefined;
@@ -32,7 +33,7 @@ export async function signup(_: AuthState, formData: FormData): Promise<AuthStat
   if (existing) return { error: "An account with this email already exists. Sign in instead.", email, name };
 
   const id = crypto.randomUUID();
-  await db.insert(t.users).values({ id, name, email, passwordHash: await hashPassword(password), timezone });
+  await db.insert(t.users).values({ id, name, email, passwordHash: await hashPassword(password), timezone, aiModel: DEFAULT_AI_MODEL });
   await seedNewUser(id);
   await createSession(id);
   redirect("/goals/setup");

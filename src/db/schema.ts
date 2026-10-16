@@ -387,6 +387,21 @@ export const gymSchedule = sqliteTable(
   (t) => [uniqueIndex("gym_schedule_unique").on(t.userId, t.weekday)],
 );
 
+// Saved gym programs (a whole split: routines + weekly schedule + notes) the
+// user can load in one tap. Built-in presets live in src/lib/gym-presets.ts.
+export const gymPrograms = sqliteTable(
+  "gym_programs",
+  {
+    id: id(),
+    userId: userId(),
+    name: text("name").notNull(),
+    description: text("description"),
+    data: text("data", { mode: "json" }).$type<import("@/lib/gym-presets").ProgramData>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("gym_programs_user_idx").on(t.userId)],
+);
+
 export const workoutLogs = sqliteTable(
   "workout_logs",
   {
@@ -578,6 +593,7 @@ export type WorkoutTemplate = typeof workoutTemplates.$inferSelect;
 export type TemplateExercise = typeof templateExercises.$inferSelect;
 export type GymScheduleDay = typeof gymSchedule.$inferSelect;
 export type WorkoutLog = typeof workoutLogs.$inferSelect;
+export type GymProgram = typeof gymPrograms.$inferSelect;
 export type SetLog = typeof setLogs.$inferSelect;
 export type BodyMetric = typeof bodyMetrics.$inferSelect;
 export type DietPlan = typeof dietPlans.$inferSelect;

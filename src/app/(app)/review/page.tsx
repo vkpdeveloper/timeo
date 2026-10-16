@@ -233,8 +233,8 @@ function SplitBar({ total, done, skipped }: { total: number; done: number; skipp
   if (total === 0) return <div className="mt-2.5 h-1.5 rounded-full bg-sunken" />;
   return (
     <div className="mt-2.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-sunken">
-      {done > 0 && <span className="h-full rounded-full bg-ink" style={{ width: `${(done / total) * 100}%` }} />}
-      {skipped > 0 && <span className="h-full rounded-full bg-ink-3/50" style={{ width: `${(skipped / total) * 100}%` }} />}
+      {done > 0 && <span className="h-full rounded-full bg-ink-2" style={{ width: `${(done / total) * 100}%` }} />}
+      {skipped > 0 && <span className="h-full rounded-full bg-ink-3/40" style={{ width: `${(skipped / total) * 100}%` }} />}
     </div>
   );
 }

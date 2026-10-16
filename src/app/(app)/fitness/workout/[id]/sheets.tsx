@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Segmented, Textarea } from "@/components/ui/controls";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
+import { tint } from "@/lib/colors";
 import { formatDuration } from "@/lib/dates";
 import { fmtVolume, type ExerciseOption } from "@/lib/fitness-math";
 import { discardWorkout, finishWorkout } from "./actions";
@@ -180,7 +181,9 @@ export function FinishSheet({
   defaultFeeling,
   defaultNotes,
   flush,
+  color,
 }: {
+  color: string;
   open: boolean;
   onClose: () => void;
   logId: string;
@@ -219,13 +222,13 @@ export function FinishSheet({
       onClose={onClose}
       title={editing ? "Save session" : "Finish workout"}
       footer={
-        <Button size="lg" loading={pending} onClick={finish} className="bg-tint text-white">
+        <Button size="lg" variant="tint" loading={pending} onClick={finish} style={tint(color)}>
           {editing ? "Save" : "Finish workout"}
         </Button>
       }
     >
       <div className="grid grid-cols-3 gap-2">
-        <SummaryStat label="Duration" value={durationSec != null ? formatDuration(durationSec / 60) : "—"} />
+        <SummaryStat label="Duration" value={durationSec == null ? "—" : durationSec < 60 ? "<1m" : formatDuration(durationSec / 60)} />
         <SummaryStat label="Working sets" value={String(workingSets)} />
         <SummaryStat label="Volume" value={volume ? fmtVolume(volume) : "—"} />
       </div>
@@ -256,7 +259,23 @@ export function FinishSheet({
       )}
 
       <Field label="How did it feel?" className="mt-5">
-        <Segmented size="sm" value={feeling ?? undefined} onChange={setFeeling} options={FEELINGS} />
+        <div className="grid grid-cols-5 gap-1.5">
+          {FEELINGS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              aria-pressed={feeling === f.value}
+              onClick={() => setFeeling(feeling === f.value ? null : f.value)}
+              className={cn(
+                "tap flex h-14 flex-col items-center justify-center rounded-2xl text-[12px] font-semibold",
+                feeling === f.value ? "bg-ink text-bg" : "bg-sunken text-ink-2",
+              )}
+            >
+              <span className="tnum text-[16px]">{f.value}</span>
+              {f.label}
+            </button>
+          ))}
+        </div>
       </Field>
       <Field label="Notes">
         <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Energy, form, anything to change next time" />

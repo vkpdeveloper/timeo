@@ -1,5 +1,9 @@
 // Client-safe AI types and labels.
 
+/** Fast, cheap and good at tool use on OpenCode Go. */
+export const DEFAULT_AI_MODEL = "claude-haiku-5-5";
+export const DEFAULT_AI_EFFORT = "low";
+
 export type Protocol = "chat" | "responses" | "anthropic" | "google";
 export type Effort = "auto" | "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
@@ -28,6 +32,17 @@ export type CommandResult = {
   ms: number;
   error?: string;
 };
+
+export type AssistantMetadata = {
+  commandId: string;
+  model: string;
+  ms?: number;
+  /** number of rows the command saved (so the client can refresh and offer undo) */
+  saved?: number;
+};
+
+/** What a write tool returns alongside its own result: the rows it saved. */
+export type SavedItem = { label: string; icon?: string };
 
 export const EFFORT_LABEL: Record<Effort, string> = {
   auto: "Auto",

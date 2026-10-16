@@ -7,6 +7,7 @@ import { db, t } from "@/db";
 import { getModelCatalog } from "@/lib/ai/catalog";
 import { requireUser } from "@/lib/auth";
 import { ModelPicker } from "./model-picker";
+import { DEFAULT_AI_MODEL } from "@/lib/ai/shared";
 
 export const metadata: Metadata = { title: "AI" };
 
@@ -17,7 +18,7 @@ export default function AiSettingsPage() {
       <div className="pt-5">
         <h1 className="display text-[34px] text-ink">Tell Timeo</h1>
         <p className="mt-1.5 text-[15px] leading-relaxed text-ink-2">
-          Type or say what you did. It logs it. Ask a quick question, get a short answer.
+          Log, plan and ask in plain words. It knows your seasons, goals, calendar and training.
         </p>
         <Suspense fallback={<PickerSkeleton />}>
           <Picker />
@@ -36,12 +37,11 @@ async function Picker() {
   return (
     <>
       <div className="mt-6">
-        <div className="eyebrow mb-2 px-1">Try it</div>
         <CommandBar />
       </div>
       <ModelPicker
         models={models}
-        initialModel={settings?.aiModel ?? "deepseek-v4.1-flash"}
+        initialModel={settings?.aiModel ?? DEFAULT_AI_MODEL}
         initialEffort={settings?.aiEffort ?? "low"}
         hasKey={!!process.env.OPENCODE_API_KEY}
       />

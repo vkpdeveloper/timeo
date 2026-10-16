@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/primitives";
@@ -139,7 +139,9 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/plan">[
               and(
                 eq(t.blocks.userId, user.id),
                 inArray(t.blocks.taskId, taskIds),
-                or(isNull(t.blocks.skippedAt), gte(t.blocks.date, date)),
+                // a missed block in the past no longer counts as scheduled
+                isNull(t.blocks.skippedAt),
+                gte(t.blocks.date, date),
               ),
             )
         ).map((r) => r.taskId)
@@ -150,7 +152,8 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/plan">[
   const dayGhost = ghosts.find((g) => g.date === date) ?? null;
   if (dayGhost?.startMin != null) busy.push({ startMin: dayGhost.startMin, endMin: dayGhost.startMin + dayGhost.durationMin });
   const nowRounded = date === user.today ? Math.ceil(nowMinIn(user.timezone) / 15) * 15 : 0;
-  const slotStart = Math.max(user.dayStartMin, nowRounded);
+  // mornings first, but not before 8am unless the day itself starts later
+  const slotStart = Math.max(user.dayStartMin, 8 * 60, nowRounded);
   const unscheduled: UnscheduledTask[] = [];
   for (const task of taskRows) {
     if (scheduledTaskIds.has(task.id)) continue;

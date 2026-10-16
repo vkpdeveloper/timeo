@@ -70,10 +70,13 @@ const hours = (min: number) => {
 };
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-/** First few words of a title so headlines stay short. */
+const FILLER = new Set(["a", "an", "the", "of", "to", "for", "and", "in", "on", "my", "with", "by", "at"]);
+
+/** First few words of a title so headlines stay short ("Run a 10k under 55 min" -> "Run a 10k"). */
 export function shortTitle(title: string, words = 3) {
-  const parts = title.trim().split(/\s+/);
-  return parts.length <= words ? title.trim() : parts.slice(0, words).join(" ");
+  const parts = title.trim().split(/\s+/).slice(0, words);
+  while (parts.length > 1 && FILLER.has(parts[parts.length - 1].toLowerCase())) parts.pop();
+  return parts.join(" ");
 }
 
 /** Health of each open goal in the active season, in tier order. Empty without a season. */
@@ -185,13 +188,14 @@ function recommend(
   goal: Goal,
   week: GoalWeek,
   steps: { id: string; doneAt: number | null; title: string }[],
-  blocks: { taskId: string | null }[],
+  blocks: { taskId: string | null; protected: boolean; skippedAt: number | null }[],
   milestonesTotal: number,
   milestonesOpen: number,
 ): CoachRecommendation | undefined {
   const goalId = goal.id;
   const short = week.targetMin > 0 && week.plannedMin < week.targetMin * 0.6;
-  if (short || week.rescheduleCount >= 3) {
+  const hasProtected = blocks.some((b) => b.protected && b.skippedAt == null);
+  if (short || (week.rescheduleCount >= 3 && !hasProtected)) {
     const gap = Math.max(60, Math.min(120, week.targetMin - week.plannedMin));
     return { kind: "protect_time", label: `Protect ${hours(gap)} tomorrow`, goalId };
   }
@@ -286,7 +290,7 @@ export async function getDailyRead(user: CurrentUser): Promise<DailyRead> {
   const worst = drifting[0];
 
   if (health.length === 0) return { headline: first, detail: "Set goals to get a daily read." };
-  const second = worst ? `${shortTitle(worst.goal.title, 2)} needs time.` : "Goals on track.";
+  const second = worst ? `${shortTitle(worst.goal.title)} needs time.` : "Goals on track.";
 
   const stats = [
     blocks.length ? `${done} of ${plural(blocks.length, "block")} done` : null,
