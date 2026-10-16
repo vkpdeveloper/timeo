@@ -1,13 +1,18 @@
-# Sends due push reminders (blocks, gym, morning read, evening check-in…).
-# Works on any Vercel plan. Needs two repository secrets:
-#   TIMEO_URL    e.g. https://timeo.vercel.app
-#   CRON_SECRET  same value as the CRON_SECRET env var on Vercel
+# Sends due push reminders (blocks, gym, morning read, evening check-in…)
+# every 5 minutes. Works on any Vercel plan and needs no secrets: the job
+# proves it runs in this repository with a GitHub OIDC token, which
+# /api/cron/notify verifies.
+# Optional repository variable TIMEO_URL overrides the site URL.
 name: Reminders
 
 on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   notify:
@@ -16,10 +21,8 @@ jobs:
     steps:
       - name: Trigger reminders
         env:
-          TIMEO_URL: ${{ secrets.TIMEO_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TIMEO_URL: ${{ vars.TIMEO_URL || 'https://timeo-five.vercel.app' }}
         run: |
-          if [ -z "$TIMEO_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "Set TIMEO_URL and CRON_SECRET repository secrets"; exit 0
-          fi
-          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "$TIMEO_URL/api/cron/notify"
+          TOKEN=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=timeo-cron" | jq -r .value)
+          curl -fsS --retry 2 --max-time 90 -H "Authorization: Bearer $TOKEN" "$TIMEO_URL/api/cron/notify"

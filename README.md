@@ -59,8 +59,10 @@ Settings → Notifications. On iPhone, add Timeo to the Home Screen first (iOS 1
 Time-based reminders (block starting, gym session, morning read, evening check-in, Sunday review,
 water) are sent by `/api/cron/notify`, which needs to be called every ~5 minutes:
 
-- **Any plan:** the included GitHub Actions workflow (`.github/workflows/reminders.yml`). Add the
-  repository secrets `TIMEO_URL` (your site URL) and `CRON_SECRET`.
+- **Any plan (default):** the included GitHub Actions workflow (`.github/workflows/reminders.yml`).
+  No secrets needed: it authenticates with a GitHub OIDC token that the endpoint verifies
+  (repository must match `CRON_GITHUB_REPO`, default `vkpdeveloper/timeo`). Set the repository
+  variable `TIMEO_URL` if your site isn't `https://timeo-five.vercel.app`.
 - **Vercel Pro:** alternatively add `"crons": [{ "path": "/api/cron/notify", "schedule": "*/5 * * * *" }]`
   to `vercel.json` (Vercel sends the `CRON_SECRET` automatically). Hobby only allows daily crons.
 

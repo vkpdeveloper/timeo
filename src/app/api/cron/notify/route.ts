@@ -1,14 +1,12 @@
+import { isAuthorizedCron } from "@/lib/push/cron-auth";
 import { runReminders } from "@/lib/push/reminders";
 
-// Called every few minutes by a scheduler (GitHub Actions, Vercel Cron or any
-// cron service) with `Authorization: Bearer <CRON_SECRET>`.
+// Called every few minutes by GitHub Actions (OIDC, no secret needed) or any
+// scheduler holding CRON_SECRET (`Authorization: Bearer <CRON_SECRET>`).
 export const maxDuration = 60;
 
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  if (!(await isAuthorizedCron(req))) return new Response("Unauthorized", { status: 401 });
   const result = await runReminders();
   return Response.json({ ok: true, ...result, at: new Date().toISOString() });
 }
