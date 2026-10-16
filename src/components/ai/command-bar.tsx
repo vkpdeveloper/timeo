@@ -40,8 +40,7 @@ export function CommandBar({ className }: { className?: string }) {
         go();
       }}
       className={cn(
-        "card flex items-center gap-2 rounded-[22px] p-1.5 pl-4 transition-shadow",
-        "focus-within:shadow-[0_0_0_4px_color-mix(in_oklab,var(--accent)_12%,transparent)]",
+        "card focus-shell flex items-center gap-2 rounded-[22px] p-1.5 pl-4",
         className,
       )}
     >

@@ -710,7 +710,7 @@ function NumInput({
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       className={cn(
         "tnum h-12 w-full min-w-0 rounded-xl text-center text-[19px] font-semibold text-ink outline-none transition-colors placeholder:font-medium placeholder:text-ink-3/70",
-        done ? "bg-transparent" : "bg-sunken focus:bg-surface focus:ring-2 focus:ring-[color-mix(in_oklab,var(--tint)_45%,transparent)]",
+        done ? "bg-transparent" : "bg-sunken focus:bg-surface focus:ring-[1.5px] focus:ring-inset focus:ring-[color-mix(in_oklab,var(--tint)_70%,transparent)]",
       )}
     />
   );

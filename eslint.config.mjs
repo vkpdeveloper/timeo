@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored shadcn / AI Elements components (kept close to upstream)
+    "src/components/shadcn/**",
+    "src/components/ai-elements/**",
   ]),
 ]);
 
