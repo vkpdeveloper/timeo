@@ -120,7 +120,7 @@ type Props = {
 /**
  * Assistant history. Every message runs in the background on the server, so
  * you can leave (or close the app) and come back to the result. A run opened
- * from a notification (/assistant#<id>) is scrolled to and highlighted.
+ * from a notification (/assistant#<id>) is scrolled into view.
  */
 export function Assistant({ initialRuns, timezone, models, modelId, effort }: Props) {
   const router = useRouter();
@@ -133,14 +133,10 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
   // the run opened from a notification / "Done" card (/assistant#<id>);
   // read after mount and on every hash change (client navigations don't reload)
   const [focus, setFocus] = useState<{ id: string; at: number } | null>(null);
-  const [focusFaded, setFocusFaded] = useState(false);
   useEffect(() => {
     const read = () => {
       const id = decodeURIComponent(location.hash.slice(1));
-      if (id) {
-        setFocus({ id, at: Date.now() });
-        setFocusFaded(false);
-      }
+      if (id) setFocus({ id, at: Date.now() });
     };
     const first = setTimeout(read, 60);
     window.addEventListener("hashchange", read);
@@ -149,12 +145,6 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
       window.removeEventListener("hashchange", read);
     };
   }, []);
-  useEffect(() => {
-    if (!focus) return;
-    const fade = setTimeout(() => setFocusFaded(true), 4500);
-    return () => clearTimeout(fade);
-  }, [focus]);
-  const focusId = focus?.id ?? null;
 
   // runs in progress (started here or on any other screen) overlay the saved history
   const list = useMemo(() => {
@@ -205,7 +195,6 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
           {list.length === 0 && <EmptyState onPick={send} />}
           {list.map((run, i) => {
             const newDay = i === 0 || day.format(run.createdAt) !== day.format(list[i - 1].createdAt);
-            const focused = run.id === focusId && !focusFaded;
             return (
               <div key={run.id}>
                 {newDay && (
@@ -218,8 +207,6 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
                 <RunView
                   run={run}
                   timezone={timezone}
-                  focused={focused}
-                  highlighted={run.id === focusId}
                   onUndone={() => setRuns((p) => ({ ...p, [run.id]: { ...run, undone: true } }))}
                 />
               </div>
@@ -262,14 +249,10 @@ function placeholder(id: string, input: string): AssistantRun {
 function RunView({
   run,
   timezone,
-  focused,
-  highlighted,
   onUndone,
 }: {
   run: AssistantRun;
   timezone: string;
-  focused: boolean;
-  highlighted: boolean;
   onUndone: () => void;
 }) {
   const parts = run.parts as AiPart[];
@@ -284,23 +267,7 @@ function RunView({
   const time = fmt({ hour: "numeric", minute: "2-digit" }, timezone).format(run.createdAt);
 
   return (
-    <article
-      id={`run-${run.id}`}
-      className={cn(
-        "relative -mx-3 scroll-mt-24 rounded-[26px] px-3 py-4 transition-[background-color,box-shadow] duration-700 sm:-mx-4 sm:px-4",
-        focused && "bg-accent-soft/60 shadow-[0_0_0_1.5px_color-mix(in_oklab,var(--accent)_45%,transparent)]",
-      )}
-    >
-      {highlighted && (
-        <span
-          className={cn(
-            "absolute top-4 -left-1 h-[calc(100%-2rem)] w-[3px] rounded-full bg-accent transition-opacity duration-700 sm:-left-1.5",
-            !focused && "opacity-40",
-          )}
-          aria-hidden
-        />
-      )}
-
+    <article id={`run-${run.id}`} className="scroll-mt-24 py-4">
       {/* you */}
       <div className="flex justify-end">
         <div className="max-w-[85%] rounded-[20px] rounded-br-md bg-surface px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap text-ink shadow-soft ring-1 ring-line">
