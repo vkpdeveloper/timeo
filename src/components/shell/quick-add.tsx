@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { getPickerContext, type GoalOption } from "@/actions/context";
 import { addWater } from "@/actions/health";
+import { CommandBar } from "@/components/ai/command-bar";
 import { BlockSheet, MealSheet, TaskSheet, WeighInSheet } from "@/components/forms/sheets";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
@@ -51,6 +52,7 @@ export function QuickAdd({ variant = "fab" }: { variant?: "fab" | "wide" }) {
       )}
 
       <Sheet open={mode === "menu"} onClose={close} title="Add">
+        <CommandBar className="mb-4" />
         <div className="grid grid-cols-2 gap-2.5 pb-2">
           {items.map((it) => {
             const Icon = it.icon;

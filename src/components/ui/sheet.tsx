@@ -2,9 +2,10 @@
 
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "motion/react";
 import { X } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
+import { useIsClient, useMediaQuery } from "@/lib/hooks";
 
 type SheetProps = {
   open: boolean;
@@ -26,17 +27,8 @@ type SheetProps = {
 export function Sheet({ open, onClose, title, description, children, footer, className, tall }: SheetProps) {
   const controls = useDragControls();
   const titleId = useId();
-  const [mounted, setMounted] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const mq = window.matchMedia("(min-width: 768px)");
-    const update = () => setIsDesktop(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
+  const mounted = useIsClient();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   useEffect(() => {
     if (!open) return;

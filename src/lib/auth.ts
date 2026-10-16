@@ -82,8 +82,15 @@ export const getUser = cache(async (): Promise<CurrentUser | null> => {
     .where(eq(t.sessions.id, hashToken(token)))
     .get();
   if (!row || row.expiresAt < Date.now()) return null;
-  const { expiresAt: _expiresAt, ...user } = row;
-  return { ...user, today: todayIn(user.timezone) };
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    timezone: row.timezone,
+    dayStartMin: row.dayStartMin,
+    dayEndMin: row.dayEndMin,
+    today: todayIn(row.timezone),
+  };
 });
 
 /** Use in pages and server actions: redirects to /login when signed out. */

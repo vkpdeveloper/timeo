@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState } from "react";
 import { SubmitButton } from "@/components/ui/button";
+import { useClientValue } from "@/lib/hooks";
 import { Input } from "@/components/ui/controls";
 import { login, signup, type AuthState } from "./actions";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [state, action] = useActionState<AuthState, FormData>(mode === "login" ? login : signup, undefined);
-  const [timezone, setTimezone] = useState("UTC");
-  useEffect(() => setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone), []);
+  const timezone = useClientValue(() => Intl.DateTimeFormat().resolvedOptions().timeZone, "UTC");
 
   return (
     <form action={action} className="space-y-3">
