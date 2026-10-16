@@ -12,18 +12,18 @@ nutrition tracker built in. Installable as an app on iPhone and Android.
 | **Goals** | 12-week seasons. Brain dump → goals → Core / Secondary / Support tiers with weekly hours → milestones → weekly steps. Each goal gets an honest On track / Adjust / Off track status with reasons and one-tap fixes. Plan strength score. |
 | **Plan** | Day and week calendar with time blocks tied to goals. Tracks reschedules (drift). Gym days appear automatically. |
 | **Focus** | Full-screen focus timer against a block, task or goal. Rates focus and energy after; computes a focus quality score. |
-| **Fitness** | Weekly split, routines with rep ranges, a one-handed set logger with rest timer and last-session numbers, history, PRs, estimated 1RM, body weight, diet plans (plus a plan library), meals and water. JSON import for existing training logs. |
+| **Fitness** | Weekly split, routines with rep ranges, a one-handed set logger with rest timer and last-session numbers, history, PRs, estimated 1RM, body weight, diet plans (plus a plan library), meals and water. **Program presets**: load a whole split in one tap, or save your own. JSON import for existing training logs. |
 | **Review** | Evening reflection, weekly review per goal (builds each goal's trajectory), focus chart and energy report. |
-| **Tell Timeo (AI)** | Type or speak what you did — "push A: incline 20×10, 22.5×8; 2 rotis and dal; 500 ml water" — and it logs real rows you can undo. Ask quick questions and get one-line answers. No chat. |
+| **Ask Timeo (AI)** | A GPS-aware assistant (shadcn AI Elements, streaming). It creates seasons, goals, milestones and weekly steps, plans your week into time blocks, protects time, edits your gym split, and logs workouts, meals, water, weight and reflections, each reply undoable. Answers questions about your data in a line. Type or speak. |
 
 The coach (statuses, drift reasons, plan strength, protect-time suggestions) is deterministic. AI is
-only used by the *Tell Timeo* bar.
+only used by the assistant (`/assistant`, `src/app/api/assistant`, `src/lib/ai`).
 
 ## Stack
 
 - Next.js 16 (App Router, Cache Components, Server Actions), React 19, Tailwind CSS 4
 - Drizzle ORM on Turso (libSQL)
-- Vercel AI SDK against OpenCode Go/Zen (model and reasoning effort are picked in Settings → AI)
+- Vercel AI SDK + shadcn AI Elements against OpenCode Go/Zen (model and reasoning effort are picked in Settings → AI; default Claude Haiku 5.5)
 - PWA: web manifest, icons, service worker with offline fallback
 
 ## Run locally
@@ -35,8 +35,8 @@ npm run db:migrate           # applies drizzle/ migrations to your Turso databas
 npm run dev
 ```
 
-Open http://localhost:3000, create an account, and the starter program (Pull A / Push A / Pull B /
-Push B / Legs) is seeded for you.
+Open http://localhost:3000, create an account, and the Pull A / Push A / Pull B / Push B / Legs
+program is loaded for you. Switch programs any time in Fitness → Programs.
 
 ### Environment
 
@@ -44,7 +44,7 @@ Push B / Legs) is seeded for you.
 | --- | --- |
 | `TURSO_DATABASE_URL` | `libsql://…` database URL |
 | `TURSO_AUTH_TOKEN` | Turso auth token |
-| `OPENCODE_API_KEY` | OpenCode Go (or Zen) key for *Tell Timeo*. Optional; the rest of the app works without it. |
+| `OPENCODE_API_KEY` | OpenCode Go (or Zen) key for the assistant. Optional; the rest of the app works without it. |
 
 ### Database
 
@@ -78,7 +78,9 @@ src/
   app/(app)/         Today, Plan, Goals, Fitness, Review, Settings (tab bar shell)
   app/(focus)/       full-screen focus timer
   actions/           shared server actions (tasks, blocks, health, AI)
+  app/(assistant)/   full-screen AI assistant
   components/ui/     design system primitives
+  components/ai-elements/, components/shadcn/   shadcn AI Elements (themed to Timeo tokens)
   components/forms/  shared bottom sheets (task, block, meal, weigh-in)
   db/                Drizzle schema and client
   lib/               dates, auth, coach, AI (catalog, provider routing, tools), fitness helpers
