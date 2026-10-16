@@ -1,0 +1,259 @@
+"use client";
+
+import { ChevronRight, LocateFixed, Share, SquarePlus, Trash2 } from "lucide-react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { Button, SubmitButton } from "@/components/ui/button";
+import { Field, Input, Select } from "@/components/ui/controls";
+import { Sheet } from "@/components/ui/sheet";
+import { cn } from "@/lib/cn";
+import { formatMin, toTimeInput } from "@/lib/dates";
+import { deleteAccount, updateDayHours, updateName, updateTimezone } from "./actions";
+
+/** A Row-styled button that opens a sheet. */
+function RowButton({
+  label,
+  value,
+  onClick,
+  danger,
+  icon,
+}: {
+  label: ReactNode;
+  value?: ReactNode;
+  onClick: () => void;
+  danger?: boolean;
+  icon?: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="tap flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-sunken [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line"
+    >
+      {icon}
+      <span className={cn("flex-1 text-[15px] font-medium", danger ? "text-bad" : "text-ink")}>{label}</span>
+      {value != null && <span className="max-w-[55%] truncate text-[14px] text-ink-3">{value}</span>}
+      {!danger && <ChevronRight className="size-4 shrink-0 text-ink-3" />}
+    </button>
+  );
+}
+
+function useSheetForm(action: (fd: FormData) => Promise<void>) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return {
+    open,
+    show: () => {
+      setError(null);
+      setOpen(true);
+    },
+    close: () => setOpen(false),
+    error,
+    action: async (fd: FormData) => {
+      setError(null);
+      try {
+        await action(fd);
+        setOpen(false);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong");
+      }
+    },
+  };
+}
+
+function ErrorNote({ error }: { error: string | null }) {
+  if (!error) return null;
+  return <p className="mb-3 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>;
+}
+
+export function NameRow({ name }: { name: string }) {
+  const s = useSheetForm(updateName);
+  return (
+    <>
+      <RowButton label="Name" value={name} onClick={s.show} />
+      <Sheet open={s.open} onClose={s.close} title="Your name">
+        <form action={s.action}>
+          <Field>
+            <Input name="name" defaultValue={name} maxLength={80} autoComplete="name" required autoFocus />
+          </Field>
+          <ErrorNote error={s.error} />
+          <SubmitButton size="lg">Save</SubmitButton>
+        </form>
+      </Sheet>
+    </>
+  );
+}
+
+const deviceZone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return null;
+  }
+};
+
+export function TimezoneRow({ timezone, zones }: { timezone: string; zones: string[] }) {
+  const s = useSheetForm(updateTimezone);
+  const [value, setValue] = useState(timezone);
+  const device = useSyncExternalStore(
+    () => () => {},
+    deviceZone,
+    () => null,
+  );
+  const options = zones.includes(timezone) ? zones : [timezone, ...zones];
+  const label = (z: string) => z.replaceAll("_", " ");
+  return (
+    <>
+      <RowButton
+        label="Timezone"
+        value={label(timezone)}
+        onClick={() => {
+          setValue(timezone);
+          s.show();
+        }}
+      />
+      <Sheet open={s.open} onClose={s.close} title="Timezone" description="Days start and end here.">
+        <form action={s.action}>
+          <Field>
+            <Select name="timezone" value={value} onChange={(e) => setValue(e.target.value)}>
+              {device && !options.includes(device) && <option value={device}>{label(device)}</option>}
+              {options.map((z) => (
+                <option key={z} value={z}>
+                  {label(z)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {device && device !== value && (
+            <Button type="button" variant="secondary" className="mb-4 w-full" onClick={() => setValue(device)}>
+              <LocateFixed className="size-4" />
+              Use this device&apos;s timezone
+            </Button>
+          )}
+          {device && device === value && (
+            <p className="mb-4 px-1 text-[13px] text-ink-3">Matches this device.</p>
+          )}
+          <ErrorNote error={s.error} />
+          <SubmitButton size="lg">Save</SubmitButton>
+        </form>
+      </Sheet>
+    </>
+  );
+}
+
+export function DayHoursRow({ startMin, endMin }: { startMin: number; endMin: number }) {
+  const s = useSheetForm(updateDayHours);
+  return (
+    <>
+      <RowButton label="Planner day" value={`${formatMin(startMin)} – ${formatMin(endMin)}`} onClick={s.show} />
+      <Sheet open={s.open} onClose={s.close} title="Planner day" description="The hours your calendar shows.">
+        <form action={s.action}>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Starts">
+              <Input type="time" name="start" defaultValue={toTimeInput(startMin)} required />
+            </Field>
+            <Field label="Ends">
+              <Input type="time" name="end" defaultValue={toTimeInput(endMin)} required />
+            </Field>
+          </div>
+          <ErrorNote error={s.error} />
+          <SubmitButton size="lg">Save</SubmitButton>
+        </form>
+      </Sheet>
+    </>
+  );
+}
+
+export function DeleteAccountRow() {
+  const s = useSheetForm(deleteAccount);
+  const [typed, setTyped] = useState("");
+  return (
+    <>
+      <RowButton
+        label="Delete account"
+        danger
+        icon={
+          <span className="grid size-8 shrink-0 place-items-center rounded-[9px] bg-bad-soft text-bad">
+            <Trash2 className="size-[17px]" />
+          </span>
+        }
+        onClick={() => {
+          setTyped("");
+          s.show();
+        }}
+      />
+      <Sheet
+        open={s.open}
+        onClose={s.close}
+        title="Delete account"
+        description="This removes your account and all your data. It can't be undone."
+      >
+        <form action={s.action}>
+          <Field label="Type DELETE to confirm">
+            <Input
+              name="confirm"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              placeholder="DELETE"
+            />
+          </Field>
+          <ErrorNote error={s.error} />
+          <SubmitButton size="lg" variant="danger" disabled={typed !== "DELETE"}>
+            Delete everything
+          </SubmitButton>
+        </form>
+      </Sheet>
+    </>
+  );
+}
+
+type InstallState = "standalone" | "ios" | "other";
+
+function installState(): InstallState {
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  if (standalone) return "standalone";
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return ios ? "ios" : "other";
+}
+
+/** "Add to Home Screen" steps on iOS Safari when the app isn't installed yet. */
+export function InstallHint() {
+  const state = useSyncExternalStore(
+    () => () => {},
+    installState,
+    () => null,
+  );
+  if (state === "standalone") {
+    return (
+      <div className="flex items-center gap-3 border-b border-line px-4 py-3.5">
+        <span className="flex-1 text-[15px] font-medium text-ink">Home Screen app</span>
+        <span className="text-[14px] text-ink-3">Installed</span>
+      </div>
+    );
+  }
+  if (state !== "ios") return null;
+  return (
+    <div className="border-b border-line px-4 py-4">
+      <div className="text-[15px] font-medium text-ink">Add to Home Screen</div>
+      <p className="mt-0.5 text-[13.5px] text-ink-3">Opens full screen, like an app.</p>
+      <ol className="mt-3 flex flex-col gap-2 text-[14px] text-ink-2">
+        <li className="flex items-center gap-2.5">
+          <span className="grid size-7 place-items-center rounded-lg bg-sunken text-ink">
+            <Share className="size-[15px]" />
+          </span>
+          Tap Share in Safari
+        </li>
+        <li className="flex items-center gap-2.5">
+          <span className="grid size-7 place-items-center rounded-lg bg-sunken text-ink">
+            <SquarePlus className="size-[15px]" />
+          </span>
+          Choose Add to Home Screen
+        </li>
+      </ol>
+    </div>
+  );
+}
