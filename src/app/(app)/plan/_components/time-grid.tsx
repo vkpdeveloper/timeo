@@ -161,7 +161,7 @@ export function TimeGrid({
         {todayCol >= 0 && now != null && now >= range.start && now <= range.end && (
           <div className="pointer-events-none absolute right-0 left-0 z-20" style={{ top: y(now) }}>
             <span
-              className="tnum absolute -translate-y-1/2 rounded-full bg-accent px-1.5 py-[1px] text-[10px] font-semibold text-white"
+              className="tnum absolute -translate-y-1/2 rounded-full bg-accent px-1.5 py-[1px] text-[10px] font-semibold text-accent-ink"
               style={{ right: `calc(100% - ${gutter - 2}px)` }}
             >
               {formatMin(now, true).replace(/(am|pm)$/, "")}

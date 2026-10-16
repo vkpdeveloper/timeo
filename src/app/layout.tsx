@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/shell/sw-register";
+import { ThemeBoot } from "@/components/shell/theme";
+import { themeBootScript } from "@/lib/themes";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -24,10 +26,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f4f0" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0b0c" },
-  ],
+  // theme-color is set by the theme boot script (src/lib/themes.ts) to follow the chosen theme
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -35,8 +34,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
+      // The boot script sets data-theme / data-mode (and custom theme variables) before paint
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
+      </head>
       <body>
+        <ThemeBoot />
         {children}
         <ServiceWorkerRegister />
       </body>

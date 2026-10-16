@@ -14,5 +14,5 @@ export const softVar = (c: string) => `var(--c-${isPaletteColor(c) ? c : "slate"
 
 /** Inline style that exposes --tint and --tint-soft for a palette colour. */
 export function tint(c: string): React.CSSProperties {
-  return { ["--tint" as string]: colorVar(c), ["--tint-soft" as string]: softVar(c) };
+  return { ["--tint" as string]: colorVar(c), ["--tint-soft" as string]: softVar(c), ["--tint-ink" as string]: "#fff" };
 }

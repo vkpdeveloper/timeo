@@ -4,70 +4,191 @@
 
 /* ─────────────────────────── Tokens ─────────────────────────── */
 
-:root {
-  --bg: #f5f4f0;
-  --surface: #ffffff;
-  --surface-2: #fafaf7;
-  --sunken: #eceae4;
-  --line: rgb(24 22 18 / 0.07);
-  --line-strong: rgb(24 22 18 / 0.13);
-  --ink: #18171a;
-  --ink-2: #5b5852;
-  --ink-3: #9a968e;
-  --accent: #e5603b;
-  --accent-ink: #ffffff;
-  --ok: #3f9a6c;
-  --warn: #d4952a;
-  --bad: #d4533f;
-  --shadow-sm: 0 1px 2px rgb(24 22 18 / 0.04), 0 1px 1px rgb(24 22 18 / 0.03);
-  --shadow-lg: 0 24px 60px -12px rgb(24 22 18 / 0.25), 0 8px 20px -8px rgb(24 22 18 / 0.12);
-  --glass: rgb(245 244 240 / 0.78);
+/*
+ * Every colour is a light-dark() pair, resolved by `color-scheme`:
+ *   data-mode="light" | "dark" on <html> forces a mode; "system" (or no
+ *   attribute) follows the OS. data-theme="<id>" picks a colour theme
+ *   (src/lib/themes.ts). The boot script in app/layout.tsx sets both before
+ *   first paint. Custom themes set their variables inline on <html>.
+ */
 
-  --c-coral: #e5603b;
-  --c-amber: #d4952a;
-  --c-sage: #4f9a6c;
-  --c-teal: #2a9896;
-  --c-sky: #3a87d0;
-  --c-indigo: #5a60d2;
-  --c-violet: #8a5ad0;
-  --c-rose: #d1557b;
-  --c-slate: #6b6f78;
-
-  color-scheme: light;
+/* `dark:` follows the chosen mode, not only the OS. */
+@custom-variant dark {
+  &:where([data-mode="dark"], [data-mode="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-mode="light"], [data-mode="dark"]), :root:not([data-mode="light"], [data-mode="dark"]) *) {
+      @slot;
+    }
+  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0b0c;
-    --surface: #151517;
-    --surface-2: #1b1b1e;
-    --sunken: #101012;
-    --line: rgb(255 255 255 / 0.065);
-    --line-strong: rgb(255 255 255 / 0.12);
-    --ink: #f3f2ee;
-    --ink-2: #aaa69f;
-    --ink-3: #6c6963;
-    --accent: #ff7a52;
-    --accent-ink: #1a0d08;
-    --ok: #5cc28f;
-    --warn: #ebb04b;
-    --bad: #f0715d;
-    --shadow-sm: 0 0 0 1px rgb(255 255 255 / 0.02);
-    --shadow-lg: 0 24px 60px -12px rgb(0 0 0 / 0.7);
-    --glass: rgb(11 11 12 / 0.72);
+:root {
+  color-scheme: light dark;
 
-    --c-coral: #ff7a52;
-    --c-amber: #ebb04b;
-    --c-sage: #6cc08c;
-    --c-teal: #4cc2bf;
-    --c-sky: #63a8ec;
-    --c-indigo: #8288f0;
-    --c-violet: #ad86ee;
-    --c-rose: #f07c9f;
-    --c-slate: #9a9ea8;
+  /* Core (Paper). Themes override these. */
+  --bg: light-dark(#f5f4f0, #0b0b0c);
+  --surface: light-dark(#ffffff, #151517);
+  --ink: light-dark(#18171a, #f3f2ee);
+  --ink-2: light-dark(#5b5852, #aaa69f);
+  --accent: light-dark(#e5603b, #ff7a52);
+  --accent-ink: light-dark(#ffffff, #1a0d08);
 
-    color-scheme: dark;
-  }
+  /* Derived. Themes may override any of them. */
+  --surface-2: color-mix(in oklab, var(--surface) 55%, var(--bg));
+  --sunken: light-dark(
+    color-mix(in oklab, var(--bg) 95%, var(--ink)),
+    color-mix(in oklab, var(--bg) 60%, var(--surface))
+  );
+  --ink-3: color-mix(in oklab, var(--ink-2) 62%, var(--bg));
+  --line: color-mix(in srgb, var(--ink) 8%, transparent);
+  --line-strong: color-mix(in srgb, var(--ink) 14%, transparent);
+  --glass: light-dark(
+    color-mix(in srgb, var(--bg) 78%, transparent),
+    color-mix(in srgb, var(--bg) 72%, transparent)
+  );
+
+  /* Shared by every theme */
+  --ok: light-dark(#3f9a6c, #5cc28f);
+  --warn: light-dark(#d4952a, #ebb04b);
+  --bad: light-dark(#d4533f, #f0715d);
+  --shadow-sm:
+    0 1px 2px light-dark(rgb(24 22 18 / 0.04), transparent), 0 1px 1px light-dark(rgb(24 22 18 / 0.03), transparent),
+    0 0 0 1px light-dark(transparent, rgb(255 255 255 / 0.02));
+  --shadow-lg:
+    0 24px 60px -12px light-dark(rgb(24 22 18 / 0.25), rgb(0 0 0 / 0.7)),
+    0 8px 20px -8px light-dark(rgb(24 22 18 / 0.12), transparent);
+
+  --c-coral: light-dark(#e5603b, #ff7a52);
+  --c-amber: light-dark(#d4952a, #ebb04b);
+  --c-sage: light-dark(#4f9a6c, #6cc08c);
+  --c-teal: light-dark(#2a9896, #4cc2bf);
+  --c-sky: light-dark(#3a87d0, #63a8ec);
+  --c-indigo: light-dark(#5a60d2, #8288f0);
+  --c-violet: light-dark(#8a5ad0, #ad86ee);
+  --c-rose: light-dark(#d1557b, #f07c9f);
+  --c-slate: light-dark(#6b6f78, #9a9ea8);
+}
+
+:root[data-mode="light"] {
+  color-scheme: light;
+}
+:root[data-mode="dark"] {
+  color-scheme: dark;
+}
+
+/* Themes, generated from src/lib/themes.ts. Keep the two in sync. */
+:root:not([data-theme]),
+:root[data-theme="paper"] {
+  --surface-2: light-dark(#fafaf7, #1b1b1e);
+  --sunken: light-dark(#eceae4, #101012);
+  --ink-3: light-dark(#9a968e, #6c6963);
+  --line: light-dark(rgb(24 22 18 / 0.07), rgb(255 255 255 / 0.065));
+  --line-strong: light-dark(rgb(24 22 18 / 0.13), rgb(255 255 255 / 0.12));
+}
+:root[data-theme="graphite"] {
+  --bg: light-dark(#f2f3f5, #0e0f12);
+  --surface: light-dark(#ffffff, #17191d);
+  --ink: light-dark(#16181d, #eceef2);
+  --ink-2: light-dark(#535a66, #a2a8b4);
+  --accent: light-dark(#4f56d6, #8d95ff);
+  --accent-ink: light-dark(#ffffff, #0f1133);
+}
+:root[data-theme="mono"] {
+  --bg: light-dark(#f3f3f3, #0a0a0a);
+  --surface: light-dark(#ffffff, #161616);
+  --ink: light-dark(#141414, #f0f0f0);
+  --ink-2: light-dark(#575757, #a3a3a3);
+  --accent: light-dark(#141414, #f0f0f0);
+  --accent-ink: light-dark(#ffffff, #111111);
+}
+:root[data-theme="nord"] {
+  --bg: light-dark(#e5e9f0, #2e3440);
+  --surface: light-dark(#f4f6f9, #3b4252);
+  --ink: light-dark(#2e3440, #eceff4);
+  --ink-2: light-dark(#4c566a, #b4bccb);
+  --accent: light-dark(#44658f, #96d0e0);
+  --accent-ink: light-dark(#ffffff, #242933);
+  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #434c5e);
+  --sunken: light-dark(#d8dee9, #292e39);
+}
+:root[data-theme="solarized"] {
+  --bg: light-dark(#eee8d5, #002b36);
+  --surface: light-dark(#fdf6e3, #073642);
+  --ink: light-dark(#073642, #eee8d5);
+  --ink-2: light-dark(#4f646b, #93a1a1);
+  --accent: light-dark(#1b6499, #6ab8f0);
+  --accent-ink: light-dark(#fdf6e3, #002b36);
+  --sunken: light-dark(color-mix(in oklab, var(--bg) 95%, var(--ink)), #00252e);
+}
+:root[data-theme="catppuccin"] {
+  --bg: light-dark(#e6e9ef, #181825);
+  --surface: light-dark(#eff1f5, #1e1e2e);
+  --ink: light-dark(#4c4f69, #cdd6f4);
+  --ink-2: light-dark(#5c5f77, #a6adc8);
+  --accent: light-dark(#7a2bdc, #cba6f7);
+  --accent-ink: light-dark(#ffffff, #1e1e2e);
+  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #262637);
+  --sunken: light-dark(#dce0e8, #11111b);
+}
+:root[data-theme="gruvbox"] {
+  --bg: light-dark(#f2e5bc, #1d2021);
+  --surface: light-dark(#fbf1c7, #282828);
+  --ink: light-dark(#3c3836, #ebdbb2);
+  --ink-2: light-dark(#5f5650, #a89984);
+  --accent: light-dark(#a03502, #fe8019);
+  --accent-ink: light-dark(#fbf1c7, #1d2021);
+  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #32302f);
+  --sunken: light-dark(#ebdbb2, color-mix(in oklab, var(--bg) 60%, var(--surface)));
+}
+:root[data-theme="tokyo-night"] {
+  --bg: light-dark(#e1e2e7, #1a1b26);
+  --surface: light-dark(#f2f2f5, #24283b);
+  --ink: light-dark(#343b58, #c0caf5);
+  --ink-2: light-dark(#4f5a85, #a9b1d6);
+  --accent: light-dark(#2a56b8, #7aa2f7);
+  --accent-ink: light-dark(#ffffff, #1a1b26);
+  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #292e42);
+  --sunken: light-dark(#d6d8df, #16161e);
+}
+:root[data-theme="rose-pine"] {
+  --bg: light-dark(#faf4ed, #191724);
+  --surface: light-dark(#fffaf3, #1f1d2e);
+  --ink: light-dark(#464261, #e0def4);
+  --ink-2: light-dark(#625e7c, #a9a5c2);
+  --accent: light-dark(#9f4d65, #ebbcba);
+  --accent-ink: light-dark(#fffaf3, #191724);
+  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #26233a);
+  --sunken: light-dark(#f2e9e1, color-mix(in oklab, var(--bg) 60%, var(--surface)));
+}
+:root[data-theme="dracula"] {
+  --bg: light-dark(#f6f5ef, #21222c);
+  --surface: light-dark(#fffdf7, #282a36);
+  --ink: light-dark(#1f1f2b, #f8f8f2);
+  --ink-2: light-dark(#5b5c70, #b6b9cf);
+  --accent: light-dark(#6c4fd1, #bd93f9);
+  --accent-ink: light-dark(#ffffff, #21222c);
+  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #303341);
+}
+:root[data-theme="github"] {
+  --bg: light-dark(#f6f8fa, #0d1117);
+  --surface: light-dark(#ffffff, #151b23);
+  --ink: light-dark(#1f2328, #f0f6fc);
+  --ink-2: light-dark(#59636e, #9198a1);
+  --accent: light-dark(#085ec4, #4493f8);
+  --accent-ink: light-dark(#ffffff, #0d1117);
+  --sunken: light-dark(#eef1f4, color-mix(in oklab, var(--bg) 60%, var(--surface)));
+}
+:root[data-theme="one"] {
+  --bg: light-dark(#f0f0f1, #21252b);
+  --surface: light-dark(#fafafa, #282c34);
+  --ink: light-dark(#383a42, #dcdfe4);
+  --ink-2: light-dark(#5c5f6b, #abb2bf);
+  --accent: light-dark(#2f5ec9, #61afef);
+  --accent-ink: light-dark(#ffffff, #1b1f24);
+  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #2f343e);
+  --sunken: light-dark(#e5e5e6, color-mix(in oklab, var(--bg) 60%, var(--surface)));
 }
 
 :root {
@@ -86,6 +207,7 @@
   --bad-soft: color-mix(in oklab, var(--bad) 14%, var(--surface));
 
   --tint: var(--accent);
+  --tint-ink: var(--accent-ink);
   --focus: color-mix(in oklab, var(--accent) 70%, transparent);
   --tint-soft: var(--accent-soft);
 
@@ -115,6 +237,7 @@
   --color-bad-soft: var(--bad-soft);
   --color-tint: var(--tint);
   --color-tint-soft: var(--tint-soft);
+  --color-tint-ink: var(--tint-ink);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;

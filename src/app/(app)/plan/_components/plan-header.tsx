@@ -140,7 +140,7 @@ export function PlanHeader({
                     <span
                       className={cn(
                         "tnum grid size-8 shrink-0 place-items-center rounded-full text-[15px] font-semibold transition-colors",
-                        selected ? (isT ? "bg-accent text-white" : "bg-ink text-bg") : isT ? "text-accent" : "text-ink",
+                        selected ? (isT ? "bg-accent text-accent-ink" : "bg-ink text-bg") : isT ? "text-accent" : "text-ink",
                       )}
                     >
                       {dayOfMonth(d)}

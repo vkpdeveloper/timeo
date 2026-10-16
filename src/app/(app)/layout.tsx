@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Sidebar, TabBar } from "@/components/shell/nav";
+import { ThemeSync } from "@/components/shell/theme";
 
 // AI commands can take a while on high reasoning effort
 export const maxDuration = 120;
@@ -16,6 +17,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <Suspense>
         <TabBar />
       </Suspense>
+      <ThemeSync />
     </div>
   );
 }
