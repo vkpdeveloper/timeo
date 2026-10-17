@@ -207,6 +207,8 @@ const DURATIONS = [15, 30, 45, 60, 90, 120];
 function BlockTimes({ startMin, endMin }: { startMin: number; endMin: number }) {
   const [start, setStart] = useState(toTimeInput(startMin));
   const [end, setEnd] = useState(toTimeInput(endMin));
+  // the length the user wants; kept when the start moves (late starts may clip it at midnight)
+  const [length, setLength] = useState(endMin > startMin ? endMin - startMin : 60);
   const s = parseTime(start) ?? startMin;
   const e = parseTime(end) ?? endMin;
   const last = 23 * 60 + 55;
@@ -221,7 +223,7 @@ function BlockTimes({ startMin, endMin }: { startMin: number; endMin: number }) 
             const next = parseTime(v);
             if (next == null) return;
             setStart(v);
-            setEnd(toTimeInput(Math.min(next + Math.max(5, e - s), last)));
+            setEnd(toTimeInput(Math.min(next + length, last)));
           }}
           aria-label="Start time"
         />
@@ -230,7 +232,11 @@ function BlockTimes({ startMin, endMin }: { startMin: number; endMin: number }) 
         <TimePicker
           name="end"
           value={end}
-          onChange={setEnd}
+          onChange={(v) => {
+            setEnd(v);
+            const next = parseTime(v);
+            if (next != null && next > s) setLength(next - s);
+          }}
           suggestions={DURATIONS.filter((d) => s + d <= last).map((d) => ({ label: formatDuration(d), value: toTimeInput(s + d) }))}
           aria-label="End time"
         />
