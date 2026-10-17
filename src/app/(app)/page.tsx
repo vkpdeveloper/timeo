@@ -72,7 +72,7 @@ async function Today() {
               <span className="text-ink-3"> / {progress.total}</span>
             </Link>
           )}
-          <Link href="/assistant" aria-label="Ask Timeo" className="tap grid size-9 place-items-center rounded-full bg-accent-soft text-accent shadow-soft ring-1 ring-line">
+          <Link href="/assistant" aria-label="Ask Timi" className="tap grid size-9 place-items-center rounded-full bg-accent-soft text-accent shadow-soft ring-1 ring-line">
             <Sparkles className="size-[17px]" />
           </Link>
           <Link href="/settings" aria-label="Settings" className="tap grid size-9 place-items-center rounded-full bg-surface text-ink-2 shadow-soft ring-1 ring-line">

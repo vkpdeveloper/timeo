@@ -111,7 +111,7 @@ export function AssistantActivity() {
               className="glass tap pointer-events-auto inline-flex h-9 items-center gap-2 rounded-full border border-line pr-3.5 pl-3 text-[12.5px] font-medium text-ink-2 shadow-soft"
             >
               <Sparkles className="size-3.5 animate-pulse text-accent" />
-              {running.length > 1 ? `Timeo is working on ${running.length} things` : "Timeo is working…"}
+              {running.length > 1 ? `Timi is working on ${running.length} things` : "Timi is working…"}
             </Link>
           </motion.div>
         )}

@@ -145,7 +145,7 @@ export function Composer({
           }
         }}
         placeholder={listening ? "Listening…" : "Log, plan or ask anything"}
-        aria-label="Message Timeo"
+        aria-label="Message Timi"
         enterKeyHint="send"
         className="block max-h-[200px] min-h-[52px] w-full resize-none bg-transparent px-4 pt-4 pb-1 text-[16px] leading-6 text-ink outline-none placeholder:text-ink-3"
       />

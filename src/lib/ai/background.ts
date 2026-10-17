@@ -112,7 +112,7 @@ export async function executeRun(user: CurrentUser, runId: string) {
   if (Date.now() - (fresh?.seenAt ?? 0) > WATCHED_MS) {
     const saved = actions.filter((a) => a.label);
     await sendToUser(user.id, {
-      title: error ? "Timeo couldn't finish" : saved.length ? `Done · ${saved.length} saved` : "Timeo",
+      title: error ? "Timi couldn't finish" : saved.length ? `Done · ${saved.length} saved` : "Timi",
       body: error ? run.input.slice(0, 120) : reply || saved.map((a) => a.label).slice(0, 3).join(" · ") || "Done.",
       url: `/assistant#${runId}`,
       tag: `assistant-${runId}`,

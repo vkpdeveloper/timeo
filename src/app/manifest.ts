@@ -31,7 +31,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/screenshots/desktop.png", sizes: "2560x1600", type: "image/png", form_factor: "wide", label: "Timeo on desktop" },
     ],
     shortcuts: [
-      { name: "Ask Timeo", url: "/assistant", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Ask Timi", url: "/assistant", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
       { name: "Start focus", url: "/focus", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
       { name: "Log workout", url: "/fitness", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
       { name: "Plan", url: "/plan", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },

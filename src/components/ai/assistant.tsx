@@ -182,7 +182,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
           </button>
           <div className="flex items-center gap-1.5 text-[15px] font-semibold tracking-tight text-ink">
             <Sparkles className="size-4 text-accent" />
-            Timeo
+            Timi
           </div>
           <Link href="/settings/ai" aria-label="AI settings" className="tap grid size-9 place-items-center rounded-full text-ink-2 hover:bg-sunken">
             <Settings2 className="size-[18px]" />
@@ -275,7 +275,7 @@ function RunView({
         </div>
       </div>
 
-      {/* Timeo */}
+      {/* Timi */}
       <div className="mt-4 space-y-3">
         {(steps.length > 0 || running) && (
           <Collapsible>

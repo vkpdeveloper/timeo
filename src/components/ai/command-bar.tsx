@@ -97,7 +97,7 @@ export function CommandBar({ className, onSent }: { className?: string; onSent?:
     rec.start();
   };
 
-  const placeholder = listening ? "Listening…" : state === "sent" ? "Sent. Timeo is on it." : state === "error" ? "Couldn't send. Try again." : HINTS[hint];
+  const placeholder = listening ? "Listening…" : state === "sent" ? "Sent. Timi is on it." : state === "error" ? "Couldn't send. Try again." : HINTS[hint];
 
   return (
     <form
@@ -116,7 +116,7 @@ export function CommandBar({ className, onSent }: { className?: string; onSent?:
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          aria-label="Ask Timeo"
+          aria-label="Ask Timi"
           enterKeyHint="send"
           className="block h-10 w-full bg-transparent text-[16px] text-ink outline-none"
         />

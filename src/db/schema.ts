@@ -626,7 +626,7 @@ export const notificationLog = sqliteTable(
 
 // ─────────────────────────── AI commands ───────────────────────────
 
-// Each "tell Timeo" command: what was typed, what the model did, and the rows
+// Each "tell Timi" command: what was typed, what the model did, and the rows
 // it created (so they can be undone).
 export const aiCommands = sqliteTable(
   "ai_commands",

@@ -9,14 +9,14 @@ import { requireUser } from "@/lib/auth";
 import { ModelPicker } from "./model-picker";
 import { DEFAULT_AI_MODEL } from "@/lib/ai/shared";
 
-export const metadata: Metadata = { title: "AI" };
+export const metadata: Metadata = { title: "Timi" };
 
 export default function AiSettingsPage() {
   return (
     <>
       <SubHeader back="/settings" backLabel="Settings" title="AI" />
       <div className="pt-5">
-        <h1 className="display text-[34px] text-ink">Tell Timeo</h1>
+        <h1 className="display text-[34px] text-ink">Timi</h1>
         <p className="mt-1.5 text-[15px] leading-relaxed text-ink-2">
           Log, plan and ask in plain words. It knows your seasons, goals, calendar and training.
         </p>

@@ -9,7 +9,7 @@ import { getModelCatalog } from "@/lib/ai/catalog";
 import { DEFAULT_AI_MODEL, type Effort } from "@/lib/ai/shared";
 import { requireUser } from "@/lib/auth";
 
-export const metadata: Metadata = { title: "Ask Timeo" };
+export const metadata: Metadata = { title: "Timi" };
 
 export default function AssistantPage() {
   return (

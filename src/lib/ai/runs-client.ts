@@ -87,7 +87,7 @@ export async function startRun(text: string): Promise<string> {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ text }),
   });
-  if (!res.ok) throw new Error(res.status === 401 ? "Signed out" : "Couldn't reach Timeo");
+  if (!res.ok) throw new Error(res.status === 401 ? "Signed out" : "Couldn't reach Timi");
   const { id } = (await res.json()) as { id: string };
   set({ ...state, tracked: { ...state.tracked, [id]: { id, status: "running", input: text } } });
   schedule(800);

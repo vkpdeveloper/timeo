@@ -108,7 +108,7 @@ export function Sidebar() {
           )}
         >
           <Sparkles className="size-[18px] text-accent" />
-          Ask Timeo
+          Ask Timi
         </Link>
         <QuickAdd variant="wide" />
       </div>

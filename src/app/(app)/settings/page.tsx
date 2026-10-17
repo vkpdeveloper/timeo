@@ -99,14 +99,14 @@ async function SettingsContent() {
         </Card>
       </Section>
 
-      <Section title="Assistant">
+      <Section title="Timi">
         <Card>
           <Row href="/settings/ai">
             <IconTile className="bg-accent-soft text-accent">
               <Sparkles />
             </IconTile>
             <div className="min-w-0">
-              <div className="text-[15px] font-medium text-ink">AI</div>
+              <div className="text-[15px] font-medium text-ink">Timi</div>
               <div className="text-[13px] text-ink-3">Model and effort</div>
             </div>
           </Row>

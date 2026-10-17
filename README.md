@@ -8,13 +8,13 @@ nutrition tracker built in. Installable as an app on iPhone and Android.
 
 | Area | What it does |
 | --- | --- |
-| **Today** | Coach read for the day, now/next block, tasks, today's training and nutrition, and the *Tell Timeo* bar. |
+| **Today** | Coach read for the day, now/next block, tasks, today's training and nutrition, and the *Ask Timi* bar. |
 | **Goals** | 12-week seasons. Brain dump → goals → Core / Secondary / Support tiers with weekly hours → milestones → weekly steps. Each goal gets an honest On track / Adjust / Off track status with reasons and one-tap fixes. Plan strength score. |
 | **Plan** | Day and week calendar with time blocks tied to goals. Tracks reschedules (drift). Gym days appear automatically. |
 | **Focus** | Full-screen focus timer against a block, task or goal. Rates focus and energy after; computes a focus quality score. |
 | **Fitness** | Weekly split, routines with rep ranges, a one-handed set logger with rest timer and last-session numbers, history, PRs, estimated 1RM, body weight, diet plans (plus a plan library), meals and water. **Program presets**: load a whole split in one tap, or save your own. JSON import for existing training logs. |
 | **Review** | Evening reflection, weekly review per goal (builds each goal's trajectory), focus chart and energy report. |
-| **Ask Timeo (AI)** | A GPS-aware assistant (shadcn AI Elements, streaming). It creates seasons, goals, milestones and weekly steps, plans your week into time blocks, protects time, edits your gym split, and logs workouts, meals, water, weight and reflections, each reply undoable. Answers questions about your data in a line. Type or speak. |
+| **Timi (AI)** | Timi, a GPS-aware assistant (shadcn AI Elements, streaming). It creates seasons, goals, milestones and weekly steps, plans your week into time blocks, protects time, edits your gym split, and logs workouts, meals, water, weight and reflections, each reply undoable. Answers questions about your data in a line. Type or speak. |
 
 The coach (statuses, drift reasons, plan strength, protect-time suggestions) is deterministic. AI is
 only used by the assistant (`/assistant`, `src/app/api/assistant`, `src/lib/ai`).
