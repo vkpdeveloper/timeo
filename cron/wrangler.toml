@@ -1,0 +1,15 @@
+name = "timeo-cron"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+# no public URL; the worker only runs on its schedule
+workers_dev = false
+preview_urls = false
+
+[vars]
+TIMEO_URL = "https://timeo-five.vercel.app"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[observability]
+enabled = true
