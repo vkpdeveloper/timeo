@@ -1,13 +1,11 @@
-# Sends due push reminders (blocks, gym, morning read, evening check-in…)
-# every 5 minutes. Works on any Vercel plan and needs no secrets: the job
+# Sends due push reminders once, on demand. The 5-minute schedule runs on
+# Cloudflare (cron/), so this is manual only. No secrets needed: the job
 # proves it runs in this repository with a GitHub OIDC token, which
 # /api/cron/notify verifies.
 # Optional repository variable TIMEO_URL overrides the site URL.
 name: Reminders
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:

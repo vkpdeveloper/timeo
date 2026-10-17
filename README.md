@@ -59,10 +59,14 @@ Settings → Notifications. On iPhone, add Timeo to the Home Screen first (iOS 1
 Time-based reminders (block starting, gym session, morning read, evening check-in, Sunday review,
 water) are sent by `/api/cron/notify`, which needs to be called every ~5 minutes:
 
-- **Any plan (default):** the included GitHub Actions workflow (`.github/workflows/reminders.yml`).
-  No secrets needed: it authenticates with a GitHub OIDC token that the endpoint verifies
-  (repository must match `CRON_GITHUB_REPO`, default `vkpdeveloper/timeo`). Set the repository
-  variable `TIMEO_URL` if your site isn't `https://timeo-five.vercel.app`.
+- **Default: Cloudflare Workers (free).** `cron/` holds a tiny Worker with a `*/5 * * * *` Cron
+  Trigger that calls the endpoint with `CRON_SECRET`. From `cron/`:
+  `npx wrangler login`, `npx wrangler deploy`, then `npx wrangler secret put CRON_SECRET` (same value
+  as on Vercel). Change `TIMEO_URL` in `cron/wrangler.toml` if your site isn't
+  `https://timeo-five.vercel.app`. Logs: `npx wrangler tail timeo-cron`.
+- **Manual run:** the GitHub Actions workflow (`.github/workflows/reminders.yml`, *Run workflow*)
+  authenticates with a GitHub OIDC token instead of a secret (repository must match
+  `CRON_GITHUB_REPO`, default `vkpdeveloper/timeo`).
 - **Vercel Pro:** alternatively add `"crons": [{ "path": "/api/cron/notify", "schedule": "*/5 * * * *" }]`
   to `vercel.json` (Vercel sends the `CRON_SECRET` automatically). Hobby only allows daily crons.
 
