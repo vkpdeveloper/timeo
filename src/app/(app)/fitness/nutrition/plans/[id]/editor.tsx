@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { Field, Input, PillPicker, Textarea } from "@/components/ui/controls";
+import { TimePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
 import type { DietPlan, DietPlanMeal } from "@/db/schema";
 import { formatMin, toTimeInput } from "@/lib/dates";
@@ -188,12 +189,12 @@ function MealEditSheet({ planId, meal, onClose }: { planId: string; meal: DietPl
         <form action={action} key={m?.id ?? "new"}>
           <input type="hidden" name="planId" value={planId} />
           {m && <input type="hidden" name="id" value={m.id} />}
-          <div className="grid grid-cols-[1fr_120px] gap-3">
+          <div className="grid grid-cols-[1fr_148px] gap-3">
             <Field label="Name">
               <Input name="name" defaultValue={m?.name ?? ""} placeholder="e.g. Lunch" required />
             </Field>
             <Field label="Time">
-              <Input name="time" type="time" defaultValue={toTimeInput(m?.timeMin)} />
+              <TimePicker name="time" defaultValue={toTimeInput(m?.timeMin)} placeholder="Any" clearable aria-label="Meal time" />
             </Field>
           </div>
           <Field label="What to eat" hint="one per line">

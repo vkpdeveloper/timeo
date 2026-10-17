@@ -54,7 +54,8 @@ async function GoalContent({ params }: { params: PageProps<"/goals/[id]">["param
 ## UI rules
 - Use the primitives in `src/components/ui` (`PageHeader`, `SubHeader`, `Section`, `Card`, `Row`,
   `EmptyState`, `ProgressRing`, `StatusPill`, `Sheet`, `Button`, `Field`, `Input`, `Segmented`,
-  `PillPicker`, `Stepper`, `CheckCircle`) and shared sheets in `src/components/forms/sheets.tsx`.
+  `PillPicker`, `Stepper`, `CheckCircle`, `DatePicker`, `TimePicker`) and shared sheets in
+  `src/components/forms/sheets.tsx`. Never use native `<input type="date|time">`.
 - Forms open in bottom `Sheet`s. Touch targets ≥ 44px. Inputs are 16px (no iOS zoom).
 - Minimal and calm: one accent, hairline borders, generous spacing, `display` serif only for big titles
   and hero numbers, `tnum` for numbers. Colours for goals/routines come from `src/lib/colors.ts`.

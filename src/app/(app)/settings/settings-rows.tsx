@@ -4,6 +4,7 @@ import { ChevronRight, LocateFixed, Trash2 } from "lucide-react";
 import { useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/controls";
+import { TimePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { formatMin, toTimeInput } from "@/lib/dates";
@@ -161,10 +162,10 @@ export function DayHoursRow({ startMin, endMin }: { startMin: number; endMin: nu
         <form onSubmit={s.onSubmit}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Starts">
-              <Input type="time" name="start" defaultValue={toTimeInput(startMin)} required />
+              <TimePicker name="start" defaultValue={toTimeInput(startMin)} step={900} aria-label="Day starts" />
             </Field>
             <Field label="Ends">
-              <Input type="time" name="end" defaultValue={toTimeInput(endMin)} required />
+              <TimePicker name="end" defaultValue={toTimeInput(endMin)} step={900} aria-label="Day ends" />
             </Field>
           </div>
           <ErrorNote error={s.error} />

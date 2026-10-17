@@ -4,6 +4,7 @@ import { Bell, BellOff, Share, SquarePlus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { removePushSubscription, saveNotifyPrefs, savePushSubscription, sendTestPush } from "@/actions/push";
 import { Button } from "@/components/ui/button";
+import { TimePicker } from "@/components/ui/pickers";
 import { Card, Section } from "@/components/ui/primitives";
 import { toTimeInput, parseTime } from "@/lib/dates";
 import { cn } from "@/lib/cn";
@@ -158,15 +159,15 @@ export function NotificationSettings({
                   <div className="text-[12.5px] text-ink-3">{item.hint}</div>
                 </div>
                 {on && item.time && (
-                  <input
-                    type="time"
+                  <TimePicker
                     aria-label={`${item.title} time`}
                     value={toTimeInput(prefs[item.time] as number)}
-                    onChange={(e) => {
-                      const m = parseTime(e.target.value);
+                    onChange={(v) => {
+                      const m = parseTime(v);
                       if (m != null) update({ [item.time!]: m } as Partial<NotifyPrefs>);
                     }}
-                    className="field w-[116px] py-2 text-center text-[15px]"
+                    step={900}
+                    className="min-h-10 w-[128px] shrink-0 py-2 text-[15px]"
                   />
                 )}
                 {on && item.lead && (

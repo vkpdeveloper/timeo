@@ -8,6 +8,7 @@ import { setTaskDone } from "@/actions/tasks";
 import { TaskSheet } from "@/components/forms/sheets";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { CheckCircle, Field, Input, Segmented, Textarea } from "@/components/ui/controls";
+import { DatePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
 import type { Goal, Milestone, Task } from "@/db/schema";
 import type { CoachRecommendation } from "@/lib/coach";
@@ -230,7 +231,7 @@ function MilestoneSheet({
           <Input name="title" placeholder="e.g. Beta in 10 hands" defaultValue={milestone?.title} autoFocus={!milestone} required />
         </Field>
         <Field label="Date" hint="optional">
-          <Input type="date" name="dueDate" defaultValue={milestone?.dueDate ?? ""} />
+          <DatePicker name="dueDate" defaultValue={milestone?.dueDate ?? ""} placeholder="No date" clearable aria-label="Milestone date" />
         </Field>
         <ErrorNote error={error} />
         <div className="flex gap-2.5">

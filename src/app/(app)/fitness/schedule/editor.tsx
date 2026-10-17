@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { SubmitButton } from "@/components/ui/button";
 import { Field, Input, Segmented, Textarea } from "@/components/ui/controls";
+import { TimePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
@@ -188,7 +189,7 @@ function DaySheet({ day, routines, onClose }: { day: ScheduleDay | null; routine
             </Field>
           )}
           <Field label="Time" hint="optional">
-            <Input type="time" name="start" step={300} defaultValue={toTimeInput(day.startMin)} />
+            <TimePicker name="start" defaultValue={toTimeInput(day.startMin)} placeholder="Any time" clearable aria-label="Workout time" />
           </Field>
           <Field label="Notes" hint="optional">
             <Textarea

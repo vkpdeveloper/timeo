@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Label, PillPicker, Segmented, Stepper, Textarea } from "@/components/ui/controls";
+import { DatePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { PALETTE, colorVar } from "@/lib/colors";
@@ -212,7 +213,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Starts">
-                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                    <DatePicker value={startDate} onChange={(v) => v && setStartDate(v)} aria-label="Season start" />
                   </Field>
                   <Field label="Ends">
                     <div className="field tnum text-ink-2">{formatMonthDay(endDate)}</div>
@@ -667,7 +668,7 @@ function MilestoneDraftSheet({
             onChange={setChoice}
             options={[...presets.map(({ value, label }) => ({ value, label })), { value: "date", label: "Pick date" }, { value: "none", label: "No date" }]}
           />
-          {choice === "date" && <Input type="date" className="mt-2.5" value={custom} min={startDate} max={endDate} onChange={(e) => setCustom(e.target.value)} />}
+          {choice === "date" && <DatePicker className="mt-2.5" value={custom} min={startDate} max={endDate} onChange={setCustom} aria-label="Milestone date" />}
         </Field>
         <div className="flex gap-2.5">
           <Button type="button" variant="secondary" size="lg" className="flex-1" disabled={!title.trim()} onClick={() => submit(true)}>

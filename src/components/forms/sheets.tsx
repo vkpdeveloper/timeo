@@ -8,10 +8,11 @@ import { logBodyMetric, logMeal } from "@/actions/health";
 import { createTask, deleteTask, updateTask } from "@/actions/tasks";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { Field, Input, PillPicker, Segmented, Select, Textarea } from "@/components/ui/controls";
+import { DatePicker, TimePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
 import type { Block, Task } from "@/db/schema";
 import { colorVar } from "@/lib/colors";
-import { addDays, toTimeInput } from "@/lib/dates";
+import { addDays, formatDuration, parseTime, toTimeInput } from "@/lib/dates";
 
 type BaseProps = { open: boolean; onClose: () => void };
 
@@ -82,24 +83,20 @@ export function TaskSheet({
           <GoalSelect goals={goals} defaultValue={task?.goalId ?? defaults?.goalId} />
         </Field>
         <Field label="When">
-          <PillPicker
-            value={due === today ? "today" : due === tomorrow ? "tomorrow" : due ? "date" : "none"}
-            onChange={(v) => setDue(v === "today" ? today : v === "tomorrow" ? tomorrow : v === "none" ? "" : due || today)}
+          <PillPicker<"today" | "tomorrow" | "none" | "other">
+            value={due === today ? "today" : due === tomorrow ? "tomorrow" : due ? "other" : "none"}
+            onChange={(v) => setDue(v === "today" ? today : v === "tomorrow" ? tomorrow : "")}
             options={[
               { value: "today", label: "Today" },
               { value: "tomorrow", label: "Tomorrow" },
-              { value: "date", label: "Pick date" },
               { value: "none", label: "Someday" },
             ]}
           />
-          {due && due !== today && due !== tomorrow && (
-            <Input type="date" className="mt-2.5" value={due} onChange={(e) => setDue(e.target.value)} />
-          )}
-          <input type="hidden" name="dueDate" value={due} />
+          <DatePicker name="dueDate" className="mt-2.5" value={due} onChange={setDue} today={today} placeholder="Another day" clearable aria-label="Due date" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Time" hint="optional">
-            <Input type="time" name="dueTime" defaultValue={toTimeInput(task?.dueMin)} />
+            <TimePicker name="dueTime" defaultValue={toTimeInput(task?.dueMin)} placeholder="Any time" clearable aria-label="Due time" />
           </Field>
           <Field label="Estimate" hint="min">
             <Input type="number" name="estimateMin" inputMode="numeric" min={5} step={5} placeholder="30" defaultValue={task?.estimateMin ?? ""} />
@@ -174,16 +171,9 @@ export function BlockSheet({
           <GoalSelect goals={goals} defaultValue={block?.goalId ?? defaults?.goalId} />
         </Field>
         <Field label="Day">
-          <Input type="date" name="date" defaultValue={block?.date ?? defaults?.date ?? today} required />
+          <DatePicker name="date" defaultValue={block?.date ?? defaults?.date ?? today} today={today} aria-label="Day" />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Start">
-            <Input type="time" name="start" step={300} defaultValue={toTimeInput(startMin)} required />
-          </Field>
-          <Field label="End">
-            <Input type="time" name="end" step={300} defaultValue={toTimeInput(Math.min(endMin, 23 * 60 + 59))} required />
-          </Field>
-        </div>
+        <BlockTimes startMin={startMin} endMin={Math.min(endMin, 23 * 60 + 59)} />
         {block && block.rescheduleCount > 0 && (
           <p className="mb-4 px-1 text-[13px] text-ink-3">Moved {block.rescheduleCount}× so far. The coach watches for blocks that keep slipping.</p>
         )}
@@ -210,6 +200,44 @@ export function BlockSheet({
 }
 
 // ─────────────────────────── Meal ───────────────────────────
+
+const DURATIONS = [15, 30, 45, 60, 90, 120];
+
+/** Start and end; moving the start keeps the length, and End offers one-tap lengths. */
+function BlockTimes({ startMin, endMin }: { startMin: number; endMin: number }) {
+  const [start, setStart] = useState(toTimeInput(startMin));
+  const [end, setEnd] = useState(toTimeInput(endMin));
+  const s = parseTime(start) ?? startMin;
+  const e = parseTime(end) ?? endMin;
+  const last = 23 * 60 + 55;
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Field label="Start">
+        <TimePicker
+          name="start"
+          value={start}
+          onChange={(v) => {
+            const next = parseTime(v);
+            if (next == null) return;
+            setStart(v);
+            setEnd(toTimeInput(Math.min(next + Math.max(5, e - s), last)));
+          }}
+          aria-label="Start time"
+        />
+      </Field>
+      <Field label="End" hint={e > s ? formatDuration(e - s) : undefined}>
+        <TimePicker
+          name="end"
+          value={end}
+          onChange={setEnd}
+          suggestions={DURATIONS.filter((d) => s + d <= last).map((d) => ({ label: formatDuration(d), value: toTimeInput(s + d) }))}
+          aria-label="End time"
+        />
+      </Field>
+    </div>
+  );
+}
 
 export function MealSheet({ open, onClose, today }: BaseProps & { today: string }) {
   const { error, action } = useSubmit(logMeal, onClose);
