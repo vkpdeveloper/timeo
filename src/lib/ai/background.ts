@@ -50,9 +50,8 @@ function stepParts(step: StepResult<ToolSet>): AiPart[] {
   return parts;
 }
 
-export async function createRun(userId: string, input: string) {
+export async function createRun(userId: string, input: string, id: string = crypto.randomUUID()) {
   const settings = await db.select({ aiModel: t.users.aiModel, aiEffort: t.users.aiEffort }).from(t.users).where(eq(t.users.id, userId)).get();
-  const id = crypto.randomUUID();
   await db.insert(t.aiCommands).values({
     id,
     userId,

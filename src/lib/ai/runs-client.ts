@@ -1,5 +1,6 @@
 "use client";
 
+import { nanoid } from "nanoid";
 import { useSyncExternalStore } from "react";
 import type { AssistantRun } from "./shared";
 
@@ -21,6 +22,8 @@ const listeners = new Set<() => void>();
 const doneListeners = new Set<(run: AssistantRun) => void>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 let loaded = false;
+/** Runs shown optimistically whose POST hasn't landed yet; not polled (the row may not exist). */
+const creating = new Set<string>();
 
 function load() {
   if (loaded || typeof window === "undefined") return;
@@ -54,7 +57,7 @@ function schedule(ms = POLL_MS) {
 async function poll() {
   timer = null;
   if (document.visibilityState !== "visible") return; // resume on visibility
-  const ids = Object.keys(state.tracked);
+  const ids = Object.keys(state.tracked).filter((id) => !creating.has(id));
   const results = await Promise.all(
     ids.map((id) =>
       fetch(`/api/assistant/runs/${id}`, { cache: "no-store" })
@@ -79,17 +82,29 @@ async function poll() {
   schedule();
 }
 
-/** Send a message to the assistant; it runs in the background. */
-export async function startRun(text: string): Promise<string> {
+/**
+ * Send a message to the assistant; it runs in the background. The id is made
+ * here so the run is tracked (and can be shown) before the request lands.
+ */
+export async function startRun(text: string, id = nanoid(21)): Promise<string> {
   load();
-  const res = await fetch("/api/assistant/runs", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  if (!res.ok) throw new Error(res.status === 401 ? "Signed out" : "Couldn't reach Timi");
-  const { id } = (await res.json()) as { id: string };
+  creating.add(id);
   set({ ...state, tracked: { ...state.tracked, [id]: { id, status: "running", input: text } } });
+  try {
+    const res = await fetch("/api/assistant/runs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, text }),
+    });
+    if (!res.ok) throw new Error(res.status === 401 ? "Signed out" : "Couldn't reach Timi");
+  } catch (e) {
+    const tracked = { ...state.tracked };
+    delete tracked[id];
+    set({ ...state, tracked });
+    throw e;
+  } finally {
+    creating.delete(id);
+  }
   schedule(800);
   return id;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Brain, Check, ChevronDown, Cpu, Loader2, Mic, Search } from "lucide-react";
+import { ArrowUp, Brain, Check, ChevronDown, Cpu, Mic, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveAiSettings } from "@/actions/ai";
@@ -17,6 +17,9 @@ import { cn } from "@/lib/cn";
 import { useClientValue } from "@/lib/hooks";
 
 export type ModelChoice = Pick<CatalogModel, "id" | "name" | "efforts" | "free">;
+
+/** Screen position of the first line of text when it was sent, so the bubble can fly up from there. */
+export type SendOrigin = { x: number; y: number };
 
 type SpeechRec = {
   lang: string;
@@ -42,20 +45,19 @@ const chip =
 /**
  * The assistant's input: auto-growing text, inline model and reasoning-effort
  * pickers, voice, and a round send button. Enter sends; Shift+Enter is a new line.
+ * Sending is optimistic: the input clears at once and only refills if the send fails.
  */
 export function Composer({
   models,
   modelId,
   effort,
   onSend,
-  sending,
   autoFocus,
 }: {
   models: ModelChoice[];
   modelId: string;
   effort: Effort;
-  onSend: (text: string) => Promise<boolean>;
-  sending: boolean;
+  onSend: (text: string, origin?: SendOrigin) => Promise<boolean>;
   autoFocus?: boolean;
 }) {
   const [text, setText] = useState("");
@@ -94,13 +96,20 @@ export function Composer({
     start(() => saveAiSettings(model, e));
   };
 
-  const send = async () => {
+  const send = () => {
     const v = text.trim();
-    if (!v || sending) return;
+    if (!v) return;
+    const box = ref.current?.getBoundingClientRect();
+    if (listening && recRef.current) {
+      recRef.current.onresult = null; // a late transcript mustn't refill the cleared input
+      recRef.current.stop();
+    }
     setText("");
-    const ok = await onSend(v);
-    if (!ok) setText(v);
     ref.current?.focus();
+    // pt-4 / px-4 on the textarea: where the first line of text starts
+    onSend(v, box && { x: box.left + 16, y: box.top + 16 }).then((ok) => {
+      if (!ok) setText((cur) => cur || v);
+    });
   };
 
   const toggleMic = () => {
@@ -221,10 +230,10 @@ export function Composer({
           <button
             type="submit"
             aria-label="Send"
-            disabled={!text.trim() || sending}
+            disabled={!text.trim()}
             className="tap grid size-9 place-items-center rounded-full bg-accent text-accent-ink transition-opacity disabled:bg-sunken disabled:text-ink-3"
           >
-            {sending ? <Loader2 className="size-[17px] animate-spin" /> : <ArrowUp className="size-[18px]" strokeWidth={2.4} />}
+            <ArrowUp className="size-[18px]" strokeWidth={2.4} />
           </button>
         </div>
       </div>

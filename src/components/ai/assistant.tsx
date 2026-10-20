@@ -22,8 +22,10 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import Link from "next/link";
+import { animate } from "motion/react";
+import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useStickToBottomContext } from "use-stick-to-bottom";
 import { undoTell } from "@/actions/ai";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
@@ -34,7 +36,7 @@ import type { AiPart } from "@/db/schema";
 import { onRunFinished, startRun, useRuns } from "@/lib/ai/runs-client";
 import type { AssistantRun, Effort, SavedItem } from "@/lib/ai/shared";
 import { cn } from "@/lib/cn";
-import { Composer, type ModelChoice } from "./composer";
+import { Composer, type ModelChoice, type SendOrigin } from "./composer";
 
 const SUGGESTIONS = [
   "Plan my week",
@@ -125,7 +127,8 @@ type Props = {
 export function Assistant({ initialRuns, timezone, models, modelId, effort }: Props) {
   const router = useRouter();
   const [runs, setRuns] = useState<Record<string, AssistantRun>>(() => Object.fromEntries(initialRuns.map((r) => [r.id, r])));
-  const [sending, setSending] = useState(false);
+  // the message just sent: it flies up from the composer (or rises in, if sent from a suggestion)
+  const [sent, setSent] = useState<{ id: string; from: SendOrigin | null } | null>(null);
   const { tracked } = useRuns();
 
   useEffect(() => onRunFinished((run) => setRuns((prev) => ({ ...prev, [run.id]: run }))), []);
@@ -153,16 +156,21 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
     return Object.values(merged).sort((a, b) => a.createdAt - b.createdAt);
   }, [runs, tracked]);
 
-  const send = async (text: string) => {
-    setSending(true);
+  // optimistic: the message is in the history right away, the request catches up behind it
+  const send = async (text: string, origin?: SendOrigin) => {
+    const id = nanoid(21);
+    setRuns((prev) => ({ ...prev, [id]: placeholder(id, text) }));
+    setSent({ id, from: origin ?? null });
     try {
-      const id = await startRun(text);
-      setRuns((prev) => ({ ...prev, [id]: placeholder(id, text) }));
+      await startRun(text, id);
       return true;
     } catch {
+      setRuns((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       return false;
-    } finally {
-      setSending(false);
     }
   };
 
@@ -207,6 +215,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
                 <RunView
                   run={run}
                   timezone={timezone}
+                  sentFrom={sent?.id === run.id ? sent.from : undefined}
                   onUndone={() => setRuns((p) => ({ ...p, [run.id]: { ...run, undone: true } }))}
                 />
               </div>
@@ -215,11 +224,12 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
         </ConversationContent>
         <ConversationScrollButton className="bottom-4 border-line bg-surface shadow-soft" />
         <ScrollToRun focus={focus} />
+        <ScrollOnSend id={sent?.id} />
       </Conversation>
 
       <div className="shrink-0 bg-gradient-to-t from-bg via-bg to-transparent px-3 pt-2 pb-[max(12px,var(--safe-bottom))]">
         <div className="mx-auto max-w-[760px]">
-          <Composer models={models} modelId={modelId} effort={effort} onSend={send} sending={sending} autoFocus={list.length === 0} />
+          <Composer models={models} modelId={modelId} effort={effort} onSend={send} autoFocus={list.length === 0} />
           <p className="mt-2 hidden text-center text-[11.5px] text-ink-3 sm:block">Runs in the background. You can close Timeo; you&apos;ll get a notification.</p>
         </div>
       </div>
@@ -242,6 +252,46 @@ function ScrollToRun({ focus }: { focus: { id: string; at: number } | null }) {
   return null;
 }
 
+/** Brings a just-sent message into view, even if you'd scrolled up. */
+function ScrollOnSend({ id }: { id?: string }) {
+  const { scrollToBottom } = useStickToBottomContext();
+  useEffect(() => {
+    if (id) scrollToBottom();
+  }, [id, scrollToBottom]);
+  return null;
+}
+
+/** Your message. A just-sent one animates in: from where its text sat in the composer, or rising from below. */
+function UserBubble({ text, sentFrom }: { text: string; sentFrom?: SendOrigin | null }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const played = useRef<SendOrigin | null>(undefined);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    // once per send (Strict Mode re-runs effects, and a second measure would include the transform)
+    if (!el || sentFrom === undefined || played.current === sentFrom) return;
+    played.current = sentFrom;
+    const spring = { type: "spring", stiffness: 420, damping: 36, mass: 0.9 } as const;
+    if (!sentFrom) {
+      animate(el, { y: [28, 0], opacity: [0, 1], scale: [0.96, 1] }, spring);
+      return;
+    }
+    // px-4 / py-2.5 on the bubble: line its text up with the composer's, then let it go
+    const box = el.getBoundingClientRect();
+    animate(el, { x: [sentFrom.x - (box.left + 16), 0], y: [sentFrom.y - (box.top + 10), 0], opacity: [0.5, 1] }, spring);
+  }, [sentFrom]);
+
+  return (
+    <div className="flex justify-end">
+      <div
+        ref={ref}
+        className="max-w-[85%] rounded-[20px] rounded-br-md bg-surface px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap text-ink shadow-soft ring-1 ring-line will-change-transform"
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
+
 function placeholder(id: string, input: string): AssistantRun {
   return { id, input, reply: null, status: "running", error: null, parts: [], saved: 0, undone: false, model: "", ms: null, createdAt: Date.now() };
 }
@@ -249,10 +299,12 @@ function placeholder(id: string, input: string): AssistantRun {
 function RunView({
   run,
   timezone,
+  sentFrom,
   onUndone,
 }: {
   run: AssistantRun;
   timezone: string;
+  sentFrom?: SendOrigin | null;
   onUndone: () => void;
 }) {
   const parts = run.parts as AiPart[];
@@ -268,15 +320,10 @@ function RunView({
 
   return (
     <article id={`run-${run.id}`} className="scroll-mt-24 py-4">
-      {/* you */}
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-[20px] rounded-br-md bg-surface px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap text-ink shadow-soft ring-1 ring-line">
-          {run.input}
-        </div>
-      </div>
+      <UserBubble text={run.input} sentFrom={sentFrom} />
 
       {/* Timi */}
-      <div className="mt-4 space-y-3">
+      <div className={cn("mt-4 space-y-3", sentFrom !== undefined && "animate-in fade-in fill-mode-both delay-150 duration-300")}>
         {(steps.length > 0 || running) && (
           <Collapsible>
             <CollapsibleTrigger className="group tap flex max-w-full items-center gap-1.5 rounded-lg py-0.5 text-[13px] text-ink-3 hover:text-ink-2">
