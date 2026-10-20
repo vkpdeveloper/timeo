@@ -280,6 +280,30 @@
   ::after {
     border-color: var(--line);
   }
+
+  /* Thin, theme-coloured scrollbars. Popovers, sheets and chip rows hide theirs with .no-scrollbar. */
+  @supports (scrollbar-color: auto) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+  }
+  @supports not (scrollbar-color: auto) {
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--line-strong);
+      background-clip: padding-box;
+      border: 3px solid transparent;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+  }
 }
 
 html {

@@ -108,7 +108,7 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
                 </div>
               )}
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">{children}</div>
+            <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">{children}</div>
             {footer && (
               <div className="shrink-0 border-t border-line bg-surface px-5 pt-3 pb-[max(14px,var(--safe-bottom))]">
                 {footer}

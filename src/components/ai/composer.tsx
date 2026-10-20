@@ -176,7 +176,7 @@ export function Composer({
                 className="h-9 w-full rounded-xl bg-sunken pr-2 pl-8 text-[14px] text-ink outline-none placeholder:text-ink-3"
               />
             </div>
-            <div className="max-h-[42vh] overflow-y-auto">
+            <div className="no-scrollbar max-h-[42vh] overflow-y-auto">
               {filtered.map((m) => (
                 <DropdownMenuItem key={m.id} onSelect={() => pickModel(m)} className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[13.5px]">
                   <span className="min-w-0 flex-1 truncate">{m.name}</span>
