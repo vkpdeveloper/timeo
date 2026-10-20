@@ -1,16 +1,14 @@
-import { and, asc, eq, isNull, lt, or } from "drizzle-orm";
 import { ArrowRight, Droplet, Dumbbell, Play, Settings2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CommandBar } from "@/components/ai/command-bar";
 import { Card, Section, SectionLink, Skeleton } from "@/components/ui/primitives";
-import { db, t } from "@/db";
 import type { Block } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { colorVar, softVar } from "@/lib/colors";
 import { formatDuration, formatLongDate, formatMin, greeting, nowMinIn } from "@/lib/dates";
-import { getActiveSeason, getGoalOptions, seasonProgress } from "@/lib/queries";
+import { getActiveSeason, getDayBlocks, getGoalOptions, getTodayTasks, seasonProgress } from "@/lib/queries";
 import { CoachAction } from "./goals/[id]/goal-client";
 import { getDailyRead, getGoalHealth } from "@/lib/coach";
 import { getTodayTraining, type TodayTraining } from "@/lib/fitness";
@@ -32,21 +30,8 @@ async function Today() {
   const [season, goals, blocks, tasks, read, health, training] = await Promise.all([
     getActiveSeason(user.id),
     getGoalOptions(user.id),
-    db
-      .select()
-      .from(t.blocks)
-      .where(and(eq(t.blocks.userId, user.id), eq(t.blocks.date, user.today)))
-      .orderBy(asc(t.blocks.startMin)),
-    db
-      .select()
-      .from(t.tasks)
-      .where(
-        and(
-          eq(t.tasks.userId, user.id),
-          or(eq(t.tasks.dueDate, user.today), and(lt(t.tasks.dueDate, user.today), isNull(t.tasks.doneAt))),
-        ),
-      )
-      .orderBy(asc(t.tasks.doneAt), asc(t.tasks.dueMin), asc(t.tasks.createdAt)),
+    getDayBlocks(user.id, user.today),
+    getTodayTasks(user.id, user.today),
     getDailyRead(user),
     getGoalHealth(user.id, user.today),
     getTodayTraining(user.id, user.today),

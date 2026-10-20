@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lt, or } from "drizzle-orm";
 import { db, t } from "@/db";
 import { addDays, diffDays, SEASON_DAYS } from "@/lib/dates";
 
@@ -72,4 +72,27 @@ export async function ownTaskId(userId: string, taskId: string | null): Promise<
     .get();
   if (!row) throw new Error("Task not found");
   return row.id;
+}
+
+/** A day's time blocks, in order. */
+export async function getDayBlocks(userId: string, date: string) {
+  return db
+    .select()
+    .from(t.blocks)
+    .where(and(eq(t.blocks.userId, userId), eq(t.blocks.date, date)))
+    .orderBy(asc(t.blocks.startMin));
+}
+
+/** Tasks due today plus anything overdue and still open. Open ones first. */
+export async function getTodayTasks(userId: string, today: string) {
+  return db
+    .select()
+    .from(t.tasks)
+    .where(
+      and(
+        eq(t.tasks.userId, userId),
+        or(eq(t.tasks.dueDate, today), and(lt(t.tasks.dueDate, today), isNull(t.tasks.doneAt))),
+      ),
+    )
+    .orderBy(asc(t.tasks.doneAt), asc(t.tasks.dueMin), asc(t.tasks.createdAt));
 }

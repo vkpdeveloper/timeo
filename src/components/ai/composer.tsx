@@ -139,7 +139,7 @@ export function Composer({
         e.preventDefault();
         send();
       }}
-      className="focus-shell rounded-[24px] border border-line bg-surface shadow-[0_8px_30px_-12px_rgb(0_0_0/0.18)]"
+      className="focus-shell rounded-[24px] border border-line bg-surface/80 shadow-[0_8px_30px_-12px_rgb(0_0_0/0.18)] backdrop-blur-xl"
     >
       <textarea
         ref={ref}

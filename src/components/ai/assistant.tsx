@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  ArrowDown,
   BookOpen,
   CalendarPlus,
   Check,
@@ -11,6 +12,7 @@ import {
   Droplet,
   Dumbbell,
   Flag,
+  ListChecks,
   Moon,
   Plus,
   Scale,
@@ -25,13 +27,12 @@ import Link from "next/link";
 import { animate } from "motion/react";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useStickToBottomContext } from "use-stick-to-bottom";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { undoTell } from "@/actions/ai";
-import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/shadcn/collapsible";
+import { Sheet } from "@/components/ui/sheet";
 import type { AiPart } from "@/db/schema";
 import { onRunFinished, startRun, useRuns } from "@/lib/ai/runs-client";
 import type { AssistantRun, Effort, SavedItem } from "@/lib/ai/shared";
@@ -117,6 +118,8 @@ type Props = {
   models: ModelChoice[];
   modelId: string;
   effort: Effort;
+  /** Today's plan and tasks: a floating panel on wide screens, a sheet on phones */
+  today: ReactNode;
 };
 
 /**
@@ -124,14 +127,28 @@ type Props = {
  * you can leave (or close the app) and come back to the result. A run opened
  * from a notification (/assistant#<id>) is scrolled into view.
  */
-export function Assistant({ initialRuns, timezone, models, modelId, effort }: Props) {
+export function Assistant({ initialRuns, timezone, models, modelId, effort, today }: Props) {
   const router = useRouter();
   const [runs, setRuns] = useState<Record<string, AssistantRun>>(() => Object.fromEntries(initialRuns.map((r) => [r.id, r])));
   // the message just sent: it flies up from the composer (or rises in, if sent from a suggestion)
   const [sent, setSent] = useState<{ id: string; from: SendOrigin | null } | null>(null);
   const { tracked } = useRuns();
 
-  useEffect(() => onRunFinished((run) => setRuns((prev) => ({ ...prev, [run.id]: run }))), []);
+  const [todayOpen, setTodayOpen] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+  const { atBottom, toBottom, release } = useStickToBottom(contentRef);
+  const composerH = useHeight(composerRef);
+
+  // a finished run may have changed today's plan or tasks
+  useEffect(
+    () =>
+      onRunFinished((run) => {
+        setRuns((prev) => ({ ...prev, [run.id]: run }));
+        router.refresh();
+      }),
+    [router],
+  );
 
   // the run opened from a notification / "Done" card (/assistant#<id>);
   // read after mount and on every hash change (client navigations don't reload)
@@ -148,6 +165,21 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
       window.removeEventListener("hashchange", read);
     };
   }, []);
+
+  useEffect(() => {
+    if (!focus) return;
+    const go = () => {
+      release();
+      document.getElementById(`run-${focus.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+    const timers = [setTimeout(go, 150), setTimeout(go, 700)];
+    return () => timers.forEach(clearTimeout);
+  }, [focus, release]);
+
+  // a just-sent message comes into view, even if you'd scrolled up
+  useEffect(() => {
+    if (sent) toBottom();
+  }, [sent, toBottom]);
 
   // runs in progress (started here or on any other screen) overlay the saved history
   const list = useMemo(() => {
@@ -176,14 +208,15 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
 
   const day = fmt({ weekday: "short", month: "short", day: "numeric" }, timezone);
 
+  // the chat scrolls the page itself; header and composer float over it, the panel sits on the right (xl)
   return (
-    <div className="flex h-dvh flex-col bg-bg">
-      <header className="glass sticky top-0 z-20 shrink-0 border-b border-line px-3 pt-safe">
-        <div className="mx-auto flex h-13 max-w-[760px] items-center justify-between gap-3 py-2">
+    <div className="min-h-dvh bg-bg" style={{ "--composer-h": `${composerH || 140}px` } as CSSProperties}>
+      <header className="glass fixed inset-x-0 top-0 z-30 border-b border-line px-3 pt-safe">
+        <div className="mx-auto grid h-13 max-w-[760px] grid-cols-[1fr_auto_1fr] items-center gap-3 py-2">
           <button
             type="button"
             onClick={() => (history.length > 1 ? router.back() : router.push("/"))}
-            className="tap inline-flex h-9 items-center rounded-full pr-3 pl-1.5 text-[15px] font-medium text-ink-2 hover:bg-sunken"
+            className="tap inline-flex h-9 items-center justify-self-start rounded-full pr-3 pl-1.5 text-[15px] font-medium text-ink-2 hover:bg-sunken"
           >
             <ChevronLeft className="size-5" strokeWidth={2} />
             Back
@@ -192,14 +225,28 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
             <Sparkles className="size-4 text-accent" />
             Timi
           </div>
-          <Link href="/settings/ai" aria-label="AI settings" className="tap grid size-9 place-items-center rounded-full text-ink-2 hover:bg-sunken">
-            <Settings2 className="size-[18px]" />
-          </Link>
+          <div className="flex items-center gap-1 justify-self-end">
+            <button
+              type="button"
+              onClick={() => setTodayOpen(true)}
+              aria-label="Today's plan and tasks"
+              className="tap grid size-9 place-items-center rounded-full text-ink-2 hover:bg-sunken xl:hidden"
+            >
+              <ListChecks className="size-[18px]" />
+            </button>
+            <Link href="/settings/ai" aria-label="AI settings" className="tap grid size-9 place-items-center rounded-full text-ink-2 hover:bg-sunken">
+              <Settings2 className="size-[18px]" />
+            </Link>
+          </div>
         </div>
       </header>
 
-      <Conversation className="min-h-0 flex-1">
-        <ConversationContent className="mx-auto w-full max-w-[760px] gap-0 px-4 pt-4 pb-10 sm:px-6">
+      <div
+        ref={contentRef}
+        role="log"
+        className="px-4 pt-[calc(var(--safe-top)+68px)] pb-[calc(var(--composer-h)+20px)] sm:px-6 xl:pr-[372px]"
+      >
+        <div className="mx-auto w-full max-w-[760px]">
           {list.length === 0 && <EmptyState onPick={send} />}
           {list.map((run, i) => {
             const newDay = i === 0 || day.format(run.createdAt) !== day.format(list[i - 1].createdAt);
@@ -221,14 +268,39 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
               </div>
             );
           })}
-        </ConversationContent>
-        <ConversationScrollButton className="bottom-4 border-line bg-surface shadow-soft" />
-        <ScrollToRun focus={focus} />
-        <ScrollOnSend id={sent?.id} />
-      </Conversation>
+        </div>
+      </div>
 
-      <div className="shrink-0 bg-gradient-to-t from-bg via-bg to-transparent px-3 pt-2 pb-[max(12px,var(--safe-bottom))]">
-        <div className="mx-auto max-w-[760px]">
+      <aside className="fixed top-[calc(var(--safe-top)+68px)] right-4 z-20 hidden w-[340px] xl:block">
+        <div className="no-scrollbar max-h-[calc(100dvh-var(--safe-top)-84px)] overflow-y-auto overscroll-contain rounded-[26px] border border-line bg-surface-2/75 p-4 shadow-float backdrop-blur-xl">
+          {today}
+        </div>
+      </aside>
+      <Sheet open={todayOpen} onClose={() => setTodayOpen(false)} tall>
+        {today}
+      </Sheet>
+
+      {/* messages blur out as they pass under the composer */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[calc(var(--composer-h)+36px)] bg-gradient-to-t from-bg via-bg/60 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,#000_50%,transparent)]"
+      />
+      {!atBottom && (
+        <button
+          type="button"
+          onClick={() => toBottom()}
+          aria-label="Scroll to latest"
+          className="tap fixed bottom-[calc(var(--composer-h)+12px)] left-1/2 z-20 grid size-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-soft animate-in fade-in xl:left-[calc(50%-174px)]"
+        >
+          <ArrowDown className="size-4" />
+        </button>
+      )}
+
+      <div
+        ref={composerRef}
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pt-2 pb-[max(12px,var(--safe-bottom))] xl:pr-[372px]"
+      >
+        <div className="pointer-events-auto mx-auto max-w-[760px]">
           <Composer models={models} modelId={modelId} effort={effort} onSend={send} autoFocus={list.length === 0} />
           <p className="mt-2 hidden text-center text-[11.5px] text-ink-3 sm:block">Runs in the background. You can close Timeo; you&apos;ll get a notification.</p>
         </div>
@@ -237,28 +309,62 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort }: Pr
   );
 }
 
-/** Scrolls an opened run into view. Lives inside the chat scroller so it can release its stick-to-bottom hold first. */
-function ScrollToRun({ focus }: { focus: { id: string; at: number } | null }) {
-  const { stopScroll } = useStickToBottomContext();
+/**
+ * Keeps the page pinned to the bottom while replies stream in. Scrolling up lets go;
+ * coming back to the bottom (or sending) holds again.
+ */
+function useStickToBottom(contentRef: RefObject<HTMLElement | null>) {
+  const stick = useRef(true);
+  const [atBottom, setAtBottom] = useState(true);
+
+  const toBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    stick.current = true;
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
+  }, []);
+  const release = useCallback(() => {
+    stick.current = false;
+  }, []);
+
   useEffect(() => {
-    if (!focus) return;
-    const go = () => {
-      stopScroll();
-      document.getElementById(`run-${focus.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const root = document.documentElement;
+    let last = root.scrollTop;
+    const check = () => {
+      const top = root.scrollTop;
+      const gap = root.scrollHeight - top - window.innerHeight;
+      if (gap < 80) stick.current = true;
+      else if (top < last - 2) stick.current = false; // you scrolled up
+      last = top;
+      setAtBottom(gap < 80);
     };
-    const timers = [setTimeout(go, 150), setTimeout(go, 700)];
-    return () => timers.forEach(clearTimeout);
-  }, [focus, stopScroll]);
-  return null;
+    const ro = new ResizeObserver(() => {
+      if (stick.current) window.scrollTo({ top: root.scrollHeight, behavior: "instant" });
+      check();
+    });
+    if (contentRef.current) ro.observe(contentRef.current);
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    if (!location.hash) window.scrollTo({ top: root.scrollHeight, behavior: "instant" });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, [contentRef]);
+
+  return { atBottom, toBottom, release };
 }
 
-/** Brings a just-sent message into view, even if you'd scrolled up. */
-function ScrollOnSend({ id }: { id?: string }) {
-  const { scrollToBottom } = useStickToBottomContext();
+/** An element's live height. */
+function useHeight(ref: RefObject<HTMLElement | null>) {
+  const [h, setH] = useState(0);
   useEffect(() => {
-    if (id) scrollToBottom();
-  }, [id, scrollToBottom]);
-  return null;
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return h;
 }
 
 /** Your message. A just-sent one animates in: from where its text sat in the composer, or rising from below. */

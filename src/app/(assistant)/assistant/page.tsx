@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import { desc, eq } from "drizzle-orm";
 import { Suspense } from "react";
 import { Assistant } from "@/components/ai/assistant";
+import { TodayPanel } from "@/components/ai/today-panel";
 import { Skeleton } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { toClient } from "@/lib/ai/background";
 import { getModelCatalog } from "@/lib/ai/catalog";
 import { DEFAULT_AI_MODEL, type Effort } from "@/lib/ai/shared";
 import { requireUser } from "@/lib/auth";
+import { nowMinIn } from "@/lib/dates";
+import { getDayBlocks, getGoalOptions, getTodayTasks } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Timi" };
 
@@ -38,7 +41,33 @@ async function AssistantContent() {
       models={models}
       modelId={modelId}
       effort={(settings?.aiEffort ?? "low") as Effort}
+      today={
+        <Suspense fallback={<TodaySkeleton />}>
+          <Today />
+        </Suspense>
+      }
     />
+  );
+}
+
+/** Today's plan and tasks, streamed beside the chat. */
+async function Today() {
+  const user = await requireUser();
+  const [blocks, tasks, goals] = await Promise.all([
+    getDayBlocks(user.id, user.today),
+    getTodayTasks(user.id, user.today),
+    getGoalOptions(user.id),
+  ]);
+  return <TodayPanel today={user.today} nowMin={nowMinIn(user.timezone)} blocks={blocks} tasks={tasks} goals={goals} />;
+}
+
+function TodaySkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-11 w-48" />
+      <Skeleton className="h-40" />
+      <Skeleton className="h-32" />
+    </div>
   );
 }
 
