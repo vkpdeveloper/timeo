@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { db, t } from "@/db";
 import { todayIn } from "@/lib/dates";
 
@@ -44,6 +44,38 @@ export async function createSession(userId: string) {
     path: "/",
     expires: new Date(expiresAt),
   });
+}
+
+export const RESET_MINUTES = 10;
+
+/** A fresh reset link token for the user; earlier links stop working. */
+export async function createPasswordReset(userId: string) {
+  const token = randomBytes(32).toString("base64url");
+  await db.batch([
+    db.delete(t.passwordResets).where(eq(t.passwordResets.userId, userId)),
+    db.insert(t.passwordResets).values({ id: hashToken(token), userId, expiresAt: Date.now() + RESET_MINUTES * 60_000 }),
+  ]);
+  return token;
+}
+
+/** Whether a reset link still works, without using it up. */
+export async function peekPasswordReset(token: string) {
+  const row = await db
+    .select({ userId: t.passwordResets.userId })
+    .from(t.passwordResets)
+    .where(and(eq(t.passwordResets.id, hashToken(token)), gt(t.passwordResets.expiresAt, Date.now())))
+    .get();
+  return row ?? null;
+}
+
+/** Uses up a reset link and returns its user, or null when it's expired or already used. Atomic, so a
+ * link can't be used twice. */
+export async function consumePasswordReset(token: string) {
+  const [row] = await db
+    .delete(t.passwordResets)
+    .where(and(eq(t.passwordResets.id, hashToken(token)), gt(t.passwordResets.expiresAt, Date.now())))
+    .returning({ userId: t.passwordResets.userId });
+  return row ?? null;
 }
 
 export async function destroySession() {

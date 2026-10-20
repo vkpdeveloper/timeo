@@ -33,6 +33,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         autoComplete={mode === "signup" ? "new-password" : "current-password"}
         required
       />
+      {mode === "login" && (
+        <div className="-mt-1 flex justify-end">
+          <Link href="/forgot-password" className="tap flex h-11 items-center px-1 text-[14px] font-medium text-ink-3">
+            Forgot password?
+          </Link>
+        </div>
+      )}
       {state?.error && (
         <p role="alert" className="rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">
           {state.error}

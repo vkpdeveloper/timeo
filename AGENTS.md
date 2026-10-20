@@ -22,6 +22,8 @@ Mobile UX comes first; desktop must work but is secondary.
 - Tailwind v4, tokens in `src/app/globals.css` (`bg-surface`, `text-ink-2`, `border-line`, `bg-tint`, …).
 - AI: Vercel AI SDK against OpenCode Go (`src/lib/ai`). Assistant messages run in the background
   (`/api/assistant/runs` + `after()`), are stored in `ai_commands` as history, and notify via Web Push.
+- Email: Resend (`src/lib/email.ts`), from `updates@ordinity.com`. `RESEND_API_KEY` is server only; links use
+  `APP_URL` (https://timeo.ordinity.com), never request headers. Password reset links last 10 minutes, single use.
 - Offline/speed: `public/sw.js` serves IndexedDB page snapshots (stale-while-revalidate) and caches
   static assets; `src/components/shell/sw-register.tsx` refreshes data when the fresh copy arrives.
 

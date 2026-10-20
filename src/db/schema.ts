@@ -64,6 +64,19 @@ export const sessions = sqliteTable(
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
+/** Emailed "reset your password" links. Single use, short lived. */
+export const passwordResets = sqliteTable(
+  "password_resets",
+  {
+    // sha256 of the token in the link
+    id: text("id").primaryKey(),
+    userId: userId(),
+    expiresAt: integer("expires_at", { mode: "number" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("password_resets_user_idx").on(t.userId)],
+);
+
 // ─────────────────────── Seasons & goals (GPS) ───────────────────────
 
 export const seasons = sqliteTable(
