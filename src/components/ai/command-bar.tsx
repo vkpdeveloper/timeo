@@ -1,10 +1,11 @@
 "use client";
 
-import { ArrowUp, Check, Loader2, Mic, Sparkles } from "lucide-react";
+import { ArrowUp, Check, Loader2, Mic } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { startRun } from "@/lib/ai/runs-client";
 import { cn } from "@/lib/cn";
+import { Timi } from "./timi";
 import { useClientValue } from "@/lib/hooks";
 
 const HINTS = [
@@ -110,7 +111,7 @@ export function CommandBar({ className, onSent }: { className?: string; onSent?:
       {state === "sent" ? (
         <Check className="size-[18px] shrink-0 text-ok" strokeWidth={2.4} />
       ) : (
-        <Sparkles className="size-[18px] shrink-0 text-accent" strokeWidth={2} />
+        <Timi size={24} mood={state === "sending" ? "thinking" : state === "error" ? "error" : "idle"} className="-ml-1" />
       )}
       <div className="relative min-w-0 flex-1">
         <input

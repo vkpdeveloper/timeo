@@ -1,4 +1,4 @@
-import { ArrowRight, Droplet, Dumbbell, Play, Settings2, Sparkles } from "lucide-react";
+import { ArrowRight, Droplet, Dumbbell, Play, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CommandBar } from "@/components/ai/command-bar";
@@ -14,6 +14,7 @@ import { getDailyRead, getGoalHealth } from "@/lib/coach";
 import { getTodayTraining, type TodayTraining } from "@/lib/fitness";
 import { ProgressBar, ProgressRing, StatusPill } from "@/components/ui/primitives";
 import { InstallBanner } from "@/components/shell/install";
+import { Timi } from "@/components/ai/timi";
 import { TodayTasks } from "./today-tasks";
 
 export default function TodayPage() {
@@ -57,8 +58,8 @@ async function Today() {
               <span className="text-ink-3"> / {progress.total}</span>
             </Link>
           )}
-          <Link href="/assistant" aria-label="Ask Timi" className="tap grid size-9 place-items-center rounded-full bg-accent-soft text-accent shadow-soft ring-1 ring-line">
-            <Sparkles className="size-[17px]" />
+          <Link href="/assistant" aria-label="Ask Timi" className="tap grid size-9 place-items-center rounded-full bg-surface shadow-soft ring-1 ring-line">
+            <Timi size={28} />
           </Link>
           <Link href="/settings" aria-label="Settings" className="tap grid size-9 place-items-center rounded-full bg-surface text-ink-2 shadow-soft ring-1 ring-line">
             <Settings2 className="size-[17px]" />

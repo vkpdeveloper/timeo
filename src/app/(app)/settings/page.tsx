@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { Bell, Download, LogOut, Palette, Sparkles } from "lucide-react";
+import { Bell, Download, LogOut, Palette } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { logout } from "@/app/(auth)/actions";
@@ -8,6 +8,7 @@ import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import pkg from "../../../../package.json";
 import { InstallRow } from "@/components/shell/install";
+import { Timi } from "@/components/ai/timi";
 import { DayHoursRow, DeleteAccountRow, NameRow, TimezoneRow } from "./settings-rows";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -102,8 +103,8 @@ async function SettingsContent() {
       <Section title="Timi">
         <Card>
           <Row href="/settings/ai">
-            <IconTile className="bg-accent-soft text-accent">
-              <Sparkles />
+            <IconTile className="bg-accent-soft">
+              <Timi size={28} />
             </IconTile>
             <div className="min-w-0">
               <div className="text-[15px] font-medium text-ink">Timi</div>

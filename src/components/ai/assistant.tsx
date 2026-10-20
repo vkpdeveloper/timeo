@@ -18,7 +18,6 @@ import {
   Scale,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Target,
   Undo2,
   UtensilsCrossed,
@@ -37,6 +36,7 @@ import type { AiPart } from "@/db/schema";
 import { onRunFinished, startRun, useRuns } from "@/lib/ai/runs-client";
 import type { AssistantRun, Effort, SavedItem } from "@/lib/ai/shared";
 import { cn } from "@/lib/cn";
+import { Timi } from "./timi";
 import { Composer, type ModelChoice, type SendOrigin } from "./composer";
 
 const SUGGESTIONS = [
@@ -229,7 +229,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
             Back
           </button>
           <div className="flex items-center gap-1.5 text-[15px] font-semibold tracking-tight text-ink">
-            <Sparkles className="size-4 text-accent" />
+            <Timi size={26} mood={list.some((r) => r.status === "running") ? "thinking" : "idle"} />
             Timi
           </div>
           <div className="flex items-center gap-1 justify-self-end">
@@ -440,6 +440,7 @@ function RunView({
         {(steps.length > 0 || running) && (
           <Collapsible>
             <CollapsibleTrigger className="group tap flex max-w-full items-center gap-1.5 rounded-lg py-0.5 text-[13px] text-ink-3 hover:text-ink-2">
+              <Timi size={22} mood={running ? "thinking" : run.status === "error" ? "error" : "idle"} className="-my-1" />
               {running ? (
                 <Shimmer className="text-[13px]">{`Working${elapsed ? ` · ${Math.round(elapsed / 1000)}s` : ""}${lastTool ? ` · ${toolLabel(lastTool.name, false)}` : ""}`}</Shimmer>
               ) : (
@@ -459,7 +460,7 @@ function RunView({
 
         {run.status === "error" && (
           <p className="flex items-start gap-2 rounded-2xl bg-bad-soft px-4 py-3 text-[14px] font-medium text-bad">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <Timi size={22} mood="error" className="-my-0.5" />
             Couldn&apos;t finish. {run.error?.slice(0, 180)}
           </p>
         )}
@@ -574,9 +575,7 @@ function EmptyState({ onPick }: { onPick: (s: string) => Promise<boolean> }) {
   return (
     <div className="flex min-h-[60dvh] flex-col justify-end gap-6 pb-4">
       <div>
-        <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent">
-          <Sparkles className="size-5" />
-        </div>
+        <Timi size={112} interactive className="-ml-2 mb-2" />
         <h1 className="display text-[36px] text-ink">What&apos;s up?</h1>
         <p className="mt-1.5 max-w-[36ch] text-[15px] leading-relaxed text-ink-2">
           Log a workout or a meal, plan your week, set goals, or ask about your data.

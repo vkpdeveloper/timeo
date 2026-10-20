@@ -1,11 +1,12 @@
 "use client";
 
-import { CalendarDays, Dumbbell, LineChart, Sparkles, Sun, Target, type LucideIcon } from "lucide-react";
+import { CalendarDays, Dumbbell, LineChart, Sun, Target, type LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { Timi } from "@/components/ai/timi";
 import { QuickAdd } from "./quick-add";
 
 type Tab = { href: string; label: string; icon: LucideIcon; match: (p: string) => boolean };
@@ -107,7 +108,7 @@ export function Sidebar() {
             pathname.startsWith("/assistant") ? "bg-surface text-ink shadow-soft" : "text-ink-2 hover:bg-sunken",
           )}
         >
-          <Sparkles className="size-[18px] text-accent" />
+          <Timi size={22} className="-mx-0.5" />
           Ask Timi
         </Link>
         <QuickAdd variant="wide" />

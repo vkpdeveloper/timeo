@@ -25,4 +25,6 @@ export type PushPayload = {
   url?: string;
   /** same tag replaces an older notification instead of stacking */
   tag?: string;
+  /** notification icon, defaults to the app icon */
+  icon?: string;
 };
