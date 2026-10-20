@@ -63,10 +63,10 @@ async function Today() {
 
 function TodaySkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-11 w-48" />
-      <Skeleton className="h-40" />
-      <Skeleton className="h-32" />
+    <div className="space-y-2 p-2.5">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-24" />
+      <Skeleton className="h-20" />
     </div>
   );
 }

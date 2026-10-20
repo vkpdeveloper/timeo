@@ -244,7 +244,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
       <div
         ref={contentRef}
         role="log"
-        className="px-4 pt-[calc(var(--safe-top)+68px)] pb-[calc(var(--composer-h)+20px)] sm:px-6 xl:pr-[372px]"
+        className="px-4 pt-[calc(var(--safe-top)+68px)] pb-[calc(var(--composer-h)+20px)] sm:px-6 xl:pr-[332px]"
       >
         <div className="mx-auto w-full max-w-[760px]">
           {list.length === 0 && <EmptyState onPick={send} />}
@@ -271,8 +271,8 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
         </div>
       </div>
 
-      <aside className="fixed top-[calc(var(--safe-top)+68px)] right-4 z-20 hidden w-[340px] xl:block">
-        <div className="no-scrollbar max-h-[calc(100dvh-var(--safe-top)-84px)] overflow-y-auto overscroll-contain rounded-[26px] border border-line bg-surface-2/75 p-4 shadow-float backdrop-blur-xl">
+      <aside className="fixed top-[calc(var(--safe-top)+68px)] right-4 z-20 hidden w-[300px] xl:block">
+        <div className="no-scrollbar max-h-[calc(100dvh-var(--safe-top)-84px)] overflow-y-auto overscroll-contain rounded-[18px] border border-line bg-surface/80 p-1.5 shadow-float backdrop-blur-xl">
           {today}
         </div>
       </aside>
@@ -290,7 +290,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
           type="button"
           onClick={() => toBottom()}
           aria-label="Scroll to latest"
-          className="tap fixed bottom-[calc(var(--composer-h)+12px)] left-1/2 z-20 grid size-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-soft animate-in fade-in xl:left-[calc(50%-174px)]"
+          className="tap fixed bottom-[calc(var(--composer-h)+12px)] left-1/2 z-20 grid size-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-soft animate-in fade-in xl:left-[calc(50%-154px)]"
         >
           <ArrowDown className="size-4" />
         </button>
@@ -298,7 +298,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
 
       <div
         ref={composerRef}
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pt-2 pb-[max(12px,var(--safe-bottom))] xl:pr-[372px]"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pt-2 pb-[max(12px,var(--safe-bottom))] xl:pr-[332px]"
       >
         <div className="pointer-events-auto mx-auto max-w-[760px]">
           <Composer models={models} modelId={modelId} effort={effort} onSend={send} autoFocus={list.length === 0} />
