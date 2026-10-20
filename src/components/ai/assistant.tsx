@@ -93,6 +93,13 @@ const TOOL_LABEL: Record<string, [string, string]> = {
 };
 const toolLabel = (name: string, done = true) => TOOL_LABEL[name]?.[done ? 1 : 0] ?? name.replace(/_/g, " ");
 
+/**
+ * With the Today panel showing (xl), keep the 760px chat column centred on the screen,
+ * and slide it left only when the screen is too narrow to fit it beside the panel
+ * (panel 300 + 16 gap each side = 332; 760 + 332 = 1092).
+ */
+const BESIDE_PANEL = "xl:pr-[332px] xl:pl-[max(24px,min(332px,calc(100%_-_1092px)))]";
+
 const fmt = (opts: Intl.DateTimeFormatOptions, timeZone: string) => new Intl.DateTimeFormat("en-US", { ...opts, timeZone });
 const secs = (ms: number) => (ms < 60_000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`);
 
@@ -211,7 +218,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
   // the chat scrolls the page itself; header and composer float over it, the panel sits on the right (xl)
   return (
     <div className="min-h-dvh bg-bg" style={{ "--composer-h": `${composerH || 140}px` } as CSSProperties}>
-      <header className="glass fixed inset-x-0 top-0 z-30 border-b border-line px-3 pt-safe">
+      <header className={cn("glass fixed inset-x-0 top-0 z-30 border-b border-line px-3 pt-safe", BESIDE_PANEL)}>
         <div className="mx-auto grid h-13 max-w-[760px] grid-cols-[1fr_auto_1fr] items-center gap-3 py-2">
           <button
             type="button"
@@ -244,7 +251,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
       <div
         ref={contentRef}
         role="log"
-        className="px-4 pt-[calc(var(--safe-top)+68px)] pb-[calc(var(--composer-h)+20px)] sm:px-6 xl:pr-[332px]"
+        className={cn("px-4 pt-[calc(var(--safe-top)+68px)] pb-[calc(var(--composer-h)+20px)] sm:px-6", BESIDE_PANEL)}
       >
         <div className="mx-auto w-full max-w-[760px]">
           {list.length === 0 && <EmptyState onPick={send} />}
@@ -285,22 +292,22 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
         aria-hidden
         className="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[calc(var(--composer-h)+36px)] bg-gradient-to-t from-bg via-bg/60 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,#000_50%,transparent)]"
       />
-      {!atBottom && (
-        <button
-          type="button"
-          onClick={() => toBottom()}
-          aria-label="Scroll to latest"
-          className="tap fixed bottom-[calc(var(--composer-h)+12px)] left-1/2 z-20 grid size-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-soft animate-in fade-in xl:left-[calc(50%-154px)]"
-        >
-          <ArrowDown className="size-4" />
-        </button>
-      )}
 
       <div
         ref={composerRef}
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pt-2 pb-[max(12px,var(--safe-bottom))] xl:pr-[332px]"
+        className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pt-2 pb-[max(12px,var(--safe-bottom))]", BESIDE_PANEL)}
       >
-        <div className="pointer-events-auto mx-auto max-w-[760px]">
+        <div className="pointer-events-auto relative mx-auto max-w-[760px]">
+          {!atBottom && (
+            <button
+              type="button"
+              onClick={() => toBottom()}
+              aria-label="Scroll to latest"
+              className="tap absolute bottom-full left-1/2 mb-3 grid size-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-soft animate-in fade-in"
+            >
+              <ArrowDown className="size-4" />
+            </button>
+          )}
           <Composer models={models} modelId={modelId} effort={effort} onSend={send} autoFocus={list.length === 0} />
           <p className="mt-2 hidden text-center text-[11.5px] text-ink-3 sm:block">Runs in the background. You can close Timeo; you&apos;ll get a notification.</p>
         </div>
