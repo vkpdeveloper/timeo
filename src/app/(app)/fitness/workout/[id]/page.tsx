@@ -54,6 +54,7 @@ async function WorkoutContent({ params }: { params: PageProps<"/fitness/workout/
         type: t.exercises.type,
         weightBasis: t.exercises.weightBasis,
         unilateral: t.exercises.unilateral,
+        catalogId: t.exercises.catalogId,
       })
       .from(t.exercises)
       .where(eq(t.exercises.userId, user.id))

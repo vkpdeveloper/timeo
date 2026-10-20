@@ -323,6 +323,8 @@ export const exercises = sqliteTable(
     // reps counted per arm/leg
     unilateral: integer("unilateral", { mode: "boolean" }).notNull().default(false),
     cues: text("cues"),
+    // entry in the built-in library (src/lib/exercise-catalog.json): photos and how-to steps
+    catalogId: text("catalog_id"),
     createdAt: createdAt(),
   },
   (t) => [index("exercises_user_idx").on(t.userId)],

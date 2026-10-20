@@ -135,6 +135,7 @@ export type ExerciseOption = {
   type: "weight" | "bodyweight" | "cardio";
   weightBasis: WeightBasis;
   unilateral: boolean;
+  catalogId: string | null;
 };
 
 /** "2:00", "90s" style rest label */

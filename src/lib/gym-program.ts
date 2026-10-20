@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, t } from "@/db";
 import type { Exercise, GymScheduleDay, WorkoutTemplate } from "@/db/schema";
+import { catalogIdFor } from "@/lib/exercise-catalog-server";
 import { EXERCISE_LIBRARY, repsLabel } from "@/lib/fitness-library";
 import type { ProgramData, ProgramRoutine } from "@/lib/gym-presets";
 
@@ -38,6 +39,7 @@ export function programStatements(userId: string, data: ProgramData, state: Stat
         weightBasis: lib?.weightBasis ?? "total",
         unilateral: lib?.unilateral ?? false,
         cues: lib?.cues ?? null,
+        catalogId: catalogIdFor(lib?.name ?? name),
       }),
     );
     exByName.set(key(name), id);

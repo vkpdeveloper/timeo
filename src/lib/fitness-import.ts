@@ -14,6 +14,7 @@ import { db, t } from "@/db";
 import type { MUSCLE_GROUPS } from "@/db/schema";
 import { PALETTE } from "@/lib/colors";
 import { isValidISODate, WEEKDAY_NAMES, weekday as weekdayOf } from "@/lib/dates";
+import { catalogIdFor } from "@/lib/exercise-catalog-server";
 import { EXERCISE_LIBRARY, STARTER_ROUTINES, repsLabel } from "@/lib/fitness-library";
 
 type Muscle = (typeof MUSCLE_GROUPS)[number];
@@ -348,6 +349,7 @@ export async function importTraining(userId: string, parsed: ParsedImport, opts:
       weightBasis: hint?.basis ?? lib?.weightBasis ?? ("total" as const),
       unilateral: hint?.unilateral ?? lib?.unilateral ?? false,
       cues: lib?.cues ?? null,
+      catalogId: catalogIdFor(name),
       createdAt: Date.now(),
     };
     exStmts.push(db.insert(t.exercises).values(row));

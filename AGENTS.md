@@ -32,6 +32,9 @@ Mobile UX comes first; desktop must work but is secondary.
   and checks ownership (`ownGoalId`, `ownTaskId` in `src/lib/queries.ts`).
 - Mutations are server actions (`"use server"` files) ending with `refresh()` from `next/cache`.
   Shared actions: `src/actions/{tasks,blocks,health,context}.ts`. Feature actions sit next to the route.
+- Exercise library: `src/lib/exercise-catalog*.{ts,json}` (free-exercise-db, built by
+  `scripts/exercise-catalog.mjs`); photos in the `timeo-exercises` R2 bucket. `exercises.catalogId`
+  links a user's exercise to an entry; `catalogIdFor(name)` links new ones by exact name.
 
 ## Page pattern (Cache Components)
 Request data (cookies, DB) must render inside `<Suspense>`. Pages keep a static shell and stream content:

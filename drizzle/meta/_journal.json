@@ -57,6 +57,13 @@
       "when": 1792505066192,
       "tag": "0007_dear_la_nuit",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792512728892,
+      "tag": "0008_real_cyclops",
+      "breakpoints": true
     }
   ]
 }

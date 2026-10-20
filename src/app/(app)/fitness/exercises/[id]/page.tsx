@@ -5,10 +5,14 @@ import { Suspense } from "react";
 import { EmptyState, Skeleton, SubHeader } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
+import { catalogEntry } from "@/lib/exercise-catalog-server";
 import { formatMonthDay, formatWeekdayShort } from "@/lib/dates";
 import { basisLabel, bestSet, epley, fmtKg, fmtSet, muscleLabel } from "@/lib/fitness-math";
+import { ExerciseFrames } from "../../_components/exercise-photo";
+import { HowTo } from "../../_components/how-to";
 import { LineChart } from "../../_components/line-chart";
 import { EditExerciseButton } from "./edit";
+import { LinkLibrary } from "./link";
 
 export default function ExercisePage(props: PageProps<"/fitness/exercises/[id]">) {
   return (
@@ -84,6 +88,7 @@ async function Exercise({ params }: { params: PageProps<"/fitness/exercises/[id]
   const bestE1rm = best ? epley(best.weightKg, best.reps) : null;
   const heaviest = all.reduce<number | null>((m, r) => (r.weightKg != null && (m == null || r.weightKg > m) ? r.weightKg : m), null);
   const basis = basisLabel(ex.weightBasis, ex.unilateral);
+  const entry = catalogEntry(ex.catalogId);
 
   return (
     <div className="fade-up pb-8">
@@ -96,6 +101,11 @@ async function Exercise({ params }: { params: PageProps<"/fitness/exercises/[id]
         </div>
         <EditExerciseButton exercise={ex} />
       </header>
+
+      <section className="mb-8">
+        {entry && entry.images > 0 && <ExerciseFrames catalogId={entry.id} name={entry.name} images={entry.images} />}
+        <LinkLibrary exerciseId={ex.id} name={ex.name} linked={entry ? { id: entry.id, name: entry.name } : null} />
+      </section>
 
       {sessions.length === 0 ? (
         <EmptyState title="No sets logged yet" body="Progress shows up here after your first session with this exercise." />
@@ -150,6 +160,8 @@ async function Exercise({ params }: { params: PageProps<"/fitness/exercises/[id]
           </section>
         </>
       )}
+
+      {entry && <HowTo entry={entry} />}
     </div>
   );
 }

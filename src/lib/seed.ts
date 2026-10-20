@@ -16,6 +16,7 @@ export async function seedNewUser(userId: string) {
     weightBasis: e.weightBasis ?? ("total" as const),
     unilateral: e.unilateral ?? false,
     cues: e.cues ?? null,
+    catalogId: e.catalog ?? null,
   }));
   const program = programStatements(userId, GYM_PRESETS[0], { exercises: exerciseRows, templates: [] });
   await db.batch([db.insert(t.exercises).values(exerciseRows), ...program]);

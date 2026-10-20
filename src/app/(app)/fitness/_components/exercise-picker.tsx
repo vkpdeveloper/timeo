@@ -1,15 +1,18 @@
 "use client";
 
-import { ChevronLeft, Plus, Search } from "lucide-react";
+import { ChevronLeft, Loader2, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/button";
 import { Field, Input, PillPicker, Segmented } from "@/components/ui/controls";
 import { Sheet } from "@/components/ui/sheet";
+import { searchCatalog } from "@/lib/exercise-catalog";
 import { MUSCLES, muscleLabel, type ExerciseOption, type Muscle } from "@/lib/fitness-math";
-import { createExercise } from "../exercises/actions";
+import { addFromCatalog, createExercise } from "../exercises/actions";
+import { CatalogRows, MuscleChips, useCatalogIndex } from "./catalog-list";
 import { ErrorNote } from "./day-actions";
+import { ExerciseThumb } from "./exercise-photo";
 
-/** Searchable exercise library with "create custom exercise". */
+/** Your exercises, then the built-in library, searchable; plus "create custom exercise". */
 export function ExercisePicker({
   open,
   onClose,
@@ -36,11 +39,18 @@ export function ExercisePicker({
         (!query || e.name.toLowerCase().includes(query) || (e.equipment ?? "").toLowerCase().includes(query)),
     );
   }, [exercises, q, muscle]);
-  const exact = exercises.some((e) => e.name.toLowerCase() === q.trim().toLowerCase());
-  const usedMuscles = MUSCLES.filter((m) => exercises.some((e) => e.muscle === m.value));
+  const catalog = useCatalogIndex(open);
+  const exact = [...exercises, ...(catalog ?? [])].some((e) => e.name.toLowerCase() === q.trim().toLowerCase());
+  const [adding, setAdding] = useState<string | null>(null);
+  const library = useMemo(() => {
+    if (!catalog) return [];
+    const have = new Set(exercises.flatMap((e) => [e.catalogId, e.name.toLowerCase()]));
+    return searchCatalog(catalog, q, muscle).filter((c) => !have.has(c.id) && !have.has(c.name.toLowerCase()));
+  }, [catalog, exercises, q, muscle]);
 
   const close = () => {
     setCreating(false);
+    setAdding(null);
     setQ("");
     setError(null);
     onClose();
@@ -117,21 +127,7 @@ export function ExercisePicker({
               <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-3" />
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search exercises" className="pl-10" />
             </div>
-            <div className="no-scrollbar -mx-5 mt-3 flex gap-1.5 overflow-x-auto px-5">
-              {[{ value: "all", label: "All" }, ...usedMuscles].map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setMuscle(m.value)}
-                  className={
-                    "tap h-8 shrink-0 rounded-full px-3 text-[13px] font-medium " +
-                    (muscle === m.value ? "bg-ink text-bg" : "bg-sunken text-ink-2")
-                  }
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
+            <MuscleChips value={muscle} onChange={setMuscle} className="-mx-5 mt-3 px-5" />
           </div>
           {q.trim() && !exact && (
             <button
@@ -143,6 +139,7 @@ export function ExercisePicker({
               <span className="text-[15px] font-semibold text-ink">Create “{q.trim()}”</span>
             </button>
           )}
+          {list.length > 0 && library.length > 0 && <h3 className="eyebrow mb-1 px-1">Yours</h3>}
           <div className="flex flex-col">
             {list.map((e) => (
               <button
@@ -152,8 +149,9 @@ export function ExercisePicker({
                   onPick(e);
                   close();
                 }}
-                className="tap flex min-h-14 items-center gap-3 border-b border-line px-1 py-2.5 text-left last:border-0"
+                className="tap flex min-h-16 items-center gap-3 border-b border-line py-2.5 text-left last:border-0"
               >
+                <ExerciseThumb catalogId={e.catalogId} size={48} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-medium text-ink">{e.name}</span>
                   <span className="block text-[12.5px] text-ink-3">
@@ -165,8 +163,31 @@ export function ExercisePicker({
                 <Plus className="size-4 text-ink-3" />
               </button>
             ))}
-            {!list.length && !q.trim() && <p className="py-8 text-center text-[14px] text-ink-3">No exercises here yet.</p>}
           </div>
+          {library.length > 0 && (
+            <section className="mt-6">
+              <h3 className="eyebrow mb-1 px-1">Library</h3>
+              <ErrorNote error={error} />
+              <CatalogRows
+                key={`${q}|${muscle}`}
+                entries={library}
+                trailing={(c) => (adding === c.id ? <Loader2 className="size-4 animate-spin text-ink-3" /> : <Plus className="size-4 text-ink-3" />)}
+                onPick={async (c) => {
+                  if (adding) return;
+                  setAdding(c.id);
+                  setError(null);
+                  try {
+                    onPick(await addFromCatalog(c.id));
+                    close();
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "Could not add it");
+                    setAdding(null);
+                  }
+                }}
+              />
+            </section>
+          )}
+          {!list.length && !library.length && catalog && !q.trim() && <p className="py-8 text-center text-[14px] text-ink-3">No exercises here yet.</p>}
           {!q.trim() && (
             <button
               type="button"

@@ -10,6 +10,7 @@ import { addDays, formatMin, isValidISODate, parseTime, weekday } from "@/lib/da
 import { trainedMs } from "@/lib/fitness-math";
 import { getActiveSeason } from "@/lib/queries";
 import { bestMatch } from "./match";
+import { catalogIdFor } from "@/lib/exercise-catalog-server";
 
 /*
  * Tools the command bar model can call. Write tools record every row they
@@ -114,7 +115,7 @@ export function buildTools(user: CurrentUser, actions: ActionSink) {
           let exercise = bestMatch(library, ex.name);
           if (!exercise) {
             const id = crypto.randomUUID();
-            await db.insert(t.exercises).values({ id, userId: user.id, name: ex.name, muscle: "full_body", equipment: null });
+            await db.insert(t.exercises).values({ id, userId: user.id, name: ex.name, muscle: "full_body", equipment: null, catalogId: catalogIdFor(ex.name) });
             exercise = (await db.select().from(t.exercises).where(eq(t.exercises.id, id)).get())!;
             library.push(exercise);
             push({ table: "exercises", id, label: `New exercise: ${ex.name}`, icon: "plus" });

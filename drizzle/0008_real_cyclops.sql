@@ -1,0 +1,1 @@
+ALTER TABLE `exercises` ADD `catalog_id` text;
