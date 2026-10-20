@@ -129,11 +129,4 @@ export function formatDuration(min: number): string {
   return `${h}h ${m}m`;
 }
 
-export function greeting(nowMin: number): string {
-  if (nowMin < 5 * 60) return "Good night";
-  if (nowMin < 12 * 60) return "Good morning";
-  if (nowMin < 17 * 60) return "Good afternoon";
-  return "Good evening";
-}
-
 export const SEASON_DAYS = 84;

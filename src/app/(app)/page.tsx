@@ -7,7 +7,7 @@ import type { Block } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { colorVar, softVar } from "@/lib/colors";
-import { formatDuration, formatLongDate, formatMin, greeting, nowMinIn } from "@/lib/dates";
+import { formatDuration, formatLongDate, formatMin, nowMinIn } from "@/lib/dates";
 import { getActiveSeason, getDayBlocks, getGoalOptions, getTodayTasks, seasonProgress } from "@/lib/queries";
 import { CoachAction } from "./goals/[id]/goal-client";
 import { getDailyRead, getGoalHealth } from "@/lib/coach";
@@ -16,6 +16,7 @@ import { ProgressBar, ProgressRing, StatusPill } from "@/components/ui/primitive
 import { InstallBanner } from "@/components/shell/install";
 import { Timi } from "@/components/ai/timi";
 import { TodayTasks } from "./today-tasks";
+import { todayHeadline } from "./today-headline";
 
 export default function TodayPage() {
   return (
@@ -40,31 +41,35 @@ async function Today() {
   const drifting = health.find((h) => h.autoStatus !== "on_track" && h.recommendation);
   const progress = season ? seasonProgress(season, user.today) : null;
   const goalById = new Map(goals.map((g) => [g.id, g]));
+  const headline = todayHeadline({ nowMin, blocks, tasks, training });
 
   return (
     <div className="fade-up">
-      <header className="flex items-start justify-between gap-4 pt-6 pb-5 lg:pt-10">
-        <div className="min-w-0">
-          <div className="eyebrow mb-1.5">{formatLongDate(user.today)}</div>
-          <h1 className="display text-[38px] text-ink lg:text-[46px]">
-            {greeting(nowMin)},<br />
-            <span className="text-ink-2 italic">{user.name.split(" ")[0]}</span>
-          </h1>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 pt-1">
-          {progress && (
-            <Link href="/goals" className="tap rounded-full bg-surface px-3 py-1.5 text-[12px] font-semibold text-ink-2 shadow-soft ring-1 ring-line">
-              Day {progress.day}
-              <span className="text-ink-3"> / {progress.total}</span>
+      <header className="pt-6 pb-5 lg:pt-10">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="eyebrow mb-1.5">{formatLongDate(user.today)}</div>
+            <h1 className="display text-[36px] text-balance text-ink lg:text-[44px]">
+              <span className="text-ink-2 italic">{headline.em}</span>
+              {headline.rest}
+            </h1>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 pt-1">
+            {progress && (
+              <Link href="/goals" className="tap rounded-full bg-surface px-3 py-1.5 text-[12px] font-semibold text-ink-2 shadow-soft ring-1 ring-line">
+                Day {progress.day}
+                <span className="text-ink-3"> / {progress.total}</span>
+              </Link>
+            )}
+            <Link href="/assistant" aria-label="Ask Timi" className="tap grid size-9 place-items-center rounded-full bg-surface shadow-soft ring-1 ring-line">
+              <Timi size={28} />
             </Link>
-          )}
-          <Link href="/assistant" aria-label="Ask Timi" className="tap grid size-9 place-items-center rounded-full bg-surface shadow-soft ring-1 ring-line">
-            <Timi size={28} />
-          </Link>
-          <Link href="/settings" aria-label="Settings" className="tap grid size-9 place-items-center rounded-full bg-surface text-ink-2 shadow-soft ring-1 ring-line">
-            <Settings2 className="size-[17px]" />
-          </Link>
+            <Link href="/settings" aria-label="Settings" className="tap grid size-9 place-items-center rounded-full bg-surface text-ink-2 shadow-soft ring-1 ring-line">
+              <Settings2 className="size-[17px]" />
+            </Link>
+          </div>
         </div>
+        <p className="mt-2.5 text-[15px] leading-snug text-ink-2">{headline.line}</p>
       </header>
 
       <CommandBar />
