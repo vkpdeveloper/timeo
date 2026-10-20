@@ -65,3 +65,89 @@
     transform: scale(1.06);
   }
 }
+
+/* Timer: dial on top, then what you're on, then controls in thumb reach. */
+.focus-run {
+  flex: 1;
+  display: grid;
+  grid-template: "." 1fr "dial" auto "label" auto "." 1fr "controls" auto / 1fr;
+  row-gap: 24px;
+  padding-top: 16px;
+  padding-bottom: 8px;
+}
+
+/* The dial fits the screen whatever its shape; the clock inside scales with it (cqw). */
+.focus-dial {
+  width: min(86vw, calc(100dvh - 380px), 500px);
+  min-width: 240px;
+  aspect-ratio: 1;
+  container-type: inline-size;
+}
+
+/* Phones on their side and short windows: dial left, the rest beside it. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .focus-run {
+    grid-template: "dial label" 1fr "dial controls" 1fr / 1fr 1fr;
+    align-content: center;
+    column-gap: 40px;
+    row-gap: 24px;
+    padding-top: 0;
+  }
+  .focus-dial {
+    width: min(calc(100dvh - 110px), 44vw);
+    min-width: 0;
+  }
+  .focus-label {
+    align-self: end;
+  }
+  .focus-controls {
+    align-self: start;
+  }
+  .focus-glow {
+    background: radial-gradient(40% 70% at 27% 50%, color-mix(in oklab, var(--glow, var(--accent)) 22%, transparent), transparent 70%);
+  }
+}
+
+/* Light, slightly wide Mona Sans for the big numbers. */
+.focus-numerals {
+  font-family: var(--font-sans);
+  font-weight: 250;
+  font-stretch: 112%;
+  letter-spacing: -0.02em;
+}
+.focus-digit {
+  display: inline-block;
+  width: 0.62em;
+  text-align: center;
+}
+.focus-colon {
+  display: inline-block;
+  width: 0.25em;
+  text-align: center;
+  color: var(--ink-3);
+  transform: translateY(-0.05em);
+}
+
+.focus-head {
+  animation: focus-blink 2s ease-in-out infinite;
+}
+.focus-pulse {
+  animation: focus-blink 2s ease-in-out infinite;
+}
+@keyframes focus-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-glow,
+  .focus-head,
+  .focus-pulse {
+    animation: none;
+  }
+}

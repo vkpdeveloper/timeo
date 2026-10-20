@@ -20,7 +20,7 @@ export default function FocusPage(props: PageProps<"/focus">) {
 
 function FocusSkeleton() {
   return (
-    <div className="pt-16">
+    <div className="mx-auto w-full max-w-[560px] pt-16">
       <Skeleton className="h-12 w-40" />
       <Skeleton className="mt-8 h-20 w-full" />
       <Skeleton className="mt-3 h-20 w-full" />

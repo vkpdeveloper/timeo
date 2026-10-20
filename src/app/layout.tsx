@@ -6,7 +6,7 @@ import { themeBootScript } from "@/lib/themes";
 import "./globals.css";
 
 // Two typefaces: Mona Sans for the interface, Newsreader for big titles and hero numbers
-const monaSans = Mona_Sans({ variable: "--font-mona-sans", subsets: ["latin"] });
+const monaSans = Mona_Sans({ variable: "--font-mona-sans", subsets: ["latin"], axes: ["wdth"] });
 const newsreader = Newsreader({
   variable: "--font-newsreader",
   subsets: ["latin"],

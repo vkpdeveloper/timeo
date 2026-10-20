@@ -175,8 +175,8 @@ export function FocusApp({
           />
         </Screen>
       ) : run && run.endedAt == null ? (
-        <Screen key="running">
-          <RunningView run={run} setRun={setRun} onClose={close} audio={audio} ensureAudio={ensureAudio} />
+        <Screen key="running" wide>
+          <RunningView run={run} setRun={setRun} onClose={close} audio={audio} ensureAudio={ensureAudio} timezone={timezone} />
         </Screen>
       ) : run ? (
         <Screen key="finish">
@@ -208,10 +208,11 @@ export function FocusApp({
   );
 }
 
-function Screen({ children }: { children: ReactNode }) {
+/** One step of the flow. Forms keep a phone-width column; the timer (`wide`) uses the whole screen. */
+function Screen({ wide, children }: { wide?: boolean; children: ReactNode }) {
   return (
     <motion.div
-      className="flex flex-1 flex-col"
+      className={cn("flex flex-1 flex-col", !wide && "mx-auto w-full max-w-[560px]")}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
@@ -329,7 +330,7 @@ function SetupView({
       </TopBar>
 
       <header className="pt-6 pb-2">
-        <h1 className="display text-[48px] text-ink">Focus</h1>
+        <h1 className="text-[40px] leading-none font-semibold tracking-[-0.035em] text-ink">Focus</h1>
         <p className="mt-1.5 text-[15px] text-ink-2">One thing, full attention.</p>
       </header>
 
@@ -539,12 +540,14 @@ function RunningView({
   onClose,
   audio,
   ensureAudio,
+  timezone,
 }: {
   run: Run;
   setRun: (r: Run | null) => void;
   onClose: () => void;
   audio: React.RefObject<AudioContext | null>;
   ensureAudio: () => void;
+  timezone: string;
 }) {
   const [now, setNow] = useState(() => Date.now());
   const paused = run.pausedAt != null;
@@ -625,75 +628,123 @@ function RunningView({
     setRun({ ...run, pausedAt: null, pausedMs, endedAt: t, completed: false });
   };
 
-  const size = 300;
-  const stroke = 6;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
+  const endsAt = new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "numeric", minute: "2-digit" }).format(now + remaining);
 
   return (
     <div className="relative flex flex-1 flex-col" style={{ ["--glow" as string]: color }}>
       <div className="focus-glow pointer-events-none fixed inset-0" aria-hidden />
       <TopBar onClose={onClose}>
-        <span className="text-[13px] font-medium text-ink-3">{paused ? "Paused" : "Focusing"}</span>
+        <span className="flex h-8 items-center gap-2 rounded-full bg-white/[0.06] px-3 text-[13px] font-medium text-ink-2">
+          <span className={cn("size-1.5 rounded-full", !paused && "focus-pulse")} style={{ background: paused ? "var(--ink-3)" : color }} />
+          {paused ? "Paused" : "Focusing"}
+        </span>
       </TopBar>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center py-6">
-        <div className="relative" style={{ width: "min(78vw, 300px)", aspectRatio: "1" }}>
-          <svg viewBox={`0 0 ${size} ${size}`} className="size-full -rotate-90">
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(255 255 255 / 0.07)" strokeWidth={stroke} />
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={r}
-              fill="none"
-              stroke={color}
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={`${c * progress} ${c}`}
-              style={{ transition: "stroke-dasharray 400ms linear" }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <motion.div
-              className="display tnum text-[clamp(64px,22vw,88px)] leading-none text-ink"
-              animate={{ opacity: paused ? [1, 0.35, 1] : 1 }}
-              transition={paused ? { duration: 2.4, repeat: Infinity } : { duration: 0.2 }}
-            >
-              {clock}
-            </motion.div>
-            <div className="tnum mt-3 text-[13px] text-ink-3">
-              of {formatDuration(run.plannedMin)}
-              {run.pauses > 0 && ` · ${run.pauses} ${run.pauses === 1 ? "pause" : "pauses"}`}
+      <div className="focus-run relative">
+        <div className="[grid-area:dial] grid place-items-center">
+          <div className="focus-dial relative">
+            <Ticks progress={progress} color={paused ? "var(--ink-3)" : color} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <motion.div
+                className="focus-numerals text-[23cqw] leading-none text-ink data-[long]:text-[17cqw]"
+                data-long={clock.length > 5 || undefined}
+                animate={{ opacity: paused ? [1, 0.4, 1] : 1 }}
+                transition={paused ? { duration: 2.4, repeat: Infinity } : { duration: 0.2 }}
+              >
+                <Clock value={clock} />
+              </motion.div>
+              <div className="tnum mt-[4cqw] text-[clamp(12px,3.6cqw,15px)] font-medium text-ink-3">
+                {paused ? "Paused" : `Ends ${endsAt}`}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 flex max-w-full items-center gap-2.5 px-4">
-          <span className="size-2 shrink-0 rounded-full" style={{ background: color }} />
-          <span className="truncate text-[17px] font-semibold tracking-tight text-ink">{run.label}</span>
+        <div className="focus-label [grid-area:label] flex flex-col items-center text-center">
+          <div className="flex max-w-[30rem] items-start gap-2.5">
+            <span className="mt-[9px] size-2 shrink-0 rounded-full" style={{ background: color }} />
+            <span className="line-clamp-2 text-[19px] leading-snug font-semibold tracking-[-0.02em] text-ink">{run.label}</span>
+          </div>
+          <div className="tnum mt-1.5 text-[13px] text-ink-3">
+            {formatDuration(run.plannedMin)} session
+            {run.pauses > 0 && ` · ${run.pauses} ${run.pauses === 1 ? "pause" : "pauses"}`}
+          </div>
         </div>
-      </div>
 
-      <div className="relative grid grid-cols-3 items-end pb-4">
-        <RoundAction label="+5 min" onClick={extend}>
-          <Plus className="size-5" />
-        </RoundAction>
-        <div className="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={paused ? "Resume" : "Pause"}
-            className="tap grid size-[76px] place-items-center rounded-full bg-ink text-bg shadow-float"
-          >
-            {paused ? <Play className="ml-1 size-7 fill-current" /> : <Pause className="size-7 fill-current" />}
-          </button>
-          <span className="text-[12px] font-medium text-ink-2">{paused ? "Resume" : "Pause"}</span>
+        <div className="focus-controls [grid-area:controls] mx-auto grid w-full max-w-[22rem] grid-cols-3 items-end">
+          <RoundAction label="+5 min" onClick={extend}>
+            <Plus className="size-5" />
+          </RoundAction>
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={paused ? "Resume" : "Pause"}
+              className="tap grid size-[76px] place-items-center rounded-full bg-ink text-bg shadow-float"
+            >
+              {paused ? <Play className="ml-1 size-7 fill-current" /> : <Pause className="size-7 fill-current" />}
+            </button>
+            <span className="text-[12px] font-medium text-ink-2">{paused ? "Resume" : "Pause"}</span>
+          </div>
+          <RoundAction label="End" onClick={end}>
+            <Square className="size-4 fill-current" />
+          </RoundAction>
         </div>
-        <RoundAction label="End" onClick={end}>
-          <Square className="size-4 fill-current" />
-        </RoundAction>
       </div>
     </div>
+  );
+}
+
+/** A watch-style bezel: one tick a minute-mark, lit as the session goes. */
+function Ticks({ progress, color }: { progress: number; color: string }) {
+  const count = 60;
+  const lit = Math.floor(progress * count);
+  return (
+    <svg viewBox="0 0 200 200" className="absolute inset-0 size-full" aria-hidden>
+      {Array.from({ length: count }, (_, i) => {
+        const major = i % 5 === 0;
+        const a = (i / count) * 2 * Math.PI;
+        const [sin, cos] = [Math.sin(a), -Math.cos(a)];
+        const outer = 99;
+        const inner = major ? 89 : 92;
+        const on = i < lit;
+        const head = i === lit && progress < 1;
+        return (
+          <line
+            key={i}
+            x1={100 + sin * inner}
+            y1={100 + cos * inner}
+            x2={100 + sin * outer}
+            y2={100 + cos * outer}
+            strokeWidth={major ? 1.6 : 1.1}
+            strokeLinecap="round"
+            className={head ? "focus-head" : undefined}
+            style={{ stroke: on || head ? color : "rgb(255 255 255 / 0.13)", transition: "stroke 600ms ease" }}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+/** Minutes and seconds sit in fixed-width boxes so the clock doesn't shift as it ticks; the hour,
+ * which changes once an hour, keeps its natural width. */
+function Clock({ value }: { value: string }) {
+  const hours = value.length > 5;
+  return (
+    <span className="inline-flex" aria-label={value} role="timer">
+      {[...value].map((ch, i) =>
+        ch === ":" ? (
+          <span key={i} className="focus-colon" aria-hidden>
+            :
+          </span>
+        ) : (
+          <span key={i} className={hours && i === 0 ? undefined : "focus-digit"} aria-hidden>
+            {ch}
+          </span>
+        ),
+      )}
+    </span>
   );
 }
 
@@ -773,7 +824,7 @@ function FinishView({
           <span className="size-2 rounded-full" style={{ background: color }} />
           <span className="truncate">{run.label}</span>
         </div>
-        <h1 className="display mt-2 text-[44px] text-ink">{run.completed ? "Time’s up" : "Session ended"}</h1>
+        <h1 className="mt-2.5 text-[38px] leading-none font-semibold tracking-[-0.035em] text-ink">{run.completed ? "Time’s up" : "Session ended"}</h1>
         <p className="tnum mt-2 text-[15px] text-ink-2">
           {formatDuration(focusedMin)} focused of {formatDuration(run.plannedMin)}
           {run.pauses > 0 ? ` · ${run.pauses} ${run.pauses === 1 ? "pause" : "pauses"}` : " · no pauses"}
@@ -922,9 +973,9 @@ function ResultView({
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="display tnum text-[64px] leading-none text-ink">
+            <div className="focus-numerals tnum text-[60px] leading-none text-ink">
               {result.quality}
-              <span className="text-[32px] text-ink-2">%</span>
+              <span className="text-[30px] text-ink-2">%</span>
             </div>
             <div className="mt-1.5 text-[12px] font-semibold tracking-wide text-ink-3 uppercase">Focus quality</div>
           </div>
