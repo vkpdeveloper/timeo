@@ -2,6 +2,7 @@
 
 import { ArrowUp, Check, Loader2, Mic } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { startRun } from "@/lib/ai/runs-client";
 import { cn } from "@/lib/cn";
@@ -111,7 +112,9 @@ export function CommandBar({ className, onSent }: { className?: string; onSent?:
       {state === "sent" ? (
         <Check className="size-[18px] shrink-0 text-ok" strokeWidth={2.4} />
       ) : (
-        <Timi size={24} mood={state === "sending" ? "thinking" : state === "error" ? "error" : "idle"} className="-ml-1" />
+        <Link href="/assistant" aria-label="Open Timi" className="tap -my-1 -ml-3 grid size-10 shrink-0 place-items-center rounded-full">
+          <Timi size={24} mood={state === "sending" ? "thinking" : state === "error" ? "error" : "idle"} />
+        </Link>
       )}
       <div className="relative min-w-0 flex-1">
         <input

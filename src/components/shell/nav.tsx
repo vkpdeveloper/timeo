@@ -1,12 +1,11 @@
 "use client";
 
-import { CalendarDays, Dumbbell, LineChart, Sun, Target, type LucideIcon } from "lucide-react";
+import { CalendarDays, Dumbbell, LineChart, Settings2, Sun, Target, type LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { Timi } from "@/components/ai/timi";
 import { QuickAdd } from "./quick-add";
 
 type Tab = { href: string; label: string; icon: LucideIcon; match: (p: string) => boolean };
@@ -102,14 +101,15 @@ export function Sidebar() {
       </nav>
       <div className="mt-auto space-y-2">
         <Link
-          href="/assistant"
+          href="/settings"
+          aria-current={pathname.startsWith("/settings") ? "page" : undefined}
           className={cn(
             "tap flex h-11 items-center gap-3 rounded-xl px-3 text-[14.5px] font-medium",
-            pathname.startsWith("/assistant") ? "bg-surface text-ink shadow-soft" : "text-ink-2 hover:bg-sunken",
+            pathname.startsWith("/settings") ? "bg-surface text-ink shadow-soft" : "text-ink-2 hover:bg-sunken",
           )}
         >
-          <Timi size={22} className="-mx-0.5" />
-          Ask Timi
+          <Settings2 className="size-[18px]" strokeWidth={pathname.startsWith("/settings") ? 2.2 : 1.8} />
+          Settings
         </Link>
         <QuickAdd variant="wide" />
       </div>

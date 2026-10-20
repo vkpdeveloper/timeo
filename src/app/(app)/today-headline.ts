@@ -2,8 +2,8 @@ import type { Block, Task } from "@/db/schema";
 import { formatDuration, formatMin } from "@/lib/dates";
 import type { TodayTraining } from "@/lib/fitness";
 
-/** The Today title, read from the day itself: `em` is set in italic, then `rest`, then a plain `line`. */
-export type Headline = { em: string; rest: string; line: string };
+/** The Today title and the line under it, read from the day itself. */
+export type Headline = { title: string; line: string };
 
 const WORDS = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 const count = (n: number, noun: string) => `${WORDS[n] ?? n} ${noun}${n === 1 ? "" : "s"}`;
@@ -35,18 +35,17 @@ export function todayHeadline({
   const withWorkout = (s: string) => (workout ? `${s} ${workout}` : s);
 
   if (!blocks.length) {
-    if (tasksLeft) return { em: count(tasksLeft, "task"), rest: ", no blocks yet.", line: withWorkout("Give the one that matters a slot.") };
+    if (tasksLeft) return { title: `${count(tasksLeft, "task")}, no blocks yet.`, line: withWorkout("Give the one that matters a slot.") };
     return {
-      em: "A clear",
-      rest: " day.",
+      title: "A clear day.",
       line: withWorkout(evening ? "Nothing planned. Rest counts too." : "Nothing planned yet. Block time for what matters."),
     };
   }
 
   if (!ahead.length) {
     const left = tasksLeft ? `${count(tasksLeft, "task")} still open.` : "Nothing left on the plan.";
-    if (done === blocks.length) return { em: "Every block", rest: " done.", line: withWorkout(left) };
-    return { em: `${done} of ${blocks.length}`, rest: " blocks done.", line: withWorkout(left) };
+    if (done === blocks.length) return { title: "Every block done.", line: withWorkout(left) };
+    return { title: `${done} of ${blocks.length} blocks done.`, line: withWorkout(left) };
   }
 
   const clearAt = formatMin(Math.max(...ahead.map((b) => b.endMin)), true);
@@ -54,15 +53,13 @@ export function todayHeadline({
   if (!started) {
     const planned = blocks.reduce((sum, b) => sum + b.endMin - b.startMin, 0);
     return {
-      em: formatDuration(planned),
-      rest: " planned today.",
+      title: `${formatDuration(planned)} planned today.`,
       line: withWorkout(`First block at ${formatMin(blocks[0].startMin, true)}, clear by ${clearAt}.`),
     };
   }
 
   return {
-    em: ahead.length === 1 ? "One block" : count(ahead.length, "block"),
-    rest: ` left ${evening ? "tonight" : "today"}.`,
+    title: `${count(ahead.length, "block")} left ${evening ? "tonight" : "today"}.`,
     line: withWorkout(done ? `${done} of ${blocks.length} done, clear by ${clearAt}.` : `Clear by ${clearAt}.`),
   };
 }

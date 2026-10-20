@@ -1,4 +1,4 @@
-import { ArrowRight, Droplet, Dumbbell, Play, Settings2 } from "lucide-react";
+import { ArrowRight, Droplet, Dumbbell, Play } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CommandBar } from "@/components/ai/command-bar";
@@ -14,7 +14,6 @@ import { getDailyRead, getGoalHealth } from "@/lib/coach";
 import { getTodayTraining, type TodayTraining } from "@/lib/fitness";
 import { ProgressBar, ProgressRing, StatusPill } from "@/components/ui/primitives";
 import { InstallBanner } from "@/components/shell/install";
-import { Timi } from "@/components/ai/timi";
 import { TodayTasks } from "./today-tasks";
 import { todayHeadline } from "./today-headline";
 
@@ -46,30 +45,12 @@ async function Today() {
   return (
     <div className="fade-up">
       <header className="pt-6 pb-5 lg:pt-10">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="eyebrow mb-1.5">{formatLongDate(user.today)}</div>
-            <h1 className="display text-[36px] text-balance text-ink lg:text-[44px]">
-              <span className="text-ink-2 italic">{headline.em}</span>
-              {headline.rest}
-            </h1>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 pt-1">
-            {progress && (
-              <Link href="/goals" className="tap rounded-full bg-surface px-3 py-1.5 text-[12px] font-semibold text-ink-2 shadow-soft ring-1 ring-line">
-                Day {progress.day}
-                <span className="text-ink-3"> / {progress.total}</span>
-              </Link>
-            )}
-            <Link href="/assistant" aria-label="Ask Timi" className="tap grid size-9 place-items-center rounded-full bg-surface shadow-soft ring-1 ring-line">
-              <Timi size={28} />
-            </Link>
-            <Link href="/settings" aria-label="Settings" className="tap grid size-9 place-items-center rounded-full bg-surface text-ink-2 shadow-soft ring-1 ring-line">
-              <Settings2 className="size-[17px]" />
-            </Link>
-          </div>
+        <div className="eyebrow mb-2">
+          {formatLongDate(user.today)}
+          {progress && ` · Day ${progress.day} of ${progress.total}`}
         </div>
-        <p className="mt-2.5 text-[15px] leading-snug text-ink-2">{headline.line}</p>
+        <h1 className="display text-[34px] text-balance text-ink lg:text-[40px]">{headline.title}</h1>
+        <p className="mt-1.5 text-[15px] leading-snug text-ink-3">{headline.line}</p>
       </header>
 
       <CommandBar />
