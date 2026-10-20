@@ -5,6 +5,7 @@ import { refresh } from "next/cache";
 import { db, t } from "@/db";
 import { BLOCK_KINDS } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { syncBlockTask } from "@/lib/block-task";
 import { addDays } from "@/lib/dates";
 import { date, oneOf, reqStr, str, time } from "@/lib/form";
 import { ownGoalId, ownTaskId } from "@/lib/queries";
@@ -85,21 +86,31 @@ export async function moveBlock(id: string, newDate: string, startMin: number) {
   refresh();
 }
 
+async function ownBlock(userId: string, id: string) {
+  const b = await db
+    .select()
+    .from(t.blocks)
+    .where(and(eq(t.blocks.id, id), eq(t.blocks.userId, userId)))
+    .get();
+  if (!b) throw new Error("Block not found");
+  return b;
+}
+
+/** Done also closes the task the block stands for; undo reopens it. */
 export async function setBlockDone(id: string, done: boolean) {
   const user = await requireUser();
-  await db
-    .update(t.blocks)
-    .set({ doneAt: done ? Date.now() : null, skippedAt: null })
-    .where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id)));
+  const b = await ownBlock(user.id, id);
+  const doneAt = done ? Date.now() : null;
+  await db.update(t.blocks).set({ doneAt, skippedAt: null }).where(eq(t.blocks.id, id));
+  await syncBlockTask(user.id, b, doneAt);
   refresh();
 }
 
 export async function skipBlock(id: string) {
   const user = await requireUser();
-  await db
-    .update(t.blocks)
-    .set({ skippedAt: Date.now(), doneAt: null })
-    .where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id)));
+  const b = await ownBlock(user.id, id);
+  await db.update(t.blocks).set({ skippedAt: Date.now(), doneAt: null }).where(eq(t.blocks.id, id));
+  await syncBlockTask(user.id, b, null);
   refresh();
 }
 

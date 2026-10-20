@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
+import { syncBlockTask } from "@/lib/block-task";
 import { clamp } from "@/lib/form";
 import { FOCUS_MAX, FOCUS_MIN, focusQuality } from "@/lib/focus";
 import { ownGoalId, ownTaskId } from "@/lib/queries";
@@ -112,10 +113,16 @@ export async function finishFocus(input: {
     .where(eq(t.focusSessions.id, s.id));
 
   if (input.markBlockDone && s.blockId) {
-    await db
-      .update(t.blocks)
-      .set({ doneAt: Date.now(), skippedAt: null })
-      .where(and(eq(t.blocks.id, s.blockId), eq(t.blocks.userId, user.id)));
+    const b = await db
+      .select()
+      .from(t.blocks)
+      .where(and(eq(t.blocks.id, s.blockId), eq(t.blocks.userId, user.id)))
+      .get();
+    if (b && b.doneAt == null) {
+      const doneAt = Date.now();
+      await db.update(t.blocks).set({ doneAt, skippedAt: null }).where(eq(t.blocks.id, b.id));
+      await syncBlockTask(user.id, b, doneAt);
+    }
   }
 
   const sessions = await listDaySessions(user.id, s.date);

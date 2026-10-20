@@ -12,6 +12,7 @@ import { addDays, formatMin, isValidISODate, parseTime, startOfWeek, weekday, WE
 import { getActiveSeason, seasonEndFor, seasonProgress } from "@/lib/queries";
 import { findFreeSlot } from "@/lib/schedule";
 import { bestMatch } from "./match";
+import { matchTask, openTasksBy } from "@/lib/block-task";
 
 /*
  * GPS tools: seasons, goals, milestones, weekly steps, time blocks and the
@@ -321,9 +322,14 @@ export function buildGpsTools(user: CurrentUser, actions: ActionSink) {
             skipped.push(b.title);
             continue;
           }
-          rows.push({ id: crypto.randomUUID(), userId: user.id, title: b.title.slice(0, 120), kind: b.kind, goalId: (b.goal && bestMatch(goals, b.goal)?.id) || null, date: b.date && isValidISODate(b.date) ? b.date : user.today, startMin: start, endMin: end });
+          rows.push({ id: crypto.randomUUID(), userId: user.id, title: b.title.slice(0, 120), kind: b.kind, goalId: (b.goal && bestMatch(goals, b.goal)?.id) || null, taskId: null as string | null, date: b.date && isValidISODate(b.date) ? b.date : user.today, startMin: start, endMin: end });
         }
-        if (rows.length) await db.insert(t.blocks).values(rows);
+        // tie each block to the open task it stands for, if one clearly matches
+        if (rows.length) {
+          const open = await openTasksBy(user.id, rows.reduce((max, r) => (r.date > max ? r.date : max), rows[0].date));
+          for (const r of rows) r.taskId = matchTask(open.filter((k) => !k.dueDate || k.dueDate <= r.date), r)?.id ?? null;
+          await db.insert(t.blocks).values(rows);
+        }
         rows.forEach((r) => push({ table: "blocks", id: r.id, label: `${r.title} · ${r.date === user.today ? "today" : WEEKDAY_NAMES[weekday(r.date)].slice(0, 3)} ${formatMin(r.startMin, true)}–${formatMin(r.endMin, true)}`, icon: "calendar" }));
         return { ok: true, added: rows.length, skipped };
       },
