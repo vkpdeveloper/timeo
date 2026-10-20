@@ -2,7 +2,7 @@
 
 import { MailCheck } from "lucide-react";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ButtonLink, SubmitButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/controls";
 import { requestPasswordReset, resetPassword, type ForgotState, type ResetState } from "./actions";
@@ -65,16 +65,49 @@ export function ForgotForm() {
 
 export function ResetForm({ token }: { token: string }) {
   const [state, action] = useActionState<ResetState, FormData>(resetPassword, undefined);
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [tried, setTried] = useState(false);
+  // flag a mismatch as soon as the confirmation stops being a prefix of the password, or on submit
+  const mismatch = confirm.length > 0 && (tried ? confirm !== password : !password.startsWith(confirm));
 
   if (state?.expired) return <ExpiredLink />;
 
   return (
-    <form action={action} className="space-y-3">
+    <form
+      action={action}
+      onSubmit={(e) => {
+        setTried(true);
+        if (confirm !== password) e.preventDefault();
+      }}
+      className="space-y-3"
+    >
       <input type="hidden" name="token" value={token} />
       {/* lets password managers save the new password against the account */}
       <input type="text" name="username" autoComplete="username" hidden readOnly />
-      <Input name="password" type="password" placeholder="New password" autoComplete="new-password" minLength={8} required autoFocus />
-      <ErrorNote error={state?.error} />
+      <Input
+        name="password"
+        type="password"
+        placeholder="New password"
+        autoComplete="new-password"
+        minLength={8}
+        required
+        autoFocus
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <Input
+        name="confirm"
+        type="password"
+        placeholder="Confirm new password"
+        autoComplete="new-password"
+        required
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        aria-invalid={mismatch || undefined}
+        className={mismatch ? "border-bad" : undefined}
+      />
+      {mismatch ? <ErrorNote error="Passwords don't match." /> : <ErrorNote error={state?.error} />}
       <SubmitButton size="lg" className="mt-2">
         Save and sign in
       </SubmitButton>

@@ -106,6 +106,7 @@ export async function resetPassword(_: ResetState, formData: FormData): Promise<
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   if (password.length < 8) return { error: "Use at least 8 characters for your password." };
+  if (formData.get("confirm") !== password) return { error: "Passwords don't match." };
 
   const reset = await consumePasswordReset(token);
   if (!reset) return { error: "This link has expired or was already used.", expired: true };
