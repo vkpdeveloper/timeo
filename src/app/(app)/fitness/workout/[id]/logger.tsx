@@ -463,7 +463,7 @@ export function Logger({
                   ) : (
                     <Pause className="size-3.5 fill-current text-ink-3" />
                   ))}
-                <span suppressHydrationWarning className={cn("tnum text-[17px] font-semibold tracking-tight", clock.paused ? "text-ink-3" : "text-ink")}>
+                <span suppressHydrationWarning className={cn("tnum-live text-[17px] font-semibold tracking-tight", clock.paused ? "text-ink-3" : "text-ink")}>
                   {clock.label}
                 </span>
               </button>

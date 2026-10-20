@@ -220,7 +220,7 @@ function TodayCard({ day, routines }: { day: TrainingDay; routines: RoutineOptio
             <p className="mt-1.5 text-[14px] text-ink-2">{log.skipReason}</p>
           )}
           {log.status === "in_progress" && (
-            <WorkoutClockText clock={log} className="tnum mt-1 block text-[15px] font-medium text-ink-2" />
+            <WorkoutClockText clock={log} className="tnum-live mt-1 block text-[15px] font-medium text-ink-2" />
           )}
           <div className="mt-5 flex items-center gap-2">
             {log.status === "in_progress" ? (

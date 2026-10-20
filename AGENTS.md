@@ -58,5 +58,5 @@ async function GoalContent({ params }: { params: PageProps<"/goals/[id]">["param
   `src/components/forms/sheets.tsx`. Never use native `<input type="date|time">`.
 - Forms open in bottom `Sheet`s. Touch targets ≥ 44px. Inputs are 16px (no iOS zoom).
 - Minimal and calm: one accent, hairline borders, generous spacing, `display` serif only for big titles
-  and hero numbers, `tnum` for numbers. Colours for goals/routines come from `src/lib/colors.ts`.
+  and hero numbers, `tnum` for numbers (`tnum-live` for counters that tick). Colours for goals/routines come from `src/lib/colors.ts`.
 - Copy is short and plain. No exclamation marks, no filler.

@@ -122,7 +122,7 @@ export function RestBar({ rest }: { rest: RestTimer }) {
                   </button>
                   <div className="flex-1 text-center" aria-live="polite">
                     <div className="text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Rest</div>
-                    <div className="tnum text-[28px] leading-none font-semibold tracking-tight text-ink">{mmss(rest.remaining)}</div>
+                    <div className="tnum-live text-[28px] leading-none font-semibold tracking-tight text-ink">{mmss(rest.remaining)}</div>
                   </div>
                   <button
                     type="button"

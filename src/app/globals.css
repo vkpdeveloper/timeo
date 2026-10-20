@@ -239,9 +239,9 @@
   --color-tint-soft: var(--tint-soft);
   --color-tint-ink: var(--tint-ink);
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-sans: var(--font-mona-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
 
   --radius-card: 22px;
   --shadow-soft: var(--shadow-sm);
@@ -318,7 +318,6 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11";
   overscroll-behavior-y: none;
   min-height: 100dvh;
 }
@@ -381,8 +380,15 @@ button:disabled {
     color: var(--ink-3);
   }
 
+  /* Mona Sans' tabular figures swap in a slab-footed 1, so numbers keep their
+     proportional shapes; only counters that tick go tabular, so they don't jitter */
   .tnum {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: lining-nums proportional-nums;
+  }
+
+  .tnum-live,
+  .display.tnum {
+    font-variant-numeric: lining-nums tabular-nums;
   }
 
   .tap {

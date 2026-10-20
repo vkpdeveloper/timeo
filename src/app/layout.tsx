@@ -1,16 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Mona_Sans, Newsreader } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/shell/sw-register";
 import { ThemeBoot } from "@/components/shell/theme";
 import { themeBootScript } from "@/lib/themes";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
+// Two typefaces: Mona Sans for the interface, Newsreader for big titles and hero numbers
+const monaSans = Mona_Sans({ variable: "--font-mona-sans", subsets: ["latin"] });
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin"],
-  weight: "400",
+  axes: ["opsz"],
   style: ["normal", "italic"],
 });
 
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
+      className={`${monaSans.variable} ${newsreader.variable} antialiased`}
       // The boot script sets data-theme / data-mode (and custom theme variables) before paint
       suppressHydrationWarning
     >
