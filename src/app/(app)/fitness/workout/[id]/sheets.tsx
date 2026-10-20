@@ -11,6 +11,7 @@ import { tint } from "@/lib/colors";
 import { formatDuration } from "@/lib/dates";
 import { fmtVolume, type ExerciseOption } from "@/lib/fitness-math";
 import { discardWorkout, finishWorkout } from "./actions";
+import { clearDraft } from "./draft";
 import type { LSet } from "./logger";
 
 export { ExercisePicker } from "../../_components/exercise-picker";
@@ -209,6 +210,7 @@ export function FinishSheet({
       setError(null);
       try {
         await flush();
+        clearDraft(logId);
         await finishWorkout(logId, { feeling: feeling ? Number(feeling) : null, notes });
       } catch (e) {
         if (e && typeof e === "object" && "digest" in e) throw e; // redirect
@@ -285,7 +287,10 @@ export function FinishSheet({
       <button
         type="button"
         disabled={discarding}
-        onClick={() => (confirmDiscard ? startDiscard(() => discardWorkout(logId)) : setConfirmDiscard(true))}
+        onClick={() => (confirmDiscard ? startDiscard(() => {
+                clearDraft(logId);
+                return discardWorkout(logId);
+              }) : setConfirmDiscard(true))}
         className="tap mt-1 h-11 w-full rounded-2xl text-[14px] font-semibold text-bad"
       >
         {discarding ? "Discarding…" : confirmDiscard ? "Tap again to delete this workout" : editing ? "Delete session" : "Discard workout"}

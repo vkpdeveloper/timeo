@@ -181,7 +181,7 @@ async function Session({ params }: { params: PageProps<"/fitness/history/[id]">[
       <div className="mt-6 flex gap-2.5">
         {log.status !== "skipped" && (
           <ButtonLink href={`/fitness/workout/${log.id}`} variant="secondary" size="lg" className="flex-1">
-            <Pencil className="size-4" /> {log.status === "unlogged" ? "Add sets" : log.status === "in_progress" ? "Resume" : "Edit sets"}
+            <Pencil className="size-4" /> {log.status === "unlogged" ? "Add sets" : log.status === "in_progress" ? "Open workout" : "Edit sets"}
           </ButtonLink>
         )}
         <DeleteWorkoutButton id={log.id} />

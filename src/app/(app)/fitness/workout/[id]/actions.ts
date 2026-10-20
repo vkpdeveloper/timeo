@@ -7,6 +7,7 @@ import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { getExerciseHistory, ownWorkout, type ExerciseHistory } from "@/lib/fitness";
 import { clamp } from "@/lib/form";
+import { trainedMs } from "@/lib/fitness-math";
 
 // The logger owns its state on the client, so the high-frequency set actions
 // below skip refresh(): re-rendering the page on every keystroke is wasted work.
@@ -114,13 +115,33 @@ export async function finishWorkout(logId: string, input: { feeling: number | nu
     .set({
       status: "completed",
       skipReason: null,
-      endedAt: log.status === "in_progress" || !log.endedAt ? Date.now() : log.endedAt,
+      endedAt: log.status === "in_progress" || !log.endedAt ? log.startedAt + trainedMs(log, Date.now()) : log.endedAt,
+      pausedAt: null,
       feeling: input.feeling != null ? clamp(Math.round(input.feeling), 1, 5) : null,
       notes: input.notes?.trim() ? input.notes.trim().slice(0, 2000) : null,
     })
     .where(eq(t.workoutLogs.id, log.id));
   refresh();
   redirect(`/fitness/history/${log.id}`);
+}
+
+/** Stops the workout clock; the workout stays open. Returns the stored clock. */
+export async function pauseWorkout(logId: string) {
+  const user = await requireUser();
+  const log = await ownWorkout(user.id, logId);
+  if (log.status !== "in_progress" || log.pausedAt != null) return { pausedAt: log.pausedAt, pausedMs: log.pausedMs };
+  const pausedAt = Date.now();
+  await db.update(t.workoutLogs).set({ pausedAt }).where(eq(t.workoutLogs.id, log.id));
+  return { pausedAt, pausedMs: log.pausedMs };
+}
+
+export async function resumeWorkout(logId: string) {
+  const user = await requireUser();
+  const log = await ownWorkout(user.id, logId);
+  if (log.status !== "in_progress" || log.pausedAt == null) return { pausedAt: log.pausedAt, pausedMs: log.pausedMs };
+  const pausedMs = log.pausedMs + Math.max(0, Date.now() - log.pausedAt);
+  await db.update(t.workoutLogs).set({ pausedAt: null, pausedMs }).where(eq(t.workoutLogs.id, log.id));
+  return { pausedAt: null, pausedMs };
 }
 
 export async function discardWorkout(logId: string) {

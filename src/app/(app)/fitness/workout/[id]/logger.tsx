@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Ellipsis, MessageSquare, Plus } from "lucide-react";
+import { ChevronLeft, Ellipsis, MessageSquare, Pause, Play, Plus } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle } from "@/components/ui/controls";
@@ -17,7 +17,9 @@ import {
   fmtVolume,
   type ExerciseOption,
 } from "@/lib/fitness-math";
-import { deleteSet, exerciseHistory, renameWorkout, saveSet, syncBlocks, type SetInput } from "./actions";
+import { useWorkoutClock } from "../../_components/workout-clock";
+import { draftKey, readDraft, type Draft } from "./draft";
+import { deleteSet, exerciseHistory, pauseWorkout, renameWorkout, resumeWorkout, saveSet, syncBlocks, type SetInput } from "./actions";
 import { ExerciseMenu, ExercisePicker, FinishSheet, SetMenu, type PR } from "./sheets";
 import { RestBar, useRestTimer } from "./rest";
 
@@ -60,6 +62,8 @@ type LogInfo = {
   status: "in_progress" | "completed" | "skipped" | "unlogged";
   startedAt: number;
   endedAt: number | null;
+  pausedAt: number | null;
+  pausedMs: number;
   feeling: number | null;
   notes: string | null;
 };
@@ -102,20 +106,6 @@ function prevFor(block: Block, setIdx: number, last: PrevSet[] | undefined): Pre
   return pool[Math.min(nth, pool.length - 1)];
 }
 
-function useElapsed(startedAt: number, running: boolean) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!running) return;
-    const i = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(i);
-  }, [running]);
-  const sec = Math.max(0, Math.floor((now - startedAt) / 1000));
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  return { sec, label: h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}` };
-}
-
 export function Logger({
   log,
   color,
@@ -139,7 +129,8 @@ export function Logger({
   const [name, setName] = useState(log.name);
   const blocksRef = useRef(blocks);
   const exById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
-  const elapsed = useElapsed(log.startedAt, !editing);
+  const [clockState, setClockState] = useState({ pausedAt: log.pausedAt, pausedMs: log.pausedMs });
+  const clock = useWorkoutClock({ startedAt: log.startedAt, ...clockState }, !editing);
   const rest = useRestTimer(log.id);
 
   // ── persistence ──
@@ -147,6 +138,28 @@ export function Logger({
   const queue = useRef<Promise<void>>(Promise.resolve());
   const [saveError, setSaveError] = useState(false);
   const failed = useRef(new Set<string>());
+  // sets the server doesn't have yet (with an edit counter), and pending reorders/removals
+  const dirty = useRef(new Map<string, number>());
+  const structure = useRef(0);
+  const structureSaved = useRef(0);
+
+  const saveDraft = useCallback(() => {
+    try {
+      if (!dirty.current.size && structure.current === structureSaved.current) localStorage.removeItem(draftKey(log.id));
+      else {
+        const draft: Draft = { blocks: blocksRef.current, dirty: [...dirty.current.keys()], structure: structure.current !== structureSaved.current };
+        localStorage.setItem(draftKey(log.id), JSON.stringify(draft));
+      }
+    } catch {}
+  }, [log.id]);
+
+  const markDirty = useCallback(
+    (setId: string) => {
+      dirty.current.set(setId, (dirty.current.get(setId) ?? 0) + 1);
+      saveDraft();
+    },
+    [saveDraft],
+  );
 
   const update = useCallback((fn: (b: Block[]) => Block[]) => {
     const next = fn(blocksRef.current);
@@ -178,6 +191,7 @@ export function Logger({
             const si = bs[bi].sets.findIndex((s) => s.id === setId);
             if (si < 0) continue;
             const s = bs[bi].sets[si];
+            const version = dirty.current.get(setId);
             const input: SetInput = {
               id: s.id,
               exerciseId: bs[bi].exerciseId,
@@ -191,6 +205,11 @@ export function Logger({
             };
             try {
               await saveSet(log.id, input);
+              // only clean if nothing changed while it was saving
+              if (dirty.current.get(setId) === version) {
+                dirty.current.delete(setId);
+                saveDraft();
+              }
               failed.current.delete(setId);
               if (!failed.current.size) setSaveError(false);
             } catch {
@@ -199,10 +218,13 @@ export function Logger({
             }
             return;
           }
+          // the set is gone (removed); nothing to save
+          dirty.current.delete(setId);
+          saveDraft();
         })
         .catch(() => {});
     },
-    [log.id],
+    [log.id, saveDraft],
   );
 
   const schedule = useCallback(
@@ -214,15 +236,40 @@ export function Logger({
     [persist],
   );
 
-  const flushAll = useCallback(async () => {
-    for (const id of [...timers.current.keys(), ...failed.current]) persist(id);
-    await queue.current;
-  }, [persist]);
-
   const syncStructure = useCallback(() => {
+    const version = ++structure.current;
+    saveDraft();
     const snapshot = blocksRef.current.map((b) => ({ exerciseId: b.exerciseId, setIds: b.sets.map((s) => s.id) }));
-    enqueue(() => syncBlocks(log.id, snapshot));
-  }, [enqueue, log.id]);
+    enqueue(async () => {
+      await syncBlocks(log.id, snapshot);
+      structureSaved.current = Math.max(structureSaved.current, version);
+      saveDraft();
+    });
+  }, [enqueue, log.id, saveDraft]);
+
+  /** Saves everything pending; throws if the server still lacks something. */
+  const flushAll = useCallback(async () => {
+    for (const id of new Set([...timers.current.keys(), ...failed.current, ...dirty.current.keys()])) persist(id);
+    if (structure.current !== structureSaved.current) syncStructure();
+    await queue.current;
+    if (dirty.current.size || structure.current !== structureSaved.current) throw new Error("Not saved");
+  }, [persist, syncStructure]);
+
+  // Bring back edits the server never got (refresh, crash, offline).
+  useEffect(() => {
+    const draft = readDraft(log.id);
+    if (!draft || (!draft.dirty.length && !draft.structure)) return;
+    blocksRef.current = draft.blocks;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after hydration
+    setBlocks(draft.blocks);
+    for (const id of draft.dirty) {
+      markDirty(id);
+      persist(id);
+    }
+    if (draft.structure) syncStructure();
+    // once, on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const onHide = () => {
@@ -240,6 +287,7 @@ export function Logger({
   // ── mutations ──
   const patchSet = (setId: string, patch: Partial<LSet>, save: "debounce" | "now" = "debounce") => {
     update((bs) => bs.map((b) => ({ ...b, sets: b.sets.map((s) => (s.id === setId ? { ...s, ...patch } : s)) })));
+    markDirty(setId);
     if (save === "now") persist(setId);
     else schedule(setId);
   };
@@ -249,17 +297,11 @@ export function Logger({
     const set = block.sets[si];
     if (set.done) return patchSet(set.id, { done: false }, "now");
     const prev = prevFor(block, si, history[block.exerciseId]?.last?.sets);
+    // Ticking marks it done, always. Empty fields take last session's values when
+    // there are some; nothing is invented.
     const patch: Partial<LSet> = { done: true };
     if (!set.weight && prev?.weightKg != null) patch.weight = String(prev.weightKg);
-    if (!set.reps) {
-      // Only copy what was actually done last time; never invent values.
-      if (prev?.reps == null) {
-        const focusId = !set.weight && !patch.weight && exById.get(block.exerciseId)?.type === "weight" ? `w-${set.id}` : `reps-${set.id}`;
-        document.getElementById(focusId)?.focus();
-        return;
-      }
-      patch.reps = String(prev.reps);
-    }
+    if (!set.reps && prev?.reps != null) patch.reps = String(prev.reps);
     patchSet(set.id, patch, "now");
     const restSec = set.warmup ? 60 : (prescriptions[block.exerciseId]?.restSec ?? 90);
     rest.start(restSec);
@@ -272,6 +314,7 @@ export function Logger({
         i === bi ? { ...b, sets: [...b.sets, { id, warmup: false, weight: "", reps: "", note: "", done: false }] } : b,
       ),
     );
+    markDirty(id);
     persist(id);
   };
 
@@ -280,6 +323,8 @@ export function Logger({
     if (t) clearTimeout(t);
     timers.current.delete(setId);
     update((bs) => bs.map((b) => ({ ...b, sets: b.sets.filter((s) => s.id !== setId) })).filter((b) => b.sets.length));
+    dirty.current.delete(setId);
+    failed.current.delete(setId);
     enqueue(() => deleteSet(log.id, setId));
     syncStructure();
   };
@@ -296,7 +341,10 @@ export function Logger({
     const n = 3;
     const sets: LSet[] = Array.from({ length: n }, () => ({ id: uid(), warmup: false, weight: "", reps: "", note: "", done: false }));
     update((bs) => [...bs, { key: uid(), exerciseId: ex.id, sets }]);
-    for (const s of sets) persist(s.id);
+    for (const s of sets) {
+      markDirty(s.id);
+      persist(s.id);
+    }
     loadHistory(ex.id);
     setTimeout(() => document.getElementById(`block-${blocksRef.current.length - 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
@@ -322,6 +370,18 @@ export function Logger({
   const removeBlock = (bi: number) => {
     update((bs) => bs.filter((_, i) => i !== bi));
     syncStructure();
+  };
+
+  // ── clock ──
+  const togglePause = () => {
+    const now = Date.now();
+    if (clockState.pausedAt != null) {
+      setClockState({ pausedAt: null, pausedMs: clockState.pausedMs + Math.max(0, now - clockState.pausedAt) });
+      resumeWorkout(log.id).then(setClockState).catch(() => {});
+    } else {
+      setClockState({ ...clockState, pausedAt: now });
+      pauseWorkout(log.id).then(setClockState).catch(() => {});
+    }
   };
 
   // ── sheets ──
@@ -386,21 +446,44 @@ export function Logger({
           >
             <ChevronLeft className="size-6" strokeWidth={2.2} />
           </Link>
-          <div className="min-w-0 text-center">
-            <div className="tnum text-[17px] font-semibold tracking-tight text-ink">
-              {editing ? "Edit session" : elapsed.label}
-            </div>
-            {saveError && (
-              <button type="button" onClick={() => flushAll()} className="text-[11.5px] font-semibold text-bad">
+          <div className="flex min-w-0 flex-col items-center">
+            {editing ? (
+              <div className="text-[17px] font-semibold tracking-tight text-ink">Edit session</div>
+            ) : (
+              <button
+                type="button"
+                onClick={togglePause}
+                disabled={clock.capped}
+                aria-label={clock.paused ? "Resume timer" : "Pause timer"}
+                className="tap inline-flex h-9 items-center gap-1.5 rounded-full px-3 hover:bg-sunken disabled:hover:bg-transparent"
+              >
+                {!clock.capped &&
+                  (clock.paused ? (
+                    <Play className="size-3.5 fill-current text-tint" />
+                  ) : (
+                    <Pause className="size-3.5 fill-current text-ink-3" />
+                  ))}
+                <span suppressHydrationWarning className={cn("tnum text-[17px] font-semibold tracking-tight", clock.paused ? "text-ink-3" : "text-ink")}>
+                  {clock.label}
+                </span>
+              </button>
+            )}
+            {saveError ? (
+              <button type="button" onClick={() => flushAll().catch(() => {})} className="-mt-0.5 text-[11.5px] font-semibold text-bad">
                 Not saved · Retry
               </button>
+            ) : (
+              !editing &&
+              (clock.paused || clock.capped) && (
+                <span className="-mt-0.5 text-[11.5px] font-medium text-ink-3">{clock.paused ? "Paused" : "Time's up"}</span>
+              )
             )}
           </div>
           <button
             type="button"
-            onClick={async () => {
+            onClick={() => {
               setFinishing(true);
-              void flushAll();
+              flushAll().catch(() => {});
             }}
             className="tap h-10 rounded-full bg-tint px-5 text-[15px] font-semibold text-tint-ink"
           >
@@ -510,7 +593,7 @@ export function Logger({
         onClose={() => setFinishing(false)}
         logId={log.id}
         editing={editing}
-        durationSec={editing ? (log.endedAt ? Math.round((log.endedAt - log.startedAt) / 1000) : null) : elapsed.sec}
+        durationSec={editing ? (log.endedAt ? Math.round((log.endedAt - log.startedAt) / 1000) : null) : clock.sec}
         workingSets={summary.done}
         volume={summary.volume}
         undone={summary.undone}

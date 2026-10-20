@@ -95,6 +95,16 @@ export function rollingAverage(points: { date: string; value: number }[], days =
   });
 }
 
+/** A started workout runs until paused, finished, or this long has been trained. */
+export const WORKOUT_LIMIT_MIN = 75;
+
+export type WorkoutClock = { startedAt: number; pausedAt: number | null; pausedMs: number };
+
+/** Time trained so far: pauses excluded, capped at the workout limit. */
+export function trainedMs(c: WorkoutClock, now: number) {
+  return Math.min(WORKOUT_LIMIT_MIN * 60_000, Math.max(0, (c.pausedAt ?? now) - c.startedAt - c.pausedMs));
+}
+
 export const WORKOUT_STATUS_LABEL = {
   in_progress: "In progress",
   completed: "Done",

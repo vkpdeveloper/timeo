@@ -5,13 +5,15 @@
 // - Static assets: cache first (hashed, immutable).
 // - Web Push: show notifications, open the right screen on tap.
 
-const VERSION = "timeo-v3";
+const VERSION = "timeo-v4";
 const OFFLINE_URL = "/offline.html";
 // registered as /sw.js?dev=1 by `next dev`: no snapshots, no asset caching
 const IS_DEV = new URL(self.location.href).searchParams.get("dev") === "1";
 const SNAPSHOT_MAX_AGE = 7 * 86_400_000;
 // never snapshot these (auth screens, API, files)
 const NO_SNAPSHOT = [/^\/login/, /^\/signup/, /^\/api\//, /^\/offline/, /\.[a-z0-9]+$/i];
+// live screens: always the network copy, the snapshot only when offline
+const NETWORK_FIRST = [/^\/fitness\/workout\//];
 
 // ─────────────────────────── IndexedDB ───────────────────────────
 
@@ -145,7 +147,8 @@ async function handleNavigation(event) {
 
   const snap = await getSnapshot(key);
   const recentlyServed = Date.now() - (lastServed.get(key) || 0) < 15_000; // reload loop guard
-  const usable = snap && Date.now() - snap.savedAt < SNAPSHOT_MAX_AGE && !recentlyServed;
+  const live = NETWORK_FIRST.some((r) => r.test(url.pathname));
+  const usable = snap && !live && Date.now() - snap.savedAt < SNAPSHOT_MAX_AGE && !recentlyServed;
 
   if (usable) {
     lastServed.set(key, Date.now());

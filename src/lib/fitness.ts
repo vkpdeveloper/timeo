@@ -89,7 +89,10 @@ export type TrainingDay = {
   isToday: boolean;
   isFuture: boolean;
   scheduled: ScheduleDay;
-  log: Pick<LogRow, "id" | "name" | "status" | "skipReason" | "templateId" | "plannedTemplateId"> | null;
+  log: Pick<
+    LogRow,
+    "id" | "name" | "status" | "skipReason" | "templateId" | "plannedTemplateId" | "startedAt" | "pausedAt" | "pausedMs"
+  > | null;
   /** Colour of what was done (or planned) */
   color: string;
   status: DayStatus;
@@ -119,6 +122,9 @@ export async function getTrainingWeek(userId: string, day: string, today: string
         skipReason: t.workoutLogs.skipReason,
         templateId: t.workoutLogs.templateId,
         plannedTemplateId: t.workoutLogs.plannedTemplateId,
+        startedAt: t.workoutLogs.startedAt,
+        pausedAt: t.workoutLogs.pausedAt,
+        pausedMs: t.workoutLogs.pausedMs,
       })
       .from(t.workoutLogs)
       .where(and(eq(t.workoutLogs.userId, userId), gte(t.workoutLogs.date, weekStart), lte(t.workoutLogs.date, weekEnd))),

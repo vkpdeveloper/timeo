@@ -428,7 +428,11 @@ export const workoutLogs = sqliteTable(
       .default("in_progress"),
     skipReason: text("skip_reason"),
     startedAt: integer("started_at", { mode: "number" }).notNull(),
+    // startedAt + time trained (pauses excluded), so endedAt - startedAt is the duration
     endedAt: integer("ended_at", { mode: "number" }),
+    // set while an in-progress workout is paused; pausedMs is paused time so far
+    pausedAt: integer("paused_at", { mode: "number" }),
+    pausedMs: integer("paused_ms").notNull().default(0),
     // how it felt 1-5
     feeling: integer("feeling"),
     notes: text("notes"),

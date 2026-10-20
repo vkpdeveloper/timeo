@@ -92,6 +92,8 @@ async function WorkoutContent({ params }: { params: PageProps<"/fitness/workout/
         status: log.status,
         startedAt: log.startedAt,
         endedAt: log.endedAt,
+        pausedAt: log.pausedAt,
+        pausedMs: log.pausedMs,
         feeling: log.feeling,
         notes: log.notes,
       }}

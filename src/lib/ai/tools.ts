@@ -7,6 +7,7 @@ import type { AiAction } from "@/db/schema";
 import type { CurrentUser } from "@/lib/auth";
 import type { ActionSink } from "./run";
 import { addDays, formatMin, isValidISODate, parseTime, weekday } from "@/lib/dates";
+import { trainedMs } from "@/lib/fitness-math";
 import { getActiveSeason } from "@/lib/queries";
 import { bestMatch } from "./match";
 
@@ -93,6 +94,9 @@ export function buildTools(user: CurrentUser, actions: ActionSink) {
             .update(t.workoutLogs)
             .set({
               status: input.exercises.length && log.status === "in_progress" ? "in_progress" : input.status,
+              ...(log.status === "in_progress" && !input.exercises.length && input.status !== "in_progress"
+                ? { endedAt: log.startedAt + trainedMs(log, Date.now()), pausedAt: null }
+                : {}),
               skipReason: input.skipReason ?? log.skipReason,
               notes: input.notes ? [log.notes, input.notes].filter(Boolean).join("\n") : log.notes,
             })

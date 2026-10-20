@@ -32,6 +32,7 @@ import { startWorkout } from "./actions";
 import { IconBadge, MacroSummary, Sparkline, StatTile, StatusChip, WeekStrip } from "./_components/bits";
 import { MarkDayButtons, StartOtherButton, UndoMarkButton, type RoutineOption } from "./_components/day-actions";
 import { WaterCard } from "./_components/water";
+import { WorkoutClockText } from "./_components/workout-clock";
 
 export default function FitnessPage() {
   return (
@@ -218,10 +219,13 @@ function TodayCard({ day, routines }: { day: TrainingDay; routines: RoutineOptio
           {log.status === "skipped" && log.skipReason && (
             <p className="mt-1.5 text-[14px] text-ink-2">{log.skipReason}</p>
           )}
+          {log.status === "in_progress" && (
+            <WorkoutClockText clock={log} className="tnum mt-1 block text-[15px] font-medium text-ink-2" />
+          )}
           <div className="mt-5 flex items-center gap-2">
             {log.status === "in_progress" ? (
               <ButtonLink href={`/fitness/workout/${log.id}`} variant="tint" size="lg">
-                <Play className="size-4 fill-current" /> Resume
+                Open workout
               </ButtonLink>
             ) : log.status === "completed" ? (
               <ButtonLink href={`/fitness/history/${log.id}`} variant="secondary" size="lg">
