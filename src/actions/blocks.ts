@@ -6,8 +6,8 @@ import { db, t } from "@/db";
 import { BLOCK_KINDS } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { syncBlockTask } from "@/lib/block-task";
-import { addDays } from "@/lib/dates";
-import { date, oneOf, reqStr, str, time } from "@/lib/form";
+import { addDays, isValidISODate } from "@/lib/dates";
+import { clamp, date, oneOf, reqStr, str, time } from "@/lib/form";
 import { ownGoalId, ownTaskId } from "@/lib/queries";
 import { findFreeSlot } from "@/lib/schedule";
 
@@ -65,8 +65,10 @@ export async function updateBlock(fd: FormData) {
 }
 
 /** Moves a block by drag or quick action; counts as a reschedule. */
-export async function moveBlock(id: string, newDate: string, startMin: number) {
+export async function moveBlock(id: string, newDate: string, rawStart: number) {
   const user = await requireUser();
+  if (!isValidISODate(newDate) || !Number.isFinite(rawStart)) throw new Error("Pick a valid day and time");
+  const startMin = clamp(Math.round(rawStart), 0, 24 * 60 - 1);
   const b = await db
     .select()
     .from(t.blocks)

@@ -5,7 +5,7 @@ import { cacheLife } from "next/cache";
 // Source of truth for what the key can use: OpenCode Go's /v1/models.
 // Metadata (protocol, reasoning options, price, context) comes from models.dev.
 
-import type { CatalogModel, Effort, Protocol } from "./shared";
+import { DEFAULT_AI_MODEL, type CatalogModel, type Effort, type Protocol } from "./shared";
 
 export const GO_BASE = "https://opencode.ai/inference/go";
 export const ZEN_BASE = "https://opencode.ai/inference";
@@ -79,6 +79,13 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> 
   }
 }
 
+/**
+ * Pay-as-you-go Zen models bill OpenCode credits per token, unlike the flat
+ * Go plan, so any user picking one spends the server owner's money. They are
+ * off unless the server env sets AI_ALLOW_ZEN_MODELS="1" (server only).
+ */
+const allowZen = () => process.env.AI_ALLOW_ZEN_MODELS === "1";
+
 /** All models the user can pick, Go models first. Cached for a few hours. */
 export async function getModelCatalog(): Promise<CatalogModel[]> {
   "use cache";
@@ -101,7 +108,7 @@ export async function getModelCatalog(): Promise<CatalogModel[]> {
   });
 
   const goSet = new Set(goIds);
-  const zen = Object.values(zenDev?.models ?? {})
+  const zen = Object.values((allowZen() && zenDev?.models) || {})
     .filter((m) => !goSet.has(m.id) && m.status !== "deprecated" && m.tool_call !== false)
     .map((m) => toCatalog(m.id, m, "zen", zenDev?.npm));
 
@@ -111,8 +118,17 @@ export async function getModelCatalog(): Promise<CatalogModel[]> {
 
 export async function findModel(id: string): Promise<CatalogModel> {
   const all = await getModelCatalog();
+  const found = all.find((m) => m.id === id);
+  if (found) return found;
+  // Unknown ids must not reach the provider: the id comes from user
+  // settings, and honoring arbitrary strings bypasses the catalog (and
+  // its pricing). Fall back to the default model instead. When the
+  // catalog itself failed to load (empty), keep the requested id so a
+  // models.dev outage does not silently swap everyone's model.
+  const fallback = all.find((m) => m.id === DEFAULT_AI_MODEL) ?? all[0];
+  if (fallback) return fallback;
   return (
-    all.find((m) => m.id === id) ?? {
+    {
       id,
       name: id,
       tier: "go",

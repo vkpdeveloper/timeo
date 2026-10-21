@@ -2,8 +2,8 @@
 
 import { Loader2, RotateCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState, useTransition } from "react";
 import { AssistantActivity } from "@/components/ai/activity";
 import { useClientValue } from "@/lib/hooks";
 import { capturePwaEvents, SW_URL } from "@/lib/pwa";
@@ -20,6 +20,19 @@ const ago = (ms: number) => {
   const h = Math.round(m / 60);
   return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
 };
+
+/**
+ * Auth screens wipe saved pages so the next person on this device can't read
+ * them. This sits in the root layout, which stays mounted across client
+ * navigations, so it keys off the pathname rather than running once.
+ */
+function ClearOnAuthScreens() {
+  const pathname = usePathname();
+  useEffect(() => {
+    if (/^\/(login|signup|reset-password)/.test(pathname)) navigator.serviceWorker?.controller?.postMessage({ type: "timeo:clear" });
+  }, [pathname]);
+  return null;
+}
 
 /**
  * Registers the service worker and keeps cached pages honest:
@@ -50,7 +63,6 @@ export function ServiceWorkerRegister() {
     capturePwaEvents();
     lastRefresh.current = Date.now();
     const meta = document.querySelector('meta[name="timeo-snapshot"]');
-    if (/^\/(login|signup)/.test(location.pathname)) navigator.serviceWorker?.controller?.postMessage({ type: "timeo:clear" });
     if (!("serviceWorker" in navigator)) return;
 
     navigator.serviceWorker.register(SW_URL, { scope: "/", updateViaCache: "none" }).catch(() => {});
@@ -147,6 +159,10 @@ export function ServiceWorkerRegister() {
   return (
     <>
       <AssistantActivity />
+      {/* usePathname suspends on routes with request-time params */}
+      <Suspense fallback={null}>
+        <ClearOnAuthScreens />
+      </Suspense>
       {pull > 8 && (
         <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--safe-top)+8px)] z-[70] flex justify-center">
           <span

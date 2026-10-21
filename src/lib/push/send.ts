@@ -2,7 +2,7 @@ import "server-only";
 import { eq, inArray } from "drizzle-orm";
 import webpush from "web-push";
 import { db, t } from "@/db";
-import type { PushPayload } from "./types";
+import { isPushEndpoint, type PushPayload } from "./types";
 
 let configured = false;
 function configure() {
@@ -27,10 +27,11 @@ export async function sendToUser(userId: string, payload: PushPayload): Promise<
   if (!subs.length) return 0;
 
   const body = JSON.stringify(payload);
-  const dead: string[] = [];
+  // Rows stored before endpoints were checked may point anywhere: never POST to them, drop them.
+  const dead: string[] = subs.filter((s) => !isPushEndpoint(s.endpoint)).map((s) => s.id);
   const ok: string[] = [];
   await Promise.all(
-    subs.map(async (s) => {
+    subs.filter((s) => isPushEndpoint(s.endpoint)).map(async (s) => {
       try {
         await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, {
           TTL: 60 * 60,

@@ -20,6 +20,9 @@ import { DEFAULT_AI_MODEL, type AssistantRun } from "./shared";
 /** A run counts as "watched" if an open app polled it within this window. */
 const WATCHED_MS = 12_000;
 
+/** A "running" row older than this outlived the route's 300s maxDuration and is dead. */
+export const RUN_STALE_MS = 360_000;
+
 /** Last few finished commands as plain-text history, for follow-ups like "move that to 9". */
 async function history(userId: string, excludeId: string): Promise<ModelMessage[]> {
   const rows = await db
@@ -68,12 +71,6 @@ export async function executeRun(user: CurrentUser, runId: string) {
   const run = await db.select().from(t.aiCommands).where(and(eq(t.aiCommands.id, runId), eq(t.aiCommands.userId, user.id))).get();
   if (!run || run.status !== "running") return;
 
-  const settings = await db.select({ trainingNotes: t.users.trainingNotes }).from(t.users).where(eq(t.users.id, user.id)).get();
-  const [model, instructions, past] = await Promise.all([
-    findModel(run.model),
-    buildInstructions(user, settings?.trainingNotes ?? null),
-    history(user.id, runId),
-  ]);
   const effort = run.effort as Effort;
   const actions: AiAction[] = [];
   const parts: AiPart[] = [];
@@ -81,7 +78,14 @@ export async function executeRun(user: CurrentUser, runId: string) {
 
   let reply = "";
   let error: string | null = null;
+  // Setup sits inside the try too: a throw here must still end the row, not strand it as "running".
   try {
+    const settings = await db.select({ trainingNotes: t.users.trainingNotes }).from(t.users).where(eq(t.users.id, user.id)).get();
+    const [model, instructions, past] = await Promise.all([
+      findModel(run.model),
+      buildInstructions(user, settings?.trainingNotes ?? null),
+      history(user.id, runId),
+    ]);
     const result = await generateText({
       model: languageModel(model, `${user.id}-assistant`),
       instructions,

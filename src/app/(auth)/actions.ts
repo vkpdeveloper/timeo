@@ -12,7 +12,9 @@ import {
   hashPassword,
   RESET_MINUTES,
   verifyPassword,
+  verifyPasswordDummy,
 } from "@/lib/auth";
+import { clientIp, rateLimit, rateLimitReset } from "@/lib/rate-limit";
 import { appUrl, resetPasswordEmail, sendEmail } from "@/lib/email";
 import { DEFAULT_AI_MODEL } from "@/lib/ai/shared";
 import { seedNewUser } from "@/lib/seed";
@@ -30,14 +32,18 @@ const validTimezone = (tz: unknown) => {
 };
 
 export async function signup(_: AuthState, formData: FormData): Promise<AuthState> {
-  const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+  const email = String(formData.get("email") ?? "").trim().toLowerCase().slice(0, 254);
   const password = String(formData.get("password") ?? "");
   const timezone = validTimezone(formData.get("timezone"));
 
+  if (!rateLimit(`signup:${await clientIp()}`, 10, 60 * 60_000)) {
+    return { error: "Too many attempts. Try again later.", email, name };
+  }
   if (!name) return { error: "What should we call you?", email, name };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "That email doesn't look right.", email, name };
   if (password.length < 8) return { error: "Use at least 8 characters for your password.", email, name };
+  if (password.length > 200) return { error: "That password is too long.", email, name };
 
   const existing = await db.select({ id: t.users.id }).from(t.users).where(eq(t.users.email, email)).get();
   if (existing) return { error: "An account with this email already exists. Sign in instead.", email, name };
@@ -54,10 +60,16 @@ export async function login(_: AuthState, formData: FormData): Promise<AuthState
   const password = String(formData.get("password") ?? "");
   const timezone = validTimezone(formData.get("timezone"));
 
+  const key = `login:${await clientIp()}:${email}`;
+  if (!rateLimit(key, 10, 15 * 60_000)) {
+    return { error: "Too many attempts. Try again in a few minutes.", email };
+  }
   const user = await db.select().from(t.users).where(eq(t.users.email, email)).get();
+  if (!user) await verifyPasswordDummy(password);
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return { error: "Email or password is incorrect.", email };
   }
+  rateLimitReset(key);
   if (timezone !== "UTC" && timezone !== user.timezone) {
     await db.update(t.users).set({ timezone }).where(eq(t.users.id, user.id));
   }
@@ -75,8 +87,11 @@ export type ForgotState = { sent?: boolean; error?: string; email?: string } | u
 /** Emails a reset link. Answers the same whether or not the account exists, and sends after the
  * response, so neither the reply nor its timing says which emails have accounts. */
 export async function requestPasswordReset(_: ForgotState, formData: FormData): Promise<ForgotState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase().slice(0, 254);
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "That email doesn't look right.", email };
+  // Per-IP cap alongside the per-account 1/min check below; the reply
+  // stays identical whether or not an email is actually sent.
+  if (!rateLimit(`reset:${await clientIp()}`, 10, 60 * 60_000)) return { sent: true, email };
 
   after(async () => {
     const user = await db.select({ id: t.users.id, name: t.users.name }).from(t.users).where(eq(t.users.email, email)).get();

@@ -6,7 +6,7 @@ import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { startOfWeek } from "@/lib/dates";
 import { date, int, reqStr, str, time } from "@/lib/form";
-import { ownGoalId } from "@/lib/queries";
+import { ownGoalId, ownMilestoneId } from "@/lib/queries";
 
 export async function createTask(fd: FormData) {
   const user = await requireUser();
@@ -16,7 +16,7 @@ export async function createTask(fd: FormData) {
   await db.insert(t.tasks).values({
     userId: user.id,
     goalId,
-    milestoneId: str(fd, "milestoneId"),
+    milestoneId: await ownMilestoneId(user.id, str(fd, "milestoneId")),
     title: reqStr(fd, "title", 200),
     notes: str(fd, "notes"),
     dueDate,

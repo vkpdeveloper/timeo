@@ -221,7 +221,13 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  // Push payloads are data, not navigation authority: keep taps on-origin.
+  // Rebuilding from the pathname is not enough ("//evil.com" re-parses off-origin), so check the parsed origin.
+  let target = "/";
+  try {
+    const parsed = new URL(event.notification.data?.url || "/", self.location.origin);
+    if (parsed.origin === self.location.origin) target = parsed.href;
+  } catch {}
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clients) => {
       for (const client of clients) {
