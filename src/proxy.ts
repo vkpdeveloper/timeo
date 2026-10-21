@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "timeo_session";
-const PUBLIC = ["/login", "/signup", "/forgot-password", "/reset-password"];
+const PUBLIC = ["/login", "/signup", "/forgot-password", "/reset-password", "/lab"];
 
 // Optimistic check only: real authorisation happens in requireUser().
 export function proxy(request: NextRequest) {
