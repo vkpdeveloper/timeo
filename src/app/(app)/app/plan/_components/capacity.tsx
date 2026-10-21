@@ -21,11 +21,11 @@ export type DayLoad = {
   parts: { color: string | null; min: number }[];
 };
 
-/** "5h 20m planned · 1h 10m free", or "6h planned · 5 of 5 done" for a day that is over. */
+/** "5h 20m planned, 1h 10m free", or "6h planned, 5 of 5 done" for a day that is over. */
 export function capacityText(c: Capacity) {
-  if (c.past) return c.count ? `${formatDuration(c.plannedTotal)} planned · ${c.done} of ${c.count} done` : "Nothing was planned";
+  if (c.past) return c.count ? `${formatDuration(c.plannedTotal)} planned, ${c.done} of ${c.count} done` : "Nothing was planned";
   const planned = c.plannedTotal ? `${formatDuration(c.plannedTotal)} planned` : "Nothing planned";
-  return `${planned} · ${formatDuration(c.freeMin)} free`;
+  return `${planned}, ${formatDuration(c.freeMin)} free`;
 }
 
 /** A light week: one quiet line on how far short the goal time is, and Timi's week plan. */
@@ -43,7 +43,7 @@ export function LightWeekHint({
       ? goalPlanned > 0
         ? `${formatDuration(goalPlanned)} of ${formatDuration(goalTarget)} goal time planned`
         : `No goal time planned. Goals need ${formatDuration(goalTarget)}`
-      : "Block time for what matters";
+      : "Block time for your goals";
   return (
     <div className={cn("rise flex items-center gap-3 px-1", className)}>
       <p className="tnum min-w-0 flex-1 text-[13px] leading-snug text-ink-3">

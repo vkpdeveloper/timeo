@@ -129,7 +129,7 @@ function WeekList({
                     <span className="tnum text-[13px] font-normal text-ink-3">{dayOfMonth(d)}</span>
                   </span>
                 }
-                value={c?.count ? `${formatDuration(c.plannedTotal)} · ${c.done} of ${c.count} done` : "Nothing planned"}
+                value={c?.count ? `${formatDuration(c.plannedTotal)}, ${c.done} of ${c.count} done` : "Nothing planned"}
               />
             );
           })}
@@ -155,7 +155,7 @@ function WeekList({
             action={
               c && c.plannedTotal > 0 ? (
                 <span className="tnum text-[12.5px] font-normal">
-                  {formatDuration(c.plannedTotal)} planned · {formatDuration(c.freeMin)} free
+                  {formatDuration(c.plannedTotal)} planned, {formatDuration(c.freeMin)} free
                 </span>
               ) : undefined
             }
@@ -212,7 +212,7 @@ function ListRow({ block: b, onOpen }: { block: PlanBlock; onOpen: () => void })
         </span>
         <span className="block truncate text-[12px] text-ink-3">
           {b.goalTitle ?? KIND_LABEL[b.kind]}
-          {b.rescheduleCount >= 2 && <span className="text-warn"> · moved {b.rescheduleCount}×</span>}
+          {b.rescheduleCount >= 2 && <span className="text-warn">, moved {b.rescheduleCount}×</span>}
         </span>
       </span>
       {done && <Check className="size-4 shrink-0 text-ink-3" strokeWidth={2.4} />}

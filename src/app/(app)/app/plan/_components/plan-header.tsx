@@ -79,7 +79,7 @@ export function PlanHeader({
   const dayCap = sameWeek ? caps[state.date] : undefined;
   const capLine =
     state.view === "day"
-      ? dayCap && `${formatWeekdayShort(state.date)} · ${capacityText(dayCap)}`
+      ? dayCap && capacityText(dayCap)
       : sameWeek && capacityText(weekCap);
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
@@ -125,7 +125,7 @@ export function PlanHeader({
         </div>
         <p className="tnum mt-0.5 text-[14.5px] text-ink-3">
           {rangeLabel(weekStart)}
-          {week && <> · {week}</>}
+          {week && <>, {week.charAt(0).toLowerCase() + week.slice(1)}</>}
         </p>
       </header>
 

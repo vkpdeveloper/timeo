@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { isValidElement, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { colorVar, softVar } from "@/lib/colors";
+import { colorVar } from "@/lib/colors";
 import { formatDuration, toTimeInput } from "@/lib/dates";
 import { AskTimi } from "./ask-timi";
 import { Countdown, LinearProgress } from "./live";
@@ -172,9 +172,7 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("rise flex flex-col items-center px-6 py-8 text-center", !bare && "card", className)}>
-      {icon && (
-        <div className="mb-3 grid size-10 place-items-center rounded-[12px] bg-sunken text-ink-2 [&_svg]:size-[18px]">{icon}</div>
-      )}
+      {icon && <div className="mb-3 text-ink-3 [&_svg]:size-5 [&_svg]:stroke-[1.6]">{icon}</div>}
       <div className="text-[15px] font-semibold tracking-tight text-ink">{title}</div>
       {body && <p className="mt-1 max-w-[32ch] text-[13.5px] leading-relaxed text-ink-3">{body}</p>}
       {(action || timi) && (
@@ -252,23 +250,19 @@ export function ProgressBar({
   );
 }
 
-// No red: off track is amber text on a soft amber fill.
+// No red: off track is amber. Plain coloured text, not a pill: status is one
+// word next to the thing it describes.
 const STATUS = {
-  on_track: { label: "On track", cls: "bg-accent-soft text-accent", dot: "bg-accent" },
-  adjust: { label: "Adjust", cls: "bg-sunken text-ink-2", dot: "bg-warn" },
-  off_track: { label: "Off track", cls: "bg-warn-soft text-warn", dot: "bg-warn" },
+  on_track: { label: "On track", cls: "text-accent" },
+  adjust: { label: "Adjust", cls: "text-warn" },
+  off_track: { label: "Off track", cls: "text-warn" },
 } as const;
 
 export type Status = keyof typeof STATUS;
 
 export function StatusPill({ status, className }: { status: Status; className?: string }) {
   const s = STATUS[status];
-  return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium", s.cls, className)}>
-      <span className={cn("size-1.5 rounded-full", s.dot)} />
-      {s.label}
-    </span>
-  );
+  return <span className={cn("text-[13px] font-medium whitespace-nowrap", s.cls, className)}>{s.label}</span>;
 }
 
 export const statusLabel = (s: Status) => STATUS[s].label;
@@ -294,16 +288,16 @@ const TONE_TEXT: Record<RowTone, string> = {
   bad: "text-bad",
 };
 
-/** 32px rounded tile for a row's leading icon. `color` is a palette name (src/lib/colors.ts). */
+/** A row's leading icon: a bare line icon, no tile. `color` is a palette name (src/lib/colors.ts). */
 export function RowIcon({ children, color, className }: { children: ReactNode; color?: string; className?: string }) {
   return (
     <span
       className={cn(
-        "grid size-8 shrink-0 place-items-center rounded-[10px] [&_svg]:size-[17px] [&_svg]:stroke-[1.8]",
-        !color && "bg-sunken text-ink-2",
+        "grid size-6 shrink-0 place-items-center [&_svg]:size-[18px] [&_svg]:stroke-[1.6]",
+        !color && "text-ink-3",
         className,
       )}
-      style={color ? { background: softVar(color), color: colorVar(color) } : undefined}
+      style={color ? { color: colorVar(color) } : undefined}
     >
       {children}
     </span>
@@ -411,7 +405,7 @@ export function Stat({
   const body = (
     <>
       <div className="flex items-baseline gap-1">
-        <span className={cn("tnum truncate text-[20px] leading-tight font-semibold tracking-tight", STAT_TONE[tone])}>{value}</span>
+        <span className={cn("stat-value tnum truncate text-[18px] leading-tight font-semibold tracking-tight", STAT_TONE[tone])}>{value}</span>
         {unit && <span className="shrink-0 text-[12.5px] font-medium text-ink-3">{unit}</span>}
       </div>
       <div className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug font-medium text-ink-3">{label}</div>
@@ -428,16 +422,16 @@ export function Stat({
 }
 
 /**
- * The certainty strip: 2–4 Stats in a row, split by hairlines. Sits right
- * under the PageHeader. `card` puts it in a hairline card.
+ * The certainty strip: 2–4 Stats in a row. The first one leads (bigger); the
+ * rest sit beside it, quieter. `card` puts it in a hairline card.
  */
 export function StatStrip({ children, card = false, className }: { children: ReactNode; card?: boolean; className?: string }) {
   return (
     <div
       className={cn(
-        "stagger grid auto-cols-fr grid-flow-col",
-        "[&>*]:min-w-0 [&>*]:px-3 [&>*:not(:first-child)]:border-l [&>*:not(:first-child)]:border-line",
-        card ? "card py-3.5 [&>*:first-child]:pl-4" : "[&>*:first-child]:pl-1",
+        "stagger flex flex-wrap items-end gap-x-7 gap-y-3",
+        "[&>*]:min-w-0 [&>*:first-child_.stat-value]:text-[28px] [&>*:first-child_.stat-value]:leading-none",
+        card ? "card px-4 py-4" : "px-1",
         className,
       )}
     >
@@ -606,7 +600,7 @@ export function DayLine({
   labels?: boolean | { start?: ReactNode; end?: ReactNode };
   /** Extra hour marks (minutes) labelled under the bar, e.g. [720, 1080]. */
   marks?: number[];
-  /** One line under the bar: "3h 40m free · 2 blocks left · 3 tasks". */
+  /** One line under the bar: "3h 40m free, 2 blocks left, 3 tasks". */
   summary?: ReactNode;
   /** Bar height in px. */
   height?: number;

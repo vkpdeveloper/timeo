@@ -146,7 +146,7 @@ async function Session({ params }: { params: PageProps<"/app/fitness/history/[id
       )}
 
       {blocks.length > 0 && (
-        <Section title="Exercises" count={blocks.length} bodyClassName="stagger flex flex-col gap-3">
+        <Section title="Exercises" bodyClassName="stagger flex flex-col gap-3">
           {blocks.map((b) => {
             let n = 0;
             return (

@@ -1,4 +1,4 @@
-import { Dumbbell, Play, Plus } from "lucide-react";
+import { Dumbbell, Plus } from "lucide-react";
 import { Suspense } from "react";
 import { SubmitButton } from "@/components/ui/button";
 import { EmptyState, PageHeader, Row, RowIcon, Section, Skeleton, SubHeader } from "@/components/ui/primitives";
@@ -60,7 +60,7 @@ async function RoutineList() {
     <div>
       <PageHeader
         title="Routines"
-        subtitle={`${routines.length} ${routines.length === 1 ? "routine" : "routines"} · ${trainingDays} training ${trainingDays === 1 ? "day" : "days"} a week`}
+        subtitle={`${routines.length} ${routines.length === 1 ? "routine" : "routines"}, ${trainingDays} training ${trainingDays === 1 ? "day" : "days"} a week`}
       />
       <Section card stagger>
         {routines.map((r) => {
@@ -76,12 +76,12 @@ async function RoutineList() {
                   </RowIcon>
                 }
                 title={r.name}
-                subtitle={[days.length ? days.join(" · ") : "Not scheduled", `${r.exerciseCount} exercises`, `~${r.estimatedMin} min`].join(" · ")}
+                subtitle={`${days.length ? days.join(", ") : "Not scheduled"}. ${r.exerciseCount} exercises, about ${r.estimatedMin} min`}
                 chevron={false}
               />
               <form action={startWorkout.bind(null, r.id, undefined)} className="shrink-0 pr-3">
-                <SubmitButton variant="secondary" size="sm" className="h-11 px-3.5" aria-label={`Start ${r.name}`}>
-                  <Play className="size-3 fill-current" /> Start
+                <SubmitButton variant="ghost" size="sm" className="h-11 px-3.5 font-semibold text-accent hover:text-accent" aria-label={`Start ${r.name}`}>
+                  Start
                 </SubmitButton>
               </form>
             </div>

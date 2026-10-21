@@ -124,7 +124,7 @@ function TimeRange({ from, to, timezone }: { from: number; to: number; timezone:
 /** The bar's track sits on the page background here, so it needs a little more contrast than sunken. */
 const TRACK = "[&>div:first-child]:bg-line-strong";
 
-const pausesText = (n: number) => (n > 0 ? ` · ${n} ${n === 1 ? "pause" : "pauses"}` : "");
+const pausesText = (n: number) => (n > 0 ? `, ${n} ${n === 1 ? "pause" : "pauses"}` : "");
 
 export function FocusApp({
   options,
@@ -404,7 +404,7 @@ function SetupView({
       <TopBar onClose={onClose}>
         {todayCount > 0 && (
           <span className="tnum text-[13px] text-ink-3">
-            {formatDuration(todayMin)} today · {todayCount} {todayCount === 1 ? "session" : "sessions"}
+            {formatDuration(todayMin)} today, {todayCount} {todayCount === 1 ? "session" : "sessions"}
           </span>
         )}
       </TopBar>

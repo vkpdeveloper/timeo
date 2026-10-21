@@ -29,7 +29,7 @@ export function EditExerciseButton({ exercise: ex }: { exercise: Exercise }) {
               await updateExercise(fd);
               setOpen(false);
             } catch (e) {
-              setError(e instanceof Error ? e.message : "Something went wrong");
+              setError(e instanceof Error ? e.message : "That didn't save. Try again.");
             }
           }}
         >

@@ -69,7 +69,7 @@ type RoutineSeed = {
 export const STARTER_ROUTINES: RoutineSeed[] = [
   {
     name: "Pull A",
-    focus: "Back · Biceps · Forearms",
+    focus: "Back, biceps, forearms",
     color: "sky",
     estimatedMin: 55,
     exercises: [
@@ -82,7 +82,7 @@ export const STARTER_ROUTINES: RoutineSeed[] = [
   },
   {
     name: "Push A",
-    focus: "Chest · Shoulders · Triceps",
+    focus: "Chest, shoulders, triceps",
     color: "sand",
     estimatedMin: 55,
     exercises: [
@@ -94,7 +94,7 @@ export const STARTER_ROUTINES: RoutineSeed[] = [
   },
   {
     name: "Pull B",
-    focus: "Back · Biceps · Forearms",
+    focus: "Back, biceps, forearms",
     color: "sky",
     estimatedMin: 55,
     exercises: [
@@ -107,7 +107,7 @@ export const STARTER_ROUTINES: RoutineSeed[] = [
   },
   {
     name: "Push B",
-    focus: "Shoulders · Chest · Triceps",
+    focus: "Shoulders, chest, triceps",
     color: "stone",
     estimatedMin: 60,
     exercises: [
@@ -120,7 +120,7 @@ export const STARTER_ROUTINES: RoutineSeed[] = [
   },
   {
     name: "Legs",
-    focus: "Quads · Hamstrings · Glutes · Calves",
+    focus: "Quads, hamstrings, glutes, calves",
     color: "sage",
     estimatedMin: 75,
     notes: "15 working sets.",
@@ -143,7 +143,7 @@ export const STARTER_SCHEDULE: { weekday: number; routine?: string; label?: stri
   { weekday: 3, routine: "Pull B", startMin: 19 * 60 },
   { weekday: 4, routine: "Push B", startMin: 19 * 60 },
   { weekday: 5, routine: "Legs", startMin: 10 * 60 },
-  { weekday: 6, label: "Easy cardio or full rest", notes: "Walking, cycling or full rest · 20-40 min · conversational pace" },
+  { weekday: 6, label: "Easy cardio or full rest", notes: "Walking, cycling or full rest. 20–40 min at a conversational pace." },
 ];
 
 export const STARTER_TRAINING_NOTES = [

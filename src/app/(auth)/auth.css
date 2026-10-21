@@ -8,10 +8,6 @@
   animation: auth-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
-.auth-showcase {
-  animation: auth-fade 700ms 120ms ease-out backwards;
-}
-
 @keyframes auth-fade {
   from {
     opacity: 0;

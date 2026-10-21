@@ -118,14 +118,14 @@ async function ReviewContent() {
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="text-[15px] font-semibold tracking-tight text-ink">
-            {weekTitle} review <span className="font-normal text-ink-3">· 5 min</span>
+            {weekTitle} review
           </div>
           <p className="mt-0.5 text-[13px] text-ink-3">
             {thisWeekly
               ? "Done. You can still change it."
               : weeklyLeads
-                ? "Each goal, one honest check."
-                : `Best at the weekend · ${daysLeftInWeek} ${daysLeftInWeek === 1 ? "day" : "days"} left`}
+                ? "Five minutes, one check per goal."
+                : `Five minutes, best at the weekend. ${daysLeftInWeek} ${daysLeftInWeek === 1 ? "day" : "days"} left.`}
           </p>
         </div>
         <ButtonLink href="/app/review/week" variant={weeklyLeads ? "accent" : "outline"} size="sm" className="px-4">
@@ -142,7 +142,7 @@ async function ReviewContent() {
   );
 
   const tonight = (
-    <Section title="Tonight" count={daily ? undefined : "two taps, three lines"}>
+    <Section title="Tonight">
       <DailyReflection key={daily?.id ?? "new"} today={today} saved={daily ?? null} primary={!weeklyLeads} />
     </Section>
   );
@@ -152,7 +152,7 @@ async function ReviewContent() {
       <SubHeader back="/app/goals" backLabel="Season" />
       <PageHeader
         className="pt-3 lg:pt-6"
-        eyebrow={season ? `${weekTitle} · ${range}` : range}
+        eyebrow={season ? `${weekTitle}, ${range}` : range}
         title="Review"
         subtitle={weekSummary(week, health, daysLeftInWeek === 0)}
       />
@@ -179,13 +179,13 @@ async function ReviewContent() {
         </>
       )}
 
-      <Section title="This week" count={range} card>
+      <Section title="This week" card>
         <div className="px-4 pt-4 pb-3">
           <div className="mb-3 flex items-baseline justify-between gap-3">
             <span className="text-[13px] font-medium text-ink-2">Focus by day</span>
             <span className="tnum text-[12.5px] text-ink-3">
               {week.sessions} {week.sessions === 1 ? "session" : "sessions"}
-              {week.avgQuality != null && ` · quality ${week.avgQuality}`}
+              {week.avgQuality != null && `, quality ${week.avgQuality}`}
             </span>
           </div>
           <FocusWeekChart days={week.days} today={today} />
@@ -195,7 +195,7 @@ async function ReviewContent() {
           value={
             <>
               <span className="font-semibold text-ink">{week.blocks.done}</span> of {week.blocks.planned} done
-              {week.blocks.skipped > 0 && ` · ${week.blocks.skipped} skipped`}
+              {week.blocks.skipped > 0 && `, ${week.blocks.skipped} skipped`}
             </>
           }
           total={week.blocks.planned}
@@ -245,7 +245,7 @@ async function ReviewContent() {
         )}
       </Section>
 
-      <Section title="Past reviews" count={past.length || undefined} card={past.length > 0}>
+      <Section title="Past reviews" card={past.length > 0}>
         {past.length === 0 ? (
           <EmptyState title="No weekly reviews yet" body="Your first one starts each goal's trend." />
         ) : (
@@ -300,9 +300,8 @@ function ProgressRow({
 
 function EnergyNote({ label, text, color }: { label: string; text: string; color: string }) {
   return (
-    <div className="rounded-[12px] bg-surface-2 px-3.5 py-2.5">
-      <div className="flex items-center gap-1.5 text-[12px] font-medium text-ink-3">
-        <span className="size-2 rounded-full" style={{ background: color }} />
+    <div className="py-1">
+      <div className="text-[12.5px] font-medium" style={{ color }}>
         {label}
       </div>
       <p className="mt-0.5 text-[14.5px] leading-snug text-ink">{text}</p>

@@ -129,7 +129,7 @@ async function Nutrition() {
         </Section>
       )}
 
-      <Section title="Logged today" count={day.meals.length || undefined}>
+      <Section title="Logged today">
         <LoggedMeals meals={day.meals} />
       </Section>
 

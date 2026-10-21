@@ -13,6 +13,7 @@ import { formatDuration, toTimeInput, WEEKDAY_NAMES } from "@/lib/dates";
 import type { ScheduleDay } from "@/lib/fitness";
 import { ErrorNote, type RoutineOption } from "../_components/day-actions";
 import { saveScheduleDay, saveTrainingNotes } from "./actions";
+import { listText } from "@/lib/text";
 
 export function ScheduleEditor({
   schedule,
@@ -62,7 +63,7 @@ export function ScheduleEditor({
               <>
                 {d.startMin != null && <span className="mono">{toTimeInput(d.startMin)}</span>}
                 {d.startMin != null && (d.routine?.focus || d.notes) ? " · " : ""}
-                {[d.routine?.focus, d.notes].filter(Boolean).join(" · ") ||
+                {[d.routine?.focus && listText(d.routine.focus), d.notes].filter(Boolean).join(". ") ||
                   (d.startMin != null ? "" : d.routine ? `${d.routine.exerciseCount} exercises` : "Recovery")}
               </>
             }
@@ -144,7 +145,7 @@ function DaySheet({ day, routines, onClose }: { day: ScheduleDay | null; routine
               await saveScheduleDay(fd);
               onClose();
             } catch (e) {
-              setError(e instanceof Error ? e.message : "Something went wrong");
+              setError(e instanceof Error ? e.message : "That didn't save. Try again.");
             }
           }}
         >
@@ -176,7 +177,7 @@ function DaySheet({ day, routines, onClose }: { day: ScheduleDay | null; routine
                   >
                     <span className="size-2.5 rounded-full" style={{ background: colorVar(r.color) }} />
                     <span className="flex-1 text-[15px] font-medium text-ink">{r.name}</span>
-                    <span className="truncate text-[12.5px] text-ink-3">{r.focus}</span>
+                    <span className="truncate text-[12.5px] text-ink-3">{r.focus && listText(r.focus)}</span>
                   </button>
                 ))}
               </div>
@@ -194,7 +195,7 @@ function DaySheet({ day, routines, onClose }: { day: ScheduleDay | null; routine
               name="notes"
               rows={2}
               defaultValue={day.notes ?? ""}
-              placeholder="e.g. Walking, cycling or full rest · 20–40 min"
+              placeholder="e.g. Walking or cycling, 20–40 min"
             />
           </Field>
           <ErrorNote error={error} />

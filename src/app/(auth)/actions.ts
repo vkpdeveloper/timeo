@@ -40,7 +40,7 @@ export async function signup(_: AuthState, formData: FormData): Promise<AuthStat
   if (!rateLimit(`signup:${await clientIp()}`, 10, 60 * 60_000)) {
     return { error: "Too many attempts. Try again later.", email, name };
   }
-  if (!name) return { error: "What should we call you?", email, name };
+  if (!name) return { error: "Your first name", email, name };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "That email doesn't look right.", email, name };
   if (password.length < 8) return { error: "Use at least 8 characters for your password.", email, name };
   if (password.length > 200) return { error: "That password is too long.", email, name };

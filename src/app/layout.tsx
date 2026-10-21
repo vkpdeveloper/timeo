@@ -11,7 +11,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: { default: "Timeo", template: "%s · Timeo" },
-  description: "Point your hours at what matters. Seasons, goals, time blocks, focus, training and nutrition in one calm place.",
+  description: "Choose two or three goals for a 12-week season. Timeo turns them into time blocks and focus sessions, with an assistant that plans with you.",
   applicationName: "Timeo",
   appleWebApp: { capable: true, title: "Timeo", statusBarStyle: "default" },
   formatDetection: { telephone: false },

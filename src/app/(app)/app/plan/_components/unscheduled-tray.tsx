@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -65,15 +65,15 @@ export function UnscheduledTray({ date, tasks, goals }: { date: string; tasks: U
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-medium text-ink">{task.title}</div>
                       <div className="tnum truncate text-[12px] text-ink-3">
-                        {task.overdue && <span className="font-medium text-warn">Overdue · </span>}
+                        {task.overdue && <span className="font-medium text-warn">Overdue, </span>}
                         {formatDuration(minutes)}
                         {task.slot && (
                           <>
-                            {" · free at "}
+                            {", free at "}
                             <span className="mono">{toTimeInput(task.slot.start)}</span>
                           </>
                         )}
-                        {goal && ` · ${goal.title}`}
+                        
                       </div>
                     </div>
                     <button
@@ -88,9 +88,8 @@ export function UnscheduledTray({ date, tasks, goals }: { date: string; tasks: U
                           taskId: task.id,
                         })
                       }
-                      className="tap inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-sunken px-3 text-[13px] font-semibold text-ink"
+                      className="tap inline-flex h-11 shrink-0 items-center px-2 text-[13.5px] font-semibold text-accent"
                     >
-                      <CalendarPlus className="size-3.5" />
                       Schedule
                     </button>
                   </li>

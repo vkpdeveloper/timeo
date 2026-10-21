@@ -85,7 +85,7 @@ const focusable = (k: HeroBlock["kind"]) => k === "focus" || k === "admin";
 function Running({ block: b, serverNow }: { block: HeroBlock; serverNow: number }) {
   return (
     <>
-      <Eyebrow color={b.color}>Now · {b.context}</Eyebrow>
+      <Eyebrow color={b.color}>{b.context}</Eyebrow>
       <Title>{b.title}</Title>
       <div className="mt-9 flex items-baseline gap-3">
         <Countdown to={b.endAt} now={serverNow} className="text-[76px] tracking-[-0.04em] text-ink lg:text-[92px]" />
@@ -111,7 +111,7 @@ function Next({ block: b, serverNow }: { block: HeroBlock; serverNow: number }) 
   return (
     <>
       <Eyebrow color={b.color}>
-        Next at <span className="mono">{toTimeInput(b.startMin)}</span> · {b.context}
+        Next at <span className="mono">{toTimeInput(b.startMin)}</span>
       </Eyebrow>
       <Title>{b.title}</Title>
       <div className="mt-9 flex items-baseline gap-3">
@@ -121,8 +121,8 @@ function Next({ block: b, serverNow }: { block: HeroBlock; serverNow: number }) 
       <p className="tnum mt-4 text-[14.5px] text-ink-3">
         <span className="mono">
           {toTimeInput(b.startMin)} → {toTimeInput(b.endMin % 1440)}
-        </span>{" "}
-        · {formatDuration(b.endMin - b.startMin)}
+        </span>
+        <span className="ml-2">{formatDuration(b.endMin - b.startMin)}</span>
       </p>
       {focusable(b.kind) || b.kind === "workout" ? (
         <div className="mt-9">
@@ -179,7 +179,7 @@ function Free({ view }: { view: Extract<HeroView, { kind: "free" }> }) {
             <span className="truncate">{view.next.title}</span>
           </>
         ) : view.empty ? (
-          "Nothing planned yet. Give the goal that matters a slot."
+          "Nothing planned yet. Give one goal a slot."
         ) : (
           "Nothing else planned today."
         )}

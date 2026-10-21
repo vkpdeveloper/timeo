@@ -150,7 +150,7 @@ async function Now() {
     tasksLeft ? plural(tasksLeft, "task") : "",
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
 
   const drifting = health.find((h) => h.autoStatus !== "on_track" && h.recommendation);
   const progress = season ? seasonProgress(season, user.today) : null;
@@ -192,7 +192,7 @@ async function Now() {
             <span className="min-w-0 truncate">
               <span className="font-medium text-ink">{drifting.goal.title}</span>
               {drifting.reasons[0]
-                ? ` · ${drifting.reasons[0].charAt(0).toLowerCase()}${drifting.reasons[0].slice(1)}`
+                ? `: ${drifting.reasons[0].charAt(0).toLowerCase()}${drifting.reasons[0].slice(1)}`
                 : " needs time this week"}
             </span>
           </p>
@@ -247,12 +247,12 @@ function bodyTitle({ scheduled, log }: TodayTraining) {
   return `${log?.name ?? scheduled.name}${tail}`;
 }
 
-/** "1,820 of 1,950 kcal · 2.3 L water" */
+/** "1,820 of 1,950 kcal, 2.3 L water" */
 function bodyLine({ nutrition, water }: TodayTraining) {
   const n = (v: number) => Math.round(v).toLocaleString("en-US");
   const target = nutrition.target?.calories;
   const kcal = target ? `${n(nutrition.calories)} of ${n(target)} kcal` : `${n(nutrition.calories)} kcal`;
-  return <span className="tnum">{`${kcal} · ${(water.ml / 1000).toFixed(1)} L water`}</span>;
+  return <span className="tnum">{`${kcal}, ${(water.ml / 1000).toFixed(1)} L water`}</span>;
 }
 
 function NowSkeleton() {

@@ -296,7 +296,7 @@ export async function getDailyRead(user: CurrentUser): Promise<DailyRead> {
     blocks.length ? `${done} of ${plural(blocks.length, "block")} done` : null,
     focusMin ? `${formatDuration(focusMin)} focus` : null,
   ].filter(Boolean);
-  const detail = worst ? worst.reasons[0] : stats.length ? stats.join(" · ") : undefined;
+  const detail = worst ? worst.reasons[0] : stats.length ? stats.join(", ") : undefined;
 
   return { headline: `${first} ${second}`, detail };
 }
