@@ -1,13 +1,13 @@
 "use client";
 
 import { Check, ChevronLeft, CircleAlert, Ellipsis, History as HistoryIcon, MessageSquare, Minus, Pause, Play, Plus } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "@/components/ui/controls";
 import { LinearProgress } from "@/components/ui/live";
-import { springs } from "@/components/ui/motion";
+import { springs, useReducedMotion } from "@/components/ui/motion";
 import { cn } from "@/lib/cn";
 import { colorVar, tint } from "@/lib/colors";
 import { formatLongDate, formatMonthDay } from "@/lib/dates";

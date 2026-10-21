@@ -4,10 +4,10 @@ import { eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, t } from "@/db";
-import { getColorMode } from "@/lib/appearance";
+import { getAccent, getColorMode } from "@/lib/appearance";
 import { destroySession, requireUser } from "@/lib/auth";
 import { str, time } from "@/lib/form";
-import { isColorMode, type ColorMode } from "@/lib/themes";
+import { isAccent, isColorMode, type Accent, type ColorMode } from "@/lib/themes";
 import { deleteUserData } from "@/lib/user-data";
 
 export type Result = { error?: string } | void;
@@ -20,10 +20,19 @@ export async function saveColorMode(mode: ColorMode): Promise<Result> {
   refresh();
 }
 
-/** The account's saved mode, read fresh (never from a cached page). null = never picked. */
-export async function fetchColorMode(): Promise<ColorMode | null> {
+/** Saves the accent for the account (every device follows it). */
+export async function saveAccent(accent: Accent): Promise<Result> {
   const user = await requireUser();
-  return getColorMode(user.id);
+  if (!isAccent(accent)) return { error: "Pick an accent" };
+  await db.update(t.users).set({ theme: accent }).where(eq(t.users.id, user.id));
+  refresh();
+}
+
+/** The account's saved mode and accent, read fresh (never from a cached page). null = never picked. */
+export async function fetchAppearance(): Promise<{ mode: ColorMode | null; accent: Accent | null }> {
+  const user = await requireUser();
+  const [mode, accent] = await Promise.all([getColorMode(user.id), getAccent(user.id)]);
+  return { mode, accent };
 }
 
 export async function updateName(fd: FormData): Promise<Result> {

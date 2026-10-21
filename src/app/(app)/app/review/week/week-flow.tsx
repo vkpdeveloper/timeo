@@ -1,11 +1,11 @@
 "use client";
 
 import { Check, ChevronLeft, CircleAlert } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/controls";
-import { springs } from "@/components/ui/motion";
+import { springs, useReducedMotion } from "@/components/ui/motion";
 import { Card, Meter, Row, Section, Stat, StatStrip, StatusPill, SubHeader } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { colorVar, tint } from "@/lib/colors";

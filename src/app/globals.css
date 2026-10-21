@@ -26,19 +26,25 @@
 :root {
   color-scheme: light dark;
 
-  --bg: light-dark(#f6f6f3, #0c0e0d);
-  --surface: light-dark(#ffffff, #151817);
-  --surface-2: light-dark(#fbfbf9, #1a1d1c);
-  --sunken: light-dark(#eeeeea, #101211);
-  --ink: light-dark(#121513, #ecefed);
-  --ink-2: light-dark(#565c58, #a4aba7);
-  --ink-3: light-dark(#8d938f, #6c736f);
-  --line: light-dark(rgb(18 21 19 / 0.08), rgb(255 255 255 / 0.07));
-  --line-strong: light-dark(rgb(18 21 19 / 0.14), rgb(255 255 255 / 0.12));
+  /* Neutrals and accent: Sky (the default, and always on the landing page).
+     Other accents (Settings) override these in the [data-accent] blocks below. */
+  --bg: light-dark(#f5f6f8, #0b0c0f);
+  --surface: light-dark(#ffffff, #14161a);
+  --surface-2: light-dark(#fafbfc, #191b20);
+  --sunken: light-dark(#eceef1, #0f1013);
+  --ink: light-dark(#111318, #eceef2);
+  --ink-2: light-dark(#575c66, #a3a8b2);
+  --ink-3: light-dark(#8d929b, #6b707a);
+  --line: light-dark(rgb(17 19 24 / 0.08), rgb(255 255 255 / 0.07));
+  --line-strong: light-dark(rgb(17 19 24 / 0.14), rgb(255 255 255 / 0.12));
 
-  --accent: light-dark(#1f6b50, #5cc495);
-  --accent-ink: light-dark(#ffffff, #07140e);
-  --accent-soft: light-dark(#e3eee9, #17271f);
+  --accent: light-dark(#1f6fe5, #5b9dff);
+  --accent-ink: light-dark(#ffffff, #061226);
+  --accent-soft: light-dark(#e2ecfc, #13213a);
+
+  /* Timi's sprite sheets are tinted to match the accent */
+  --timi-directions: url(/mascots/timi-directions-sky.webp);
+  --timi-reactions: url(/mascots/timi-reactions-sky.webp);
 
   /* Status. There is no red: "bad" is a stronger amber. */
   --ok: var(--accent);
@@ -69,6 +75,71 @@
   --c-violet: var(--c-olive);
   --c-indigo: var(--c-sky);
   --c-slate: var(--c-stone);
+}
+
+/* ── Accents (Settings → Accent). The landing page marks itself with
+   [data-accent-lock] so it always shows Sky, whatever the device picked. ── */
+:root[data-accent="graphite"]:not(:has([data-accent-lock])) {
+  --bg: light-dark(#f7f7f6, #0a0a0b);
+  --surface: light-dark(#ffffff, #141415);
+  --surface-2: light-dark(#fbfbfa, #19191b);
+  --sunken: light-dark(#efefed, #0f0f10);
+  --ink: light-dark(#111112, #ededef);
+  --ink-2: light-dark(#57575c, #a1a1a6);
+  --ink-3: light-dark(#8e8e93, #6b6b70);
+  --line: light-dark(rgb(17 17 18 / 0.08), rgb(255 255 255 / 0.07));
+  --line-strong: light-dark(rgb(17 17 18 / 0.14), rgb(255 255 255 / 0.12));
+  --accent: light-dark(#18181b, #f2f2f3);
+  --accent-ink: light-dark(#ffffff, #0a0a0b);
+  --accent-soft: light-dark(#ececea, #232326);
+  --timi-directions: url(/mascots/timi-directions-graphite.webp);
+  --timi-reactions: url(/mascots/timi-reactions-graphite.webp);
+}
+:root[data-accent="harbor"]:not(:has([data-accent-lock])) {
+  --accent: light-dark(#2b5f8e, #7eb2e2);
+  --accent-ink: light-dark(#ffffff, #07111b);
+  --accent-soft: light-dark(#e3ebf3, #152130);
+  --timi-directions: url(/mascots/timi-directions-harbor.webp);
+  --timi-reactions: url(/mascots/timi-reactions-harbor.webp);
+}
+:root[data-accent="lagoon"]:not(:has([data-accent-lock])) {
+  --accent: light-dark(#0f766e, #4cc9bc);
+  --accent-ink: light-dark(#ffffff, #04201d);
+  --accent-soft: light-dark(#dff0ee, #112624);
+  --timi-directions: url(/mascots/timi-directions-lagoon.webp);
+  --timi-reactions: url(/mascots/timi-reactions-lagoon.webp);
+}
+:root[data-accent="volt"]:not(:has([data-accent-lock])) {
+  --bg: light-dark(#f7f7f6, #0a0a0b);
+  --surface: light-dark(#ffffff, #141415);
+  --surface-2: light-dark(#fbfbfa, #19191b);
+  --sunken: light-dark(#efefed, #0f0f10);
+  --ink: light-dark(#111112, #ededef);
+  --ink-2: light-dark(#57575c, #a1a1a6);
+  --ink-3: light-dark(#8e8e93, #6b6b70);
+  --line: light-dark(rgb(17 17 18 / 0.08), rgb(255 255 255 / 0.07));
+  --line-strong: light-dark(rgb(17 17 18 / 0.14), rgb(255 255 255 / 0.12));
+  --accent: light-dark(#4d7c0f, #c5f04a);
+  --accent-ink: light-dark(#ffffff, #141a05);
+  --accent-soft: light-dark(#eaf2da, #1f2a0e);
+  --timi-directions: url(/mascots/timi-directions-volt.webp);
+  --timi-reactions: url(/mascots/timi-reactions-volt.webp);
+}
+:root[data-accent="pine"]:not(:has([data-accent-lock])) {
+  --bg: light-dark(#f6f6f3, #0c0e0d);
+  --surface: light-dark(#ffffff, #151817);
+  --surface-2: light-dark(#fbfbf9, #1a1d1c);
+  --sunken: light-dark(#eeeeea, #101211);
+  --ink: light-dark(#121513, #ecefed);
+  --ink-2: light-dark(#565c58, #a4aba7);
+  --ink-3: light-dark(#8d938f, #6c736f);
+  --line: light-dark(rgb(18 21 19 / 0.08), rgb(255 255 255 / 0.07));
+  --line-strong: light-dark(rgb(18 21 19 / 0.14), rgb(255 255 255 / 0.12));
+  --accent: light-dark(#1f6b50, #5cc495);
+  --accent-ink: light-dark(#ffffff, #07140e);
+  --accent-soft: light-dark(#e3eee9, #17271f);
+  --timi-directions: url(/mascots/timi-directions.webp);
+  --timi-reactions: url(/mascots/timi-reactions.webp);
 }
 
 :root[data-mode="light"] {

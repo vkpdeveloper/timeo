@@ -35,3 +35,12 @@
     opacity: 0;
   }
 }
+
+/* App crops: a calm window onto the app. The crops are cut on the app background, so the panel uses it too. */
+.l-panel {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow: var(--shadow-md);
+}

@@ -38,7 +38,8 @@ const pick = <T extends string>(v: unknown, options: readonly T[], fallback: T):
   typeof v === "string" && (options as readonly string[]).includes(v) ? (v as T) : fallback;
 
 /** Wizard finish: archives the active season and creates the new one with its goals and milestones. */
-export async function createSeason(draft: SeasonDraft) {
+/** Starts a season (archiving the active one), then opens Season. `stay` skips the redirect (onboarding picks its own next screen). */
+export async function createSeason(draft: SeasonDraft, { stay = false }: { stay?: boolean } = {}) {
   const user = await requireUser();
   const name = cut(draft.name, 80) || "New season";
   const startDate = isValidISODate(draft.startDate) ? draft.startDate : user.today;
@@ -88,6 +89,7 @@ export async function createSeason(draft: SeasonDraft) {
   });
   if (goalRows.length) await db.insert(t.goals).values(goalRows);
   if (milestoneRows.length) await db.insert(t.milestones).values(milestoneRows);
+  if (stay) return refresh();
   redirect("/app/goals");
 }
 

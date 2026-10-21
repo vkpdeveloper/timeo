@@ -1,13 +1,13 @@
 "use client";
 
 import { ChevronDown, Plus } from "lucide-react";
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useOptimistic, useState, useTransition } from "react";
 import type { GoalOption } from "@/actions/context";
 import { setTaskDone } from "@/actions/tasks";
 import { BlockSheet, TaskSheet } from "@/components/forms/sheets";
 import { CheckCircle } from "@/components/ui/controls";
-import { springs } from "@/components/ui/motion";
+import { springs, useReducedMotion } from "@/components/ui/motion";
 import type { Block, Task } from "@/db/schema";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";

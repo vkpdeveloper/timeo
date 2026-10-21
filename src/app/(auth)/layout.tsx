@@ -1,21 +1,32 @@
-import { DotField } from "@/components/landing/dot-field";
-import { Wordmark } from "@/components/landing/wordmark";
-import "@/components/landing/landing.css";
+import Link from "next/link";
+import { LogoMark } from "@/components/ui/primitives";
+import { AuthShowcase } from "./showcase";
 import "./auth.css";
 
-/** Sign in, sign up and password reset: one compact form over a faint dot field. */
+/**
+ * Sign in, sign up and password reset. Mobile: one full-screen form.
+ * Desktop: the form on the left, a live moment from the app on the right.
+ */
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-bg pt-safe">
-      <DotField variant="quiet" />
-      <header data-dots-clear className="auth-fade relative mx-auto flex h-16 w-full max-w-6xl items-center px-5 sm:px-6">
-        <Wordmark />
-      </header>
-      <div className="relative mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center px-6 pt-4 pb-16 sm:pb-24">
-        <div data-dots-clear="card" className="auth-panel">
-          {children}
+    <main className="flex min-h-dvh bg-bg text-ink">
+      <section className="flex min-h-dvh w-full flex-col px-6 pt-safe pb-[max(24px,var(--safe-bottom))] sm:px-10 lg:w-[min(46%,640px)] lg:shrink-0 lg:px-14">
+        <header className="auth-fade flex h-16 items-center lg:h-24">
+          <Link href="/" aria-label="Timeo home" className="tap -ml-1 flex h-11 items-center gap-2.5 rounded-[12px] px-1">
+            <LogoMark size={26} />
+            <span className="text-[17px] font-semibold tracking-[-0.02em] text-ink">Timeo</span>
+          </Link>
+        </header>
+        <div className="flex flex-1 flex-col pt-[7vh] pb-8 lg:justify-center lg:pt-0 lg:pb-24">
+          <div className="auth-panel mx-auto flex w-full max-w-[380px] flex-1 flex-col lg:flex-none">{children}</div>
         </div>
-      </div>
+      </section>
+
+      <aside className="hidden flex-1 p-3 pl-0 lg:flex" aria-label="A look at Timeo">
+        <div className="auth-showcase relative flex flex-1 overflow-hidden rounded-[24px] border border-line bg-accent-soft">
+          <AuthShowcase />
+        </div>
+      </aside>
     </main>
   );
 }

@@ -1,16 +1,17 @@
 "use client";
 
-import { AlertCircle, CalendarClock, Globe, LocateFixed, Moon, Sun, Trash2, User } from "lucide-react";
+import { AlertCircle, CalendarClock, Check, Globe, LocateFixed, Moon, Palette, Sun, Trash2, User } from "lucide-react";
 import { useId, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Segmented, Select } from "@/components/ui/controls";
 import { TimePicker } from "@/components/ui/pickers";
-import { Row } from "@/components/ui/primitives";
+import { Row, RowIcon } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
-import { useColorMode } from "@/components/shell/theme";
+import { useAccent, useColorMode } from "@/components/shell/theme";
 import { formatMin, toTimeInput } from "@/lib/dates";
-import { setMode, type ColorMode } from "@/lib/themes";
-import { deleteAccount, saveColorMode, updateDayHours, updateName, updateTimezone, type Result } from "./actions";
+import { cn } from "@/lib/cn";
+import { ACCENTS, DEFAULT_ACCENT, setAccent, setMode, type Accent, type ColorMode } from "@/lib/themes";
+import { deleteAccount, saveAccent, saveColorMode, updateDayHours, updateName, updateTimezone, type Result } from "./actions";
 
 /** Sheet open state plus a submit handler that keeps the form's values when saving fails. */
 function useSheetForm(action: (fd: FormData) => Promise<Result>) {
@@ -245,5 +246,59 @@ export function AppearanceRow({ saved }: { saved: ColorMode | null }) {
         ]}
       />
     </Row>
+  );
+}
+
+/**
+ * The accent, as a row of swatches. Flips the app at once and saves to the
+ * account, so every device follows. The landing page always stays Sky.
+ */
+export function AccentRow({ saved }: { saved: Accent | null }) {
+  const accent = useAccent(saved ?? DEFAULT_ACCENT);
+  const [, start] = useTransition();
+  const pick = (a: Accent) => {
+    setAccent(a, true);
+    start(async () => {
+      await saveAccent(a).catch(() => {});
+    });
+  };
+  const current = ACCENTS.find((a) => a.id === accent) ?? ACCENTS[0];
+  return (
+    <div className="px-4 pt-2.5 pb-2 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+      <div className="flex min-h-8 items-center gap-3">
+        <RowIcon>
+          <Palette />
+        </RowIcon>
+        <div className="flex-1 text-[15px] font-medium text-ink">Accent</div>
+        <div className="text-[14px] text-ink-3">{current.label}</div>
+      </div>
+      <div role="radiogroup" aria-label="Accent" className="mt-1.5 -mx-1 flex justify-between">
+        {ACCENTS.map((a) => {
+          const on = a.id === accent;
+          return (
+            <button
+              key={a.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={a.label}
+              onClick={() => pick(a.id)}
+              className="tap grid size-11 place-items-center rounded-full"
+            >
+              <span
+                className={cn(
+                  "grid size-7 place-items-center rounded-full ring-offset-2 ring-offset-surface transition-shadow",
+                  on ? "ring-2 ring-ink" : "ring-1 ring-line-strong",
+                )}
+                // light-dark() follows the painted mode, like the tokens do
+                style={{ background: `light-dark(${a.swatch[0]}, ${a.swatch[1]})` }}
+              >
+                {on && <Check className="size-3.5" strokeWidth={3} style={{ color: "light-dark(#ffffff, #0b0c0f)" }} />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

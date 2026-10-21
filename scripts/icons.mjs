@@ -1,10 +1,10 @@
 // Renders the app icons and logo from inline SVG. Run: node scripts/icons.mjs
-// The glyph is LogoMark (src/components/ui/primitives.tsx) drawn light on a flat Pine tile:
+// The glyph is LogoMark (src/components/ui/primitives.tsx) drawn light on a flat Sky tile:
 // a ring three quarters closed from 12 o'clock, a faint track, and a centre dot. No gradients.
 import sharp from "sharp";
 import { writeFile } from "node:fs/promises";
 
-const PINE = "#1F6B50";
+const SKY = "#1F6FE5";
 const LIGHT = "#FFFFFF";
 
 // LogoMark geometry, in its own 32 x 32 box
@@ -28,12 +28,12 @@ const mark = (size, scale, { color = LIGHT, track = 0.24 } = {}) => {
 };
 
 /**
- * A Pine tile with the mark.
+ * A Sky tile with the mark.
  * scale: how much of the tile the 32-unit LogoMark box covers. The ring's outer edge is 26/32 of that box,
  * so 0.62 gives a glyph about half the tile wide.
  */
 const tile = (size, { rounded = false, scale = 0.62 } = {}) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" rx="${rounded ? size * 0.225 : 0}" fill="${PINE}"/>${mark(size, scale)}
+  <rect width="${size}" height="${size}" rx="${rounded ? size * 0.225 : 0}" fill="${SKY}"/>${mark(size, scale)}
 </svg>
 `;
 

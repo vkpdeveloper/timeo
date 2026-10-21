@@ -1,21 +1,15 @@
-/* Auth screens: one form, flat surfaces, a quiet entrance. */
+/* Auth screens: flat surfaces, a quiet entrance. */
 
 .auth-fade {
-  animation: auth-fade 600ms 120ms ease-out backwards;
+  animation: auth-fade 500ms 80ms ease-out backwards;
 }
 
 .auth-panel {
-  animation: auth-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation: auth-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
-/* On wider screens the form sits on a plain card. */
-@media (min-width: 640px) {
-  .auth-panel {
-    padding: 40px 36px 32px;
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    background: var(--surface);
-  }
+.auth-showcase {
+  animation: auth-fade 700ms 120ms ease-out backwards;
 }
 
 @keyframes auth-fade {
@@ -27,7 +21,7 @@
 @keyframes auth-rise {
   from {
     opacity: 0;
-    translate: 0 8px;
+    translate: 0 6px;
   }
 }
 

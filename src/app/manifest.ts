@@ -11,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     // desktop: draw into the title bar where supported, else a normal app window
     display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
-    background_color: "#F6F6F3",
-    theme_color: "#F6F6F3",
+    background_color: "#F5F6F8",
+    theme_color: "#F5F6F8",
     lang: "en",
     dir: "ltr",
     categories: ["productivity", "health", "fitness", "lifestyle"],

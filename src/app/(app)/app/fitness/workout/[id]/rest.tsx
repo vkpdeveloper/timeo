@@ -1,9 +1,9 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Countdown, LinearProgress } from "@/components/ui/live";
-import { springs } from "@/components/ui/motion";
+import { springs, useReducedMotion } from "@/components/ui/motion";
 
 type RestState = { end: number; total: number } | null;
 

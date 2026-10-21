@@ -1,7 +1,7 @@
 "use client";
 
-import { animate, motion, useReducedMotion, type Transition } from "motion/react";
-import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { animate, motion, type Transition } from "motion/react";
+import { useLayoutEffect, useRef, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { formatDuration } from "@/lib/dates";
 
@@ -22,6 +22,23 @@ export const springs = {
   /** A soft settle, for hero elements. */
   gentle: { type: "spring", stiffness: 220, damping: 28 },
 } satisfies Record<string, Transition>;
+
+const REDUCE_QUERY = "(prefers-reduced-motion: reduce)";
+function subscribeReduce(onChange: () => void) {
+  const mq = window.matchMedia(REDUCE_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+/**
+ * Like motion's useReducedMotion, but hydration safe: false on the server and
+ * during hydration, so SSR'd `initial` styles match the client. motion's own
+ * hook reads the media query on the first client render, which leaves rows
+ * stuck at opacity 0 for people who prefer reduced motion.
+ */
+export function useReducedMotion() {
+  return useSyncExternalStore(subscribeReduce, () => window.matchMedia(REDUCE_QUERY).matches, () => false);
+}
 
 /** Props for a list item that animates in, out and when reordered. Spread onto a motion element. */
 export const listItem = {

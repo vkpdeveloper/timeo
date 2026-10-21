@@ -52,7 +52,7 @@ export async function signup(_: AuthState, formData: FormData): Promise<AuthStat
   await db.insert(t.users).values({ id, name, email, passwordHash: await hashPassword(password), timezone, aiModel: DEFAULT_AI_MODEL });
   await seedNewUser(id);
   await createSession(id);
-  redirect("/app/goals/setup");
+  redirect("/app/welcome");
 }
 
 export async function login(_: AuthState, formData: FormData): Promise<AuthState> {

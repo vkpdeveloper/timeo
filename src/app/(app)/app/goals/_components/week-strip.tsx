@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
-import { springs } from "@/components/ui/motion";
+import { motion } from "motion/react";
+import { springs, useReducedMotion } from "@/components/ui/motion";
 
 /**
  * The season as twelve week segments: past weeks in a soft accent, this week

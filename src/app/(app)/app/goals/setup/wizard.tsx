@@ -1,11 +1,11 @@
 "use client";
 
 import { AlertTriangle, Check, ChevronLeft, Flag, Plus, X } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { springs } from "@/components/ui/motion";
+import { springs, useReducedMotion } from "@/components/ui/motion";
 import { Field, Input, Label, PillPicker, Segmented, Stepper, Textarea } from "@/components/ui/controls";
 import { DatePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";

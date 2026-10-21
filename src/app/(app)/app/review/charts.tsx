@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
-import { springs } from "@/components/ui/motion";
+import { motion } from "motion/react";
+import { springs, useReducedMotion } from "@/components/ui/motion";
 import { colorVar } from "@/lib/colors";
 import { formatDuration, formatWeekdayShort, WEEKDAY_LETTER } from "@/lib/dates";
 import { cn } from "@/lib/cn";

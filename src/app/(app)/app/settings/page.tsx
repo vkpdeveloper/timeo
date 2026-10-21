@@ -7,10 +7,10 @@ import { logout } from "@/app/(auth)/actions";
 import { InstallRow } from "@/components/shell/install";
 import { PageHeader, Row, RowIcon, Section, Skeleton } from "@/components/ui/primitives";
 import { db, t } from "@/db";
-import { getColorMode } from "@/lib/appearance";
+import { getAccent, getColorMode } from "@/lib/appearance";
 import { requireUser } from "@/lib/auth";
 import pkg from "../../../../../package.json";
-import { AppearanceRow, DayHoursRow, DeleteAccountRow, NameRow, TimezoneRow } from "./settings-rows";
+import { AccentRow, AppearanceRow, DayHoursRow, DeleteAccountRow, NameRow, TimezoneRow } from "./settings-rows";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -52,9 +52,10 @@ async function SettingsContent() {
   const user = await requireUser();
   const zones = Intl.supportedValuesOf("timeZone");
   const initial = user.name.trim().charAt(0).toUpperCase() || "?";
-  const [created, savedMode] = await Promise.all([
+  const [created, savedMode, savedAccent] = await Promise.all([
     db.select({ createdAt: t.users.createdAt }).from(t.users).where(eq(t.users.id, user.id)).get(),
     getColorMode(user.id),
+    getAccent(user.id),
   ]);
   const since = created
     ? new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: user.timezone }).format(created.createdAt)
@@ -84,6 +85,7 @@ async function SettingsContent() {
 
       <Section title="Preferences" card stagger>
         <AppearanceRow saved={savedMode} />
+        <AccentRow saved={savedAccent} />
         <Row href="/app/settings/notifications" icon={<Bell />} title="Notifications" value="This device" />
         <Row icon={<Timi size={24} />} title="Assistant" value="DeepSeek V4.1 Flash" />
       </Section>

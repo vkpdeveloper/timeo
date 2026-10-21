@@ -119,7 +119,7 @@ export async function executeRun(user: CurrentUser, runId: string) {
       body: error ? run.input.slice(0, 120) : reply || saved.map((a) => a.label).slice(0, 3).join(" · ") || "Done.",
       url: `/app/assistant#${runId}`,
       tag: `assistant-${runId}`,
-      icon: "/mascots/timi-avatar.png",
+      icon: "/mascots/timi-avatar-sky.png",
     }).catch(() => 0);
   }
 }
