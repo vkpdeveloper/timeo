@@ -42,18 +42,28 @@ export async function sendTestPush() {
   return { reached };
 }
 
-const NOTIFY_KEYS = ["blocks", "blockLeadMin", "morning", "morningMin", "workout", "evening", "eveningMin", "weekly", "water"] as const;
+const BOOL_KEYS = ["blocks", "morning", "workout", "evening", "weekly", "water"] as const;
+const MIN_KEYS = ["blockLeadMin", "morningMin", "eveningMin"] as const;
+
+/** Known keys with the right type only: raw client (or previously stored) JSON never reaches the row. */
+function pickPrefs(p: unknown): Partial<NotifyPrefs> {
+  const src = (p && typeof p === "object" ? p : {}) as Record<string, unknown>;
+  const picked: Partial<NotifyPrefs> = {};
+  for (const k of BOOL_KEYS) {
+    const v = src[k];
+    if (typeof v === "boolean") picked[k] = v;
+  }
+  for (const k of MIN_KEYS) {
+    const v = src[k];
+    if (typeof v === "number" && Number.isFinite(v)) picked[k] = v;
+  }
+  return picked;
+}
 
 export async function saveNotifyPrefs(prefs: Partial<NotifyPrefs>) {
   const user = await requireUser();
   const row = await db.select({ p: t.users.notifyPrefs }).from(t.users).where(eq(t.users.id, user.id)).get();
-  // Pick known keys only: a raw spread would store arbitrary client JSON.
-  const picked: Partial<NotifyPrefs> = {};
-  for (const k of NOTIFY_KEYS) {
-    const v = prefs?.[k];
-    if (typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v))) picked[k] = v as never;
-  }
-  const next = withDefaults({ ...withDefaults(row?.p), ...picked });
+  const next = withDefaults({ ...pickPrefs(row?.p), ...pickPrefs(prefs) });
   next.blockLeadMin = clamp(Math.round(next.blockLeadMin), 0, 60);
   next.morningMin = clamp(Math.round(next.morningMin), 0, 1439);
   next.eveningMin = clamp(Math.round(next.eveningMin), 0, 1439);

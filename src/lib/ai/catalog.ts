@@ -79,6 +79,13 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> 
   }
 }
 
+/**
+ * Pay-as-you-go Zen models bill OpenCode credits per token, unlike the flat
+ * Go plan, so any user picking one spends the server owner's money. They are
+ * off unless the server env sets AI_ALLOW_ZEN_MODELS="1" (server only).
+ */
+const allowZen = () => process.env.AI_ALLOW_ZEN_MODELS === "1";
+
 /** All models the user can pick, Go models first. Cached for a few hours. */
 export async function getModelCatalog(): Promise<CatalogModel[]> {
   "use cache";
@@ -101,7 +108,7 @@ export async function getModelCatalog(): Promise<CatalogModel[]> {
   });
 
   const goSet = new Set(goIds);
-  const zen = Object.values(zenDev?.models ?? {})
+  const zen = Object.values((allowZen() && zenDev?.models) || {})
     .filter((m) => !goSet.has(m.id) && m.status !== "deprecated" && m.tool_call !== false)
     .map((m) => toCatalog(m.id, m, "zen", zenDev?.npm));
 
