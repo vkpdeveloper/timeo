@@ -5,7 +5,7 @@
 // - Static assets: cache first (hashed, immutable).
 // - Web Push: show notifications, open the right screen on tap.
 
-const VERSION = "timeo-v6";
+const VERSION = "timeo-v7";
 const OFFLINE_URL = "/offline.html";
 // registered as /sw.js?dev=1 by `next dev`: no snapshots, no asset caching
 const IS_DEV = new URL(self.location.href).searchParams.get("dev") === "1";

@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="28.8" fill="#1F6FE5"/>
-  <g transform="translate(24.32 24.32) scale(2.48)">
-    <circle cx="16" cy="16" r="11" fill="none" stroke="#FFFFFF" stroke-opacity="0.24" stroke-width="4"/>
-    <circle cx="16" cy="16" r="11" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"
-      stroke-dasharray="49.76282763286232 69.11503837897544" transform="rotate(-90 16 16)"/>
-    <circle cx="16" cy="16" r="2.2" fill="#FFFFFF"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="115.2" fill="#0B0C0F"/><path transform="translate(56.32 151.09) scale(3.9936)" d="M0.33 10.23A1.55 1.55 0 0 1 2.05 7.82L30.49 17.64A6.32 6.32 0 0 1 33.33 19.62L45 33.96A0.42 0.42 0 0 0 45.64 33.99L63.13 15.21A6.32 6.32 0 0 1 65.35 13.68L98.45 0.08A1.12 1.12 0 0 1 99.71 1.88L55.35 50.68A15.87 15.87 0 0 1 31.08 49.75Z" fill="#5B9DFF"/></svg>
