@@ -61,7 +61,11 @@ export function weekDays(weekStart: ISODate): ISODate[] {
 }
 
 export function isValidISODate(s: unknown): s is ISODate {
-  return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(toUTCDate(s).getTime());
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = toUTCDate(s);
+  // Date.UTC rolls impossible days over (2026-02-31 becomes Mar 3), so
+  // a round-trip must reproduce the input exactly.
+  return !isNaN(d.getTime()) && fromUTCDate(d) === s;
 }
 
 const fmt = (opts: Intl.DateTimeFormatOptions) =>

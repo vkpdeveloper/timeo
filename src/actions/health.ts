@@ -4,7 +4,9 @@ import { and, eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
+import { isValidISODate } from "@/lib/dates";
 import { clamp, date, int, num, reqStr, str } from "@/lib/form";
+import { ownPlanMealId } from "@/lib/queries";
 
 // Shared nutrition, hydration and body actions (used by Fitness, Today and Quick add).
 
@@ -18,7 +20,7 @@ export async function logMeal(fd: FormData) {
     proteinG: clamp(int(fd, "protein") ?? 0, 0, 1000),
     carbsG: clamp(int(fd, "carbs") ?? 0, 0, 2000),
     fatG: clamp(int(fd, "fat") ?? 0, 0, 1000),
-    planMealId: str(fd, "planMealId"),
+    planMealId: await ownPlanMealId(user.id, str(fd, "planMealId")),
   });
   refresh();
 }
@@ -35,7 +37,7 @@ export async function logPlannedMeal(planMealId: string, day?: string) {
   if (!meal) throw new Error("Meal not found");
   await db.insert(t.mealLogs).values({
     userId: user.id,
-    date: day ?? user.today,
+    date: isValidISODate(day) ? day : user.today,
     planMealId,
     name: meal.m.name,
     calories: meal.m.calories,
@@ -55,7 +57,7 @@ export async function deleteMealLog(id: string) {
 /** Adds (or with a negative value removes) water for a day. */
 export async function addWater(ml: number, day?: string) {
   const user = await requireUser();
-  const d = day ?? user.today;
+  const d = isValidISODate(day) ? day : user.today;
   const delta = clamp(Math.round(ml), -5000, 5000);
   await db
     .insert(t.dailyLogs)

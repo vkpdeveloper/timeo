@@ -47,7 +47,7 @@ export async function getGoalOptions(userId: string) {
   return db
     .select({ id: t.goals.id, title: t.goals.title, color: t.goals.color, tier: t.goals.tier })
     .from(t.goals)
-    .where(and(eq(t.goals.seasonId, season.id), isNull(t.goals.completedAt)))
+    .where(and(eq(t.goals.userId, userId), eq(t.goals.seasonId, season.id), isNull(t.goals.completedAt)))
     .orderBy(asc(t.goals.sortOrder), asc(t.goals.createdAt));
 }
 
@@ -61,6 +61,31 @@ export async function ownGoalId(userId: string, goalId: string | null): Promise<
     .get();
   if (!g) throw new Error("Goal not found");
   return g.id;
+}
+
+/** Throws unless the milestone belongs to the user. Returns null for empty ids. */
+export async function ownMilestoneId(userId: string, milestoneId: string | null): Promise<string | null> {
+  if (!milestoneId) return null;
+  const m = await db
+    .select({ id: t.milestones.id })
+    .from(t.milestones)
+    .where(and(eq(t.milestones.id, milestoneId), eq(t.milestones.userId, userId)))
+    .get();
+  if (!m) throw new Error("Milestone not found");
+  return m.id;
+}
+
+/** Throws unless the diet-plan meal belongs to the user. Returns null for empty ids. */
+export async function ownPlanMealId(userId: string, planMealId: string | null): Promise<string | null> {
+  if (!planMealId) return null;
+  const m = await db
+    .select({ id: t.dietPlanMeals.id })
+    .from(t.dietPlanMeals)
+    .innerJoin(t.dietPlans, eq(t.dietPlans.id, t.dietPlanMeals.planId))
+    .where(and(eq(t.dietPlanMeals.id, planMealId), eq(t.dietPlans.userId, userId)))
+    .get();
+  if (!m) throw new Error("Meal not found");
+  return m.id;
 }
 
 export async function ownTaskId(userId: string, taskId: string | null): Promise<string | null> {

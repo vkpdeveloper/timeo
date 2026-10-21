@@ -221,7 +221,9 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  // Push payloads are data, not navigation authority: keep taps on-origin.
+  const raw = new URL(event.notification.data?.url || "/", self.location.origin);
+  const target = new URL(raw.pathname + raw.search + raw.hash, self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clients) => {
       for (const client of clients) {

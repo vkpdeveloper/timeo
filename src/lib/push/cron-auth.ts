@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
 /*
@@ -19,7 +20,12 @@ export async function isAuthorizedCron(req: Request): Promise<boolean> {
   if (!token) return false;
 
   const secret = process.env.CRON_SECRET;
-  if (secret && token === secret) return true;
+  if (secret) {
+    // Hash both sides so timingSafeEqual always compares equal lengths.
+    const a = createHash("sha256").update(token).digest();
+    const b = createHash("sha256").update(secret).digest();
+    if (timingSafeEqual(a, b)) return true;
+  }
 
   try {
     const { payload } = await jwtVerify(token, jwks, { issuer: GITHUB_ISSUER, audience: CRON_AUDIENCE });

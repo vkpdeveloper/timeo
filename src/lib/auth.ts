@@ -23,6 +23,15 @@ export async function hashPassword(password: string): Promise<string> {
   return `scrypt$${salt.toString("base64")}$${key.toString("base64")}`;
 }
 
+let dummyHash: Promise<string> | undefined;
+
+/** Burns the same scrypt time as a real check, so login timing does not
+ * reveal whether an account exists. Always false in effect. */
+export async function verifyPasswordDummy(password: string): Promise<void> {
+  dummyHash ??= hashPassword(randomBytes(16).toString("base64"));
+  await verifyPassword(password, await dummyHash);
+}
+
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [scheme, saltB64, keyB64] = stored.split("$");
   if (scheme !== "scrypt" || !saltB64 || !keyB64) return false;
