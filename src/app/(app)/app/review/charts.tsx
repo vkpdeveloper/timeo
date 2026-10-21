@@ -76,8 +76,8 @@ export function FocusWeekChart({ days, today }: { days: { date: string; focusMin
   );
 }
 
-const GAVE = "var(--c-teal)";
-const DRAINED = "var(--c-rose)";
+const GAVE = "var(--accent)";
+const DRAINED = "var(--warn)";
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}`;
 

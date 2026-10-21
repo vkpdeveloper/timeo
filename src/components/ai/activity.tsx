@@ -1,13 +1,12 @@
 "use client";
 
-import { ArrowUpRight, Check, Loader2, Undo2, X } from "lucide-react";
+import { ArrowUpRight, Loader2, Undo2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { undoTell } from "@/actions/ai";
 import { dismissFinished, onRunFinished, useRuns } from "@/lib/ai/runs-client";
-import { cn } from "@/lib/cn";
 import { Timi } from "./timi";
 
 /**
@@ -62,16 +61,14 @@ export function AssistantActivity() {
             className="card pointer-events-auto w-full max-w-[420px] p-3.5 shadow-float"
           >
             <div className="flex items-start gap-3">
-              <span className={cn("grid size-8 shrink-0 place-items-center rounded-xl", latest.status === "error" ? "bg-bad-soft text-bad" : "bg-ok-soft text-ok")}>
-                {latest.status === "error" ? <X className="size-4" /> : <Check className="size-4" strokeWidth={2.6} />}
-              </span>
+              <Timi size={36} mood={latest.status === "error" ? "error" : "happy"} className="-my-0.5" />
               <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-semibold text-ink">
+                <div className={latest.status === "error" ? "text-[14px] font-semibold text-warn" : "text-[14px] font-semibold text-ink"}>
                   {latest.status === "error" ? "Couldn't finish" : latest.saved ? `Done · ${latest.saved} saved` : "Done"}
                 </div>
                 <p className="line-clamp-2 text-[13px] leading-snug text-ink-2">{latest.status === "error" ? latest.input : latest.reply || latest.input}</p>
               </div>
-              <button type="button" aria-label="Dismiss" onClick={() => dismissFinished(latest.id)} className="tap -mt-1 -mr-1 grid size-7 place-items-center rounded-full text-ink-3">
+              <button type="button" aria-label="Dismiss" onClick={() => dismissFinished(latest.id)} className="tap -mt-2 -mr-2 grid size-10 place-items-center rounded-full text-ink-3 hover:bg-sunken">
                 <X className="size-4" />
               </button>
             </div>
@@ -87,16 +84,16 @@ export function AssistantActivity() {
                       router.refresh();
                     })
                   }
-                  className="tap inline-flex h-8 items-center gap-1 rounded-full px-3 text-[12.5px] font-semibold text-ink-2 hover:bg-sunken"
+                  className="tap inline-flex h-9 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-ink-2 hover:bg-sunken"
                 >
                   {undoing ? <Loader2 className="size-3.5 animate-spin" /> : <Undo2 className="size-3.5" />} Undo
                 </button>
               )}
-              {undone === latest.id && <span className="inline-flex h-8 items-center px-2 text-[12.5px] text-ink-3">Undone</span>}
+              {undone === latest.id && <span className="inline-flex h-9 items-center px-2 text-[13px] text-ink-3">Undone</span>}
               <Link
                 href={`/app/assistant#${latest.id}`}
                 onClick={() => dismissFinished(latest.id)}
-                className="tap inline-flex h-8 items-center gap-1 rounded-full bg-ink px-3 text-[12.5px] font-semibold text-bg"
+                className="tap inline-flex h-9 items-center gap-1 rounded-full bg-ink px-3.5 text-[13px] font-medium text-bg"
               >
                 Open <ArrowUpRight className="size-3.5" />
               </Link>
@@ -109,10 +106,10 @@ export function AssistantActivity() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
             <Link
               href="/app/assistant"
-              className="glass tap pointer-events-auto inline-flex h-9 items-center gap-2 rounded-full border border-line pr-3.5 pl-3 text-[12.5px] font-medium text-ink-2 shadow-soft"
+              className="tap pointer-events-auto inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-2.5 text-[13px] font-medium text-ink-2 shadow-float"
             >
-              <Timi size={22} mood="thinking" className="-ml-1" />
-              {running.length > 1 ? `Timi is working on ${running.length} things` : "Timi is working…"}
+              <Timi size={26} mood="thinking" />
+              <span className="animate-pulse-soft">{running.length > 1 ? `Timi is working on ${running.length} things` : "Timi is working…"}</span>
             </Link>
           </motion.div>
         )}

@@ -1,24 +1,24 @@
 import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { PageTransition } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
-import { addDays, isValidISODate, nowMinIn, relativeDay, startOfWeek, weekDays, weekday } from "@/lib/dates";
-import { getActiveSeason, getGoalOptions, seasonProgress } from "@/lib/queries";
+import { addDays, isValidISODate, nowMinIn, startOfWeek, weekDays, weekday } from "@/lib/dates";
+import { getActiveSeason, getGoalOptions } from "@/lib/queries";
 import { coveredMinutes, findFreeSlot } from "@/lib/schedule";
 import { dayBounds, dayCapacity } from "../today-headline";
-import type { Capacity } from "./_components/capacity";
-import { CapacityBar, LightWeekHint } from "./_components/capacity";
-import { AddBlockButton, DayView } from "./_components/day-view";
+import type { Capacity, DayLoad } from "./_components/capacity";
+import { LightWeekHint } from "./_components/capacity";
+import { DayView } from "./_components/day-view";
 import { PlanHeader } from "./_components/plan-header";
 import { PlanProvider } from "./_components/plan-provider";
 import type { Ghost, GoalInfo, PlanBlock, PlanView, UnscheduledTask } from "./_components/types";
 import { UnscheduledTray } from "./_components/unscheduled-tray";
+import { ViewSwitch } from "./_components/view-switch";
 import { WeekSummary, WeekView } from "./_components/week-view";
 
-export const metadata: Metadata = { title: "Plan" };
+export const metadata: Metadata = { title: "Week" };
 
 export default function PlanPage(props: PageProps<"/app/plan">) {
   return (
@@ -31,10 +31,14 @@ export default function PlanPage(props: PageProps<"/app/plan">) {
 function PlanSkeleton() {
   return (
     <div className="pt-5 lg:pt-10">
-      <Skeleton className="h-3 w-24" />
-      <Skeleton className="mt-2.5 h-9 w-40" />
-      <Skeleton className="mt-4 h-[62px] w-full" />
-      <Skeleton className="mt-4 h-12 w-full" />
+      <Skeleton className="h-7 w-24" />
+      <Skeleton className="mt-2 h-4 w-48" />
+      <div className="mt-5 grid grid-cols-7 gap-1.5">
+        {Array.from({ length: 7 }, (_, i) => (
+          <Skeleton key={i} className="h-[88px] rounded-[14px]" />
+        ))}
+      </div>
+      <Skeleton className="mt-3 h-8 w-full" />
       <Skeleton className="mt-4 h-[60dvh] w-full" />
     </div>
   );
@@ -207,10 +211,6 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/app/pla
     plannedMin: plannedByGoal.get(g.id) ?? 0,
   }));
 
-  const progress = season ? seasonProgress(season, date) : null;
-  const eyebrow =
-    progress && progress.week >= 1 && progress.week <= 12 ? `Week ${progress.week} of 12` : String(Number(date.slice(0, 4)));
-
   // ── Capacity: done / still planned / free, per day and for the week ──
   const nowMin = nowMinIn(user.timezone);
   const capacityOf = (d: string): Capacity => {
@@ -270,13 +270,25 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/app/pla
   const goalPlanned = summary.reduce((s, g) => s + g.plannedMin, 0);
   const lightWeek = weekEnd >= user.today && (goalTarget > 0 ? goalPlanned < goalTarget * 0.75 : weekCap.plannedTotal < 10 * 60);
 
-  // load dots: one per ~2h planned (max 4), coloured by the longest blocks
-  const loadDots = (d: string) => {
-    const live = blocks
-      .filter((b) => b.date === d && !b.skippedAt)
-      .sort((a, b) => b.endMin - b.startMin - (a.endMin - a.startMin));
-    const n = Math.min(4, Math.ceil((dayCaps.get(d)?.plannedTotal ?? 0) / 120));
-    return Array.from({ length: n }, (_, i) => live[i % live.length]?.color ?? "neutral");
+  // load per day: planned minutes by colour against the length of the day
+  const loadOf = (d: string): DayLoad => {
+    const live = blocks.filter((b) => b.date === d && !b.skippedAt);
+    const bounds = dayBounds(user.dayStartMin, user.dayEndMin, live);
+    const byColor = new Map<string, number>();
+    for (const b of live) {
+      const key = b.color ?? "";
+      byColor.set(key, (byColor.get(key) ?? 0) + (b.endMin - b.startMin));
+    }
+    const total = live.reduce((s, b) => s + (b.endMin - b.startMin), 0);
+    const planned = dayCaps.get(d)?.plannedTotal ?? 0;
+    // overlapping blocks: scale the parts so they add up to the covered time
+    const k = total > 0 ? planned / total : 0;
+    return {
+      span: Math.max(60, bounds.end - bounds.start),
+      parts: [...byColor.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([color, min]) => ({ color: color || null, min: min * k })),
+    };
   };
 
   // Visible hour range for the timeline: the user's day, stretched to fit any blocks.
@@ -295,33 +307,25 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/app/pla
   const ghostSpans = (list: Ghost[]) =>
     list.flatMap((g) => (g.startMin != null ? [{ startMin: g.startMin, endMin: g.startMin + g.durationMin }] : []));
 
+  const seasonInfo = season ? { startDate: season.startDate, endDate: season.endDate } : null;
+
   return (
     <PlanProvider goals={goalOptions} today={user.today}>
       <PlanHeader
         date={date}
         today={user.today}
         view={view}
-        eyebrow={eyebrow}
-        dots={Object.fromEntries(days.map((d) => [d, loadDots(d)]))}
-        summary={
-          view === "day" ? (
-            <CapacityBar
-              label={relativeDay(date, user.today)}
-              capacity={dayCaps.get(date)!}
-              action={<AddBlockButton date={date} />}
-            />
-          ) : (
-            <CapacityBar label={weekStart === startOfWeek(user.today) ? "This week" : "Week"} capacity={weekCap} />
-          )
-        }
+        season={seasonInfo}
+        loads={Object.fromEntries(days.map((d) => [d, loadOf(d)]))}
+        caps={Object.fromEntries(dayCaps)}
+        weekCap={weekCap}
       />
-      <PageTransition key={view === "day" ? `day:${date}` : `week:${weekStart}`}>
-        {lightWeek && <LightWeekHint className="mt-4" goalPlanned={goalPlanned} goalTarget={goalTarget} />}
+      {lightWeek && <LightWeekHint className="mt-3" goalPlanned={goalPlanned} goalTarget={goalTarget} />}
+      <ViewSwitch id={view === "day" ? date : `week:${weekStart}`} order={view === "day" ? date : weekStart}>
         {view === "day" ? (
           <>
             <UnscheduledTray date={date} tasks={unscheduled} goals={goals} />
             <DayView
-              key={date}
               date={date}
               today={user.today}
               timezone={user.timezone}
@@ -332,7 +336,6 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/app/pla
           </>
         ) : (
           <>
-            <WeekSummary goals={summary} />
             <WeekView
               days={days}
               today={user.today}
@@ -342,9 +345,10 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/app/pla
               ghosts={ghosts}
               caps={Object.fromEntries(dayCaps)}
             />
+            <WeekSummary goals={summary} />
           </>
         )}
-      </PageTransition>
+      </ViewSwitch>
     </PlanProvider>
   );
 }

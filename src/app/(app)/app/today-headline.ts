@@ -1,13 +1,5 @@
-import type { Block, Task } from "@/db/schema";
-import { formatDuration, formatMin } from "@/lib/dates";
-import type { TodayTraining } from "@/lib/fitness";
+import type { Block } from "@/db/schema";
 import { coveredMinutes } from "@/lib/schedule";
-
-/** The Today title and the line under it, read from the day itself. */
-export type Headline = { title: string; line: string };
-
-const WORDS = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
-const count = (n: number, noun: string) => `${WORDS[n] ?? n} ${noun}${n === 1 ? "" : "s"}`;
 
 type Span = { startMin: number; endMin: number };
 
@@ -62,62 +54,43 @@ export function dayCapacity({
   return { doneMin, plannedMin, freeMin };
 }
 
-export function todayHeadline({
-  nowMin,
+/** A block this close to starting takes over the Now hero. */
+export const SOON_MIN = 60;
+
+/**
+ * The one thing Now shows, read from the day:
+ * a running block, a block about to start, free time, or a finished day.
+ */
+export type Hero =
+  | { kind: "now"; block: Block }
+  | { kind: "next"; block: Block }
+  | { kind: "free"; until: number; freeMin: number; next: Block | null }
+  | { kind: "done" };
+
+export function pickHero({
   blocks,
-  tasks,
-  training,
+  nowMin,
+  bounds,
 }: {
-  nowMin: number;
   blocks: Block[];
-  tasks: Task[];
-  training: TodayTraining;
-}): Headline {
-  const done = blocks.filter((b) => b.doneAt).length;
+  nowMin: number;
+  bounds: { start: number; end: number };
+}): Hero {
   const open = blocks.filter((b) => !b.doneAt && !b.skippedAt);
-  const ahead = open.filter((b) => b.endMin > nowMin);
-  const tasksLeft = tasks.filter((t) => !t.doneAt).length;
-  const evening = nowMin >= 17 * 60;
+  const running = open.find((b) => b.startMin <= nowMin && b.endMin > nowMin);
+  if (running) return { kind: "now", block: running };
+  if (nowMin >= bounds.end) return { kind: "done" };
+  const next = open.find((b) => b.startMin > nowMin) ?? null;
+  if (next && next.startMin - nowMin <= SOON_MIN) return { kind: "next", block: next };
+  const from = Math.max(nowMin, bounds.start);
+  const until = next ? next.startMin : bounds.end;
+  return { kind: "free", until, freeMin: Math.max(0, until - from), next };
+}
 
-  // the workout, unless a block still ahead already counts it
-  const { scheduled, log } = training;
-  const hasWorkoutBlock = ahead.some((b) => b.kind === "workout");
-  let workout = "";
-  if (log?.status === "in_progress") workout = `${log.name} in progress.`;
-  else if (!log && !scheduled.isRest && !hasWorkoutBlock)
-    workout =
-      scheduled.startMin != null && scheduled.startMin > nowMin
-        ? `${scheduled.name} at ${formatMin(scheduled.startMin, true)}.`
-        : `${scheduled.name} still to do.`;
-  const withWorkout = (s: string) => (workout ? `${s} ${workout}` : s);
-
-  if (!blocks.length) {
-    if (tasksLeft)
-      return { title: `${count(tasksLeft, "task")}, no blocks yet.`, line: withWorkout("Give the one that matters a slot.") };
-    return {
-      title: "A clear day.",
-      line: withWorkout(evening ? "Nothing planned. Rest counts too." : "Nothing planned yet. Block time for what matters."),
-    };
-  }
-
-  if (!ahead.length) {
-    const left = tasksLeft ? `${count(tasksLeft, "task")} still open.` : "Nothing left on the plan.";
-    if (done === blocks.length) return { title: "Every block done.", line: withWorkout(left) };
-    return { title: `${done} of ${blocks.length} blocks done.`, line: withWorkout(left) };
-  }
-
-  const clearAt = formatMin(Math.max(...ahead.map((b) => b.endMin)), true);
-  const started = done > 0 || blocks.some((b) => b.startMin <= nowMin);
-  if (!started) {
-    const planned = blocks.reduce((sum, b) => sum + b.endMin - b.startMin, 0);
-    return {
-      title: `${formatDuration(planned)} planned today.`,
-      line: withWorkout(`First block at ${formatMin(blocks[0].startMin, true)}, clear by ${clearAt}.`),
-    };
-  }
-
-  return {
-    title: `${count(ahead.length, "block")} left ${evening ? "tonight" : "today"}.`,
-    line: withWorkout(done ? `${done} of ${blocks.length} done, clear by ${clearAt}.` : `Clear by ${clearAt}.`),
-  };
+/** Minute of the day when the hero changes next, so the page can refresh itself. */
+export function heroChangesAt(hero: Hero, bounds: { end: number }): number | null {
+  if (hero.kind === "now") return hero.block.endMin;
+  if (hero.kind === "next") return hero.block.startMin;
+  if (hero.kind === "free") return hero.next ? hero.next.startMin - SOON_MIN : bounds.end;
+  return null;
 }

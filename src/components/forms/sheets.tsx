@@ -1,7 +1,7 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
-import { useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { AlertCircle, Trash2 } from "lucide-react";
+import { useEffect, useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { createBlock, deleteBlock, updateBlock } from "@/actions/blocks";
 import type { GoalOption } from "@/actions/context";
 import { logBodyMetric, logMeal } from "@/actions/health";
@@ -57,13 +57,17 @@ function useSubmit(action: (fd: FormData) => Promise<unknown>, onDone: () => voi
 function ErrorNote({ error }: { error: string | null }) {
   if (!error) return null;
   return (
-    <p role="alert" className="mb-4 animate-pop rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">
+    <p role="alert" className="mb-4 flex animate-pop items-start gap-2 px-1 text-[13.5px] leading-snug font-medium text-warn">
+      <AlertCircle className="mt-px size-4 shrink-0" />
       {error}
     </p>
   );
 }
 
-/** One primary action at the bottom of a sheet, with an optional delete beside it. */
+/**
+ * One primary action at the bottom of a sheet, with an optional delete beside
+ * it. Delete is never red: the first tap asks, the second deletes.
+ */
 function SheetFooter({
   formId,
   pending,
@@ -79,22 +83,32 @@ function SheetFooter({
   deleting?: boolean;
   deleteLabel?: string;
 }) {
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    if (!confirming) return;
+    const t = setTimeout(() => setConfirming(false), 3500);
+    return () => clearTimeout(t);
+  }, [confirming]);
   return (
     <div className="flex gap-2.5">
-      {onDelete && (
-        <Button
-          type="button"
-          variant="danger"
-          size="icon"
-          className="size-12 rounded-2xl"
-          loading={deleting}
-          disabled={pending}
-          aria-label={deleteLabel}
-          onClick={onDelete}
-        >
-          <Trash2 className="size-[18px]" />
-        </Button>
-      )}
+      {onDelete &&
+        (confirming || deleting ? (
+          <Button type="button" variant="danger" size="lg" className="w-auto! px-4" loading={deleting} disabled={pending} onClick={onDelete}>
+            Delete?
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="danger"
+            size="icon"
+            className="size-12 rounded-[12px]"
+            disabled={pending}
+            aria-label={deleteLabel}
+            onClick={() => setConfirming(true)}
+          >
+            <Trash2 className="size-[18px]" strokeWidth={1.8} />
+          </Button>
+        ))}
       <Button type="submit" form={formId} variant="accent" size="lg" className="flex-1" loading={pending} disabled={deleting}>
         {children}
       </Button>

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { AskHost } from "@/components/shell/ask";
 import { Sidebar, TabBar } from "@/components/shell/nav";
 import { ThemeSync } from "@/components/shell/theme";
 
@@ -8,7 +9,7 @@ export const maxDuration = 120;
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-dvh">
-      <Suspense fallback={<div className="hidden w-56 shrink-0 lg:block" />}>
+      <Suspense fallback={<div className="hidden w-[84px] shrink-0 lg:block" />}>
         <Sidebar />
       </Suspense>
       <main className="pb-tabbar min-w-0 flex-1 px-4 pt-safe sm:px-6 lg:px-10">
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <Suspense>
         <TabBar />
       </Suspense>
+      <AskHost />
       <ThemeSync />
     </div>
   );

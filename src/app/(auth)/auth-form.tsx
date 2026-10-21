@@ -13,7 +13,7 @@ import { login, signup, type AuthState } from "./actions";
 export function FormError({ error }: { error?: string | null }) {
   if (!error) return null;
   return (
-    <p role="alert" className="flex animate-pop items-start gap-2 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] leading-snug font-medium text-bad">
+    <p role="alert" className="flex animate-pop items-start gap-2 px-0.5 py-1 text-[14px] leading-snug font-medium text-bad">
       <CircleAlert className="mt-px size-4 shrink-0" />
       {error}
     </p>
@@ -31,7 +31,7 @@ export function PasswordInput({ className, ...props }: Omit<ComponentProps<"inpu
         onClick={() => setShown(!shown)}
         aria-label={shown ? "Hide password" : "Show password"}
         aria-pressed={shown}
-        className="tap absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-[14px] text-ink-3 hover:text-ink-2"
+        className="tap absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-ink-3 hover:text-ink-2"
       >
         {shown ? <EyeOff className="size-[18px]" /> : <Eye className="size-[18px]" />}
       </button>

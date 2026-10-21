@@ -4,11 +4,27 @@ import { eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, t } from "@/db";
+import { getColorMode } from "@/lib/appearance";
 import { destroySession, requireUser } from "@/lib/auth";
 import { str, time } from "@/lib/form";
+import { isColorMode, type ColorMode } from "@/lib/themes";
 import { deleteUserData } from "@/lib/user-data";
 
 export type Result = { error?: string } | void;
+
+/** Saves Light or Dark for the account (every device follows it). */
+export async function saveColorMode(mode: ColorMode): Promise<Result> {
+  const user = await requireUser();
+  if (!isColorMode(mode)) return { error: "Pick Light or Dark" };
+  await db.update(t.users).set({ colorMode: mode }).where(eq(t.users.id, user.id));
+  refresh();
+}
+
+/** The account's saved mode, read fresh (never from a cached page). null = never picked. */
+export async function fetchColorMode(): Promise<ColorMode | null> {
+  const user = await requireUser();
+  return getColorMode(user.id);
+}
 
 export async function updateName(fd: FormData): Promise<Result> {
   const user = await requireUser();

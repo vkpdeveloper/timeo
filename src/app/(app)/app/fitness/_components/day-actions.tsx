@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Dumbbell, Plus } from "lucide-react";
+import { ChevronRight, CircleAlert, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { Field, PillPicker, Textarea } from "@/components/ui/controls";
@@ -32,7 +32,12 @@ function useAction(fn: (fd: FormData) => Promise<unknown>, done: () => void) {
 
 export function ErrorNote({ error }: { error: string | null }) {
   if (!error) return null;
-  return <p className="mb-3 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>;
+  return (
+    <p role="alert" className="mb-3 flex items-start gap-2 text-[13.5px] leading-snug font-medium text-bad">
+      <CircleAlert className="mt-px size-4 shrink-0" />
+      {error}
+    </p>
+  );
 }
 
 /** "Skipped" and "Done, not logged" quick marks for a day. */
@@ -54,14 +59,14 @@ export function MarkDayButtons({
         <button
           type="button"
           onClick={() => setMode("skipped")}
-          className="tap h-11 rounded-full px-2.5 text-[13.5px] font-semibold text-ink-2 hover:bg-sunken"
+          className="tap h-11 rounded-[12px] px-2.5 text-[14px] font-medium text-ink-3 hover:bg-sunken hover:text-ink"
         >
           Skipped
         </button>
         <button
           type="button"
           onClick={() => setMode("unlogged")}
-          className="tap h-11 rounded-full px-2.5 text-[13.5px] font-semibold text-ink-2 hover:bg-sunken"
+          className="tap h-11 rounded-[12px] px-2.5 text-[14px] font-medium text-ink-3 hover:bg-sunken hover:text-ink"
         >
           Done, not logged
         </button>
@@ -133,8 +138,8 @@ export function MarkDaySheet({
                     type="button"
                     onClick={() => setTemplateId(r.id)}
                     className={cn(
-                      "tap flex h-12 items-center gap-3 rounded-2xl border px-3.5 text-left text-[15px] font-medium",
-                      templateId === r.id ? "border-ink bg-surface text-ink" : "border-line bg-surface-2 text-ink-2",
+                      "tap flex h-12 items-center gap-3 rounded-[12px] border px-3.5 text-left text-[15px] font-medium",
+                      templateId === r.id ? "border-ink bg-surface text-ink" : "border-line-strong bg-surface text-ink-2",
                     )}
                   >
                     <span className="size-2.5 rounded-full" style={{ background: colorVar(r.color) }} />
@@ -184,7 +189,7 @@ export function StartOtherButton({ routines, date, label = "Other routine" }: { 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="tap inline-flex h-10 items-center gap-1 rounded-full px-2 text-[13.5px] font-semibold text-ink-2"
+        className="tap inline-flex h-11 items-center gap-0.5 rounded-[12px] px-2 text-[14px] font-medium text-ink-2 hover:bg-sunken hover:text-ink"
       >
         {label}
         <ChevronRight className="size-4" />
@@ -197,8 +202,8 @@ export function StartOtherButton({ routines, date, label = "Other routine" }: { 
                 key={r.id}
                 onClick={pending ? undefined : () => go(r.id)}
                 icon={
-                  <RowIcon color={r.color}>
-                    <Dumbbell />
+                  <RowIcon>
+                    <span className="size-2.5 rounded-full" style={{ background: colorVar(r.color) }} />
                   </RowIcon>
                 }
                 title={r.name}

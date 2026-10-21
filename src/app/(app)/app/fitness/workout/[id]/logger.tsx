@@ -1,10 +1,12 @@
 "use client";
 
-import { Check, ChevronLeft, Ellipsis, History as HistoryIcon, MessageSquare, Pause, Play, Plus } from "lucide-react";
-import { motion } from "motion/react";
+import { Check, ChevronLeft, CircleAlert, Ellipsis, History as HistoryIcon, MessageSquare, Minus, Pause, Play, Plus } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { CheckCircle } from "@/components/ui/controls";
+import { LinearProgress } from "@/components/ui/live";
 import { springs } from "@/components/ui/motion";
 import { cn } from "@/lib/cn";
 import { colorVar, tint } from "@/lib/colors";
@@ -15,7 +17,6 @@ import {
   basisLabel,
   bestSet,
   epley,
-  fmtKg,
   fmtRest,
   fmtSet,
   fmtVolume,
@@ -394,6 +395,10 @@ export function Logger({
   const [setMenu, setSetMenu] = useState<{ bi: number; si: number } | null>(null);
   const [finishing, setFinishing] = useState(false);
 
+  // The set open for editing: one the user tapped, or else the next set to do.
+  // "none" keeps everything closed until the next tick.
+  const [focus, setFocus] = useState<string | null>(null);
+
   // ── summary ──
   const summary = useMemo(() => {
     let done = 0;
@@ -443,49 +448,55 @@ export function Logger({
   const upNext = findUpNext(blocks);
   const nextLabel = upNextLabel(upNext, blocks, history, exById);
   const exercisesLeft = blocks.filter((b) => b.sets.some((s) => !s.done)).length;
+  const upNextId = upNext ? blocks[upNext.bi].sets[upNext.si].id : null;
+  const openSet = focus === "none" ? null : focus && blocks.some((b) => b.sets.some((s) => s.id === focus)) ? focus : editing ? null : upNextId;
 
   return (
     <div style={tintStyle} className="pb-44">
-      {/* Header */}
-      <div className="sticky top-0 z-30 -mx-4 glass px-4 pt-safe sm:-mx-6 sm:px-6">
+      {/* Header: back, the clock, finish */}
+      <div className="sticky top-0 z-30 -mx-4 border-b border-line bg-bg px-4 pt-safe sm:-mx-6 sm:px-6">
         <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-3">
           <Link
             href={editing ? `/app/fitness/history/${log.id}` : "/app/fitness"}
-            className="tap -ml-2 grid size-11 place-items-center justify-self-start rounded-full text-ink-2"
+            className="tap -ml-2 grid size-11 place-items-center justify-self-start rounded-full text-ink-2 hover:text-ink"
             aria-label={editing ? "Back to session" : "Leave logger (workout keeps running)"}
           >
             <ChevronLeft className="size-6" strokeWidth={2.2} />
           </Link>
           <div className="flex min-w-0 flex-col items-center">
             {editing ? (
-              <div className="text-[16px] font-semibold tracking-tight text-ink">Edit session</div>
+              <div className="text-[15px] font-semibold tracking-tight text-ink">Edit session</div>
             ) : (
               <button
                 type="button"
                 onClick={togglePause}
                 disabled={clock.capped}
                 aria-label={clock.paused ? "Resume timer" : "Pause timer"}
-                className="tap inline-flex h-10 items-center gap-1.5 rounded-full px-3 hover:bg-sunken disabled:hover:bg-transparent"
+                className="tap inline-flex h-11 items-center gap-2 rounded-[12px] px-3 hover:bg-sunken disabled:hover:bg-transparent"
               >
                 {!clock.capped &&
                   (clock.paused ? (
-                    <Play className="size-3.5 fill-current text-tint" />
+                    <Play className="size-3.5 fill-current text-accent" />
                   ) : (
                     <Pause className="size-3.5 fill-current text-ink-3" />
                   ))}
-                <span suppressHydrationWarning className={cn("tnum-live text-[18px] font-semibold tracking-tight", clock.paused ? "text-ink-3" : "text-ink")}>
+                <span suppressHydrationWarning className={cn("mono text-[18px] font-medium", clock.paused ? "text-ink-3" : "text-ink")}>
                   {clock.label}
                 </span>
               </button>
             )}
             {saveError ? (
-              <button type="button" onClick={() => flushAll().catch(() => {})} className="-mt-1 text-[11.5px] font-semibold text-bad">
-                Not saved · Retry
+              <button
+                type="button"
+                onClick={() => flushAll().catch(() => {})}
+                className="-mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-medium text-bad"
+              >
+                <CircleAlert className="size-3" /> Not saved · Retry
               </button>
             ) : (
               !editing &&
               (clock.paused || clock.capped) && (
-                <span className="-mt-1 text-[11.5px] font-medium text-ink-3">{clock.paused ? "Paused" : "Time's up"}</span>
+                <span className="-mt-1.5 text-[11.5px] font-medium text-ink-3">{clock.paused ? "Paused" : "Time's up"}</span>
               )
             )}
           </div>
@@ -495,25 +506,17 @@ export function Logger({
               setFinishing(true);
               flushAll().catch(() => {});
             }}
-            className="tap h-10 justify-self-end rounded-full bg-accent px-4 text-[15px] font-semibold text-accent-ink"
+            className="tap h-11 justify-self-end rounded-[12px] border border-line-strong bg-surface px-4 text-[15px] font-medium text-ink"
           >
             {editing ? "Save" : "Finish"}
           </button>
         </div>
-        {/* sets done / total, along the bottom edge of the bar */}
-        <div className="-mx-4 h-[3px] bg-transparent sm:-mx-6" aria-hidden>
-          <motion.div
-            className="h-full bg-tint"
-            initial={false}
-            animate={{ width: `${progress * 100}%` }}
-            transition={springs.smooth}
-          />
-        </div>
       </div>
 
       {/* Title */}
-      <div className="pt-4 pb-4">
-        <div className="eyebrow" style={{ color: colorVar(color) }}>
+      <div className="pt-5 pb-5">
+        <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
+          <span className="size-2 rounded-full" style={{ background: colorVar(color) }} />
           {editing ? formatLongDate(log.date) : "Workout"}
         </div>
         <input
@@ -521,17 +524,18 @@ export function Logger({
           onChange={(e) => setName(e.target.value)}
           onBlur={() => name.trim() && name !== log.name && renameWorkout(log.id, name).catch(() => {})}
           aria-label="Workout name"
-          className="display -ml-0.5 mt-0.5 w-full bg-transparent !text-[32px] text-ink outline-none"
+          className="display -ml-0.5 mt-1 w-full bg-transparent !text-[28px] text-ink outline-none"
         />
         <div className="tnum mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[14px] text-ink-3">
           <span>
-            <b className="font-semibold text-ink">{summary.done}</b> of {summary.total} sets
+            <span className="font-medium text-ink">{summary.done}</span> of {summary.total} sets
           </span>
           {!editing && blocks.length > 0 && (
             <span>· {exercisesLeft ? `${exercisesLeft} ${exercisesLeft === 1 ? "exercise" : "exercises"} left` : "all done"}</span>
           )}
           {summary.volume > 0 && <span>· {fmtVolume(summary.volume)}</span>}
         </div>
+        <LinearProgress value={progress} color="var(--tint)" height={4} className="mt-3" />
       </div>
 
       {/* Exercises */}
@@ -541,13 +545,19 @@ export function Logger({
             key={b.key}
             index={bi}
             block={b}
+            open={openSet}
             upNext={!editing && upNext?.bi === bi ? upNext.si : null}
             exercise={exById.get(b.exerciseId)}
             prescription={prescriptions[b.exerciseId]}
             history={history[b.exerciseId]}
+            onOpen={(setId) => setFocus(setId)}
             onChange={(setId, patch) => patchSet(setId, patch)}
             onBlurSet={(setId) => timers.current.has(setId) && persist(setId)}
-            onToggle={(si) => toggleDone(bi, si)}
+            onToggle={(si) => {
+              setFocus(null);
+              toggleDone(bi, si);
+            }}
+            onClose={() => setFocus(editing ? null : "none")}
             onAddSet={() => addSet(bi)}
             onMenu={() => setExMenu(bi)}
             onSetMenu={(si) => setSetMenu({ bi, si })}
@@ -565,10 +575,24 @@ export function Logger({
       <button
         type="button"
         onClick={() => setPicker({ mode: "add" })}
-        className="tap mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-[20px] border border-dashed border-line-strong text-[15px] font-semibold text-ink-2"
+        className="tap mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-[16px] border border-dashed border-line-strong text-[15px] font-medium text-ink-2 hover:text-ink"
       >
         <Plus className="size-[18px]" /> Add exercise
       </button>
+
+      {!editing && blocks.length > 0 && !upNext && (
+        <Button
+          variant="accent"
+          size="lg"
+          className="rise mt-6 h-[52px] text-[16.5px]"
+          onClick={() => {
+            setFinishing(true);
+            flushAll().catch(() => {});
+          }}
+        >
+          <Check className="size-[18px]" strokeWidth={2.6} /> Finish workout
+        </Button>
+      )}
 
       <RestBar rest={rest} next={nextLabel} />
 
@@ -659,32 +683,37 @@ function upNextLabel(
   return `${exById.get(b.exerciseId)?.name ?? "Exercise"}, ${n}${target}`;
 }
 
-const ROW = "grid grid-cols-[34px_58px_1fr_1fr_48px] items-center gap-1.5";
-
 function ExerciseCard({
   index,
   block,
+  open,
   upNext,
   exercise,
   prescription: p,
   history,
+  onOpen,
   onChange,
   onBlurSet,
   onToggle,
+  onClose,
   onAddSet,
   onMenu,
   onSetMenu,
 }: {
   index: number;
   block: Block;
+  /** Id of the set open for editing, anywhere in the workout. */
+  open: string | null;
   /** Index of the set to do next, when it is in this exercise. */
   upNext: number | null;
   exercise?: ExerciseOption;
   prescription?: Prescription;
   history?: ExerciseHistory;
+  onOpen: (setId: string) => void;
   onChange: (setId: string, patch: Partial<LSet>) => void;
   onBlurSet: (setId: string) => void;
   onToggle: (si: number) => void;
+  onClose: () => void;
   onAddSet: () => void;
   onMenu: () => void;
   onSetMenu: (si: number) => void;
@@ -696,150 +725,92 @@ function ExerciseCard({
   const doneCount = block.sets.filter((s) => s.done).length;
   const allDone = block.sets.length > 0 && doneCount === block.sets.length;
   const isBodyweight = exercise?.type === "bodyweight";
+  const meta = [p && `${p.sets} × ${repsLabel(p.repsMin, p.repsMax, p.reps)}`, p && `rest ${fmtRest(p.restSec)}`, basis].filter(Boolean);
   let working = 0;
 
   return (
     <section id={`block-${index}`} className="card scroll-mt-20 overflow-hidden">
-      <div className="flex items-start gap-3 pt-3.5 pr-2 pl-4">
+      <div className="flex items-start gap-3 pt-4 pr-2 pl-4">
         <motion.span
           className={cn(
-            "tnum mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-semibold",
-            allDone ? "bg-ok text-white" : "bg-sunken text-ink-2",
+            "tnum mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-medium",
+            allDone ? "bg-accent text-accent-ink" : "bg-sunken text-ink-2",
           )}
           initial={false}
-          animate={{ scale: allDone ? [1, 1.18, 1] : 1 }}
-          transition={{ duration: 0.32 }}
+          animate={{ scale: allDone ? [1, 1.12, 1] : 1 }}
+          transition={{ duration: 0.28 }}
         >
-          {allDone ? <Check className="size-4" strokeWidth={3} /> : index + 1}
+          {allDone ? <Check className="size-4" strokeWidth={2.8} /> : index + 1}
         </motion.span>
         <div className="min-w-0 flex-1">
           <h3 className={cn("text-[17px] leading-snug font-semibold tracking-tight transition-colors", allDone ? "text-ink-3" : "text-ink")}>
             {exercise?.name ?? "Exercise"}
           </h3>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-3">
-            {p && (
-              <span className="tnum font-medium text-ink-2">
-                {p.sets} × {repsLabel(p.repsMin, p.repsMax, p.reps)}
-              </span>
-            )}
-            {p && <span>rest {fmtRest(p.restSec)}</span>}
-            {p?.provisional && (
-              <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-semibold text-warn">Provisional</span>
-            )}
-            {basis && <span>{basis}</span>}
-          </div>
+          {(meta.length > 0 || p?.provisional) && (
+            <div className="tnum mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-ink-3">
+              {meta.join(" · ")}
+              {p?.provisional && (
+                <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-medium text-warn">Provisional</span>
+              )}
+            </div>
+          )}
           {p?.notes && <p className="mt-1 text-[13px] leading-snug text-ink-2">{p.notes}</p>}
           {top && last && (
             <p className="tnum mt-1 flex items-center gap-1.5 text-[13px] text-ink-3">
               <HistoryIcon className="size-3 shrink-0" />
               <span className="truncate">
-                {formatMonthDay(last.date)} · best <span className="font-medium text-ink-2">{fmtSet(top)}</span>
+                {formatMonthDay(last.date)} · best <span className="text-ink-2">{fmtSet(top)}</span>
                 {lastWorking.length > 1 && ` · ${lastWorking.length} sets`}
               </span>
             </p>
           )}
         </div>
-        <span className="tnum mt-1 shrink-0 text-[13px] font-medium text-ink-3">
+        <span className="tnum mt-1 shrink-0 text-[13px] text-ink-3">
           {doneCount}/{block.sets.length}
         </span>
         <button
           type="button"
           onClick={onMenu}
           aria-label="Exercise options"
-          className="tap -mt-1.5 grid size-11 shrink-0 place-items-center rounded-full text-ink-3"
+          className="tap -mt-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-3 hover:text-ink"
         >
           <Ellipsis className="size-5" />
         </button>
       </div>
 
-      <div className={cn(ROW, "mt-3 px-3 pb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase")}>
-        <span className="text-center">Set</span>
-        <span className="text-center">Prev</span>
-        <span className="text-center">{isBodyweight ? "+kg" : "kg"}</span>
-        <span className="text-center">Reps</span>
-        <span />
-      </div>
-
-      <div className="flex flex-col gap-1 px-2 pb-2">
+      <div className="mt-3 flex flex-col gap-1 px-2 pb-2">
         {block.sets.map((s, si) => {
           if (!s.warmup) working++;
           const prev = prevFor(block, si, last?.sets);
-          const hasPrev = prev && (prev.weightKg != null || prev.reps != null);
-          const next = upNext === si;
-          return (
-            <div key={s.id}>
-              <motion.div
-                initial={false}
-                animate={{ scale: s.done ? [1, 1.018, 1] : 1 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className={cn(
-                  ROW,
-                  "rounded-2xl px-1 py-1 transition-[background-color,box-shadow] duration-300",
-                  s.done
-                    ? "bg-[color-mix(in_oklab,var(--ok)_12%,transparent)]"
-                    : next && "shadow-[inset_0_0_0_1.5px_color-mix(in_oklab,var(--tint)_55%,transparent)]",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => onSetMenu(si)}
-                  aria-label={`Set ${si + 1} options`}
-                  className={cn(
-                    "tap tnum grid h-12 place-items-center rounded-xl text-[15px] font-semibold",
-                    s.warmup ? "text-warn" : s.done ? "text-ok" : "text-ink-2",
-                  )}
-                >
-                  {s.warmup ? "W" : working}
-                </button>
-                <button
-                  type="button"
-                  disabled={!hasPrev || s.done}
-                  onClick={() =>
-                    prev &&
-                    onChange(s.id, {
-                      weight: prev.weightKg != null ? String(prev.weightKg) : s.weight,
-                      reps: prev.reps != null ? String(prev.reps) : s.reps,
-                    })
-                  }
-                  aria-label={hasPrev ? `Use last time: ${fmtSet(prev)}` : "No previous set"}
-                  className="tap tnum h-12 truncate rounded-xl px-0.5 text-center text-[12.5px] font-medium text-ink-3 disabled:active:scale-100"
-                >
-                  {hasPrev ? `${fmtKg(prev.weightKg)}×${prev.reps ?? "?"}` : "—"}
-                </button>
-                <NumInput
-                  id={`w-${s.id}`}
-                  value={s.weight}
-                  placeholder={prev?.weightKg != null ? String(prev.weightKg) : isBodyweight ? "0" : "kg"}
-                  decimal
-                  done={s.done}
-                  onChange={(v) => onChange(s.id, { weight: v })}
-                  onBlur={() => onBlurSet(s.id)}
-                  label="Weight in kg"
-                />
-                <NumInput
-                  id={`reps-${s.id}`}
-                  value={s.reps}
-                  placeholder={prev?.reps != null ? String(prev.reps) : p && !s.warmup ? repsLabel(p.repsMin, p.repsMax, "reps") : "reps"}
-                  done={s.done}
-                  onChange={(v) => onChange(s.id, { reps: v })}
-                  onBlur={() => onBlurSet(s.id)}
-                  label="Reps"
-                />
-                <div className="grid place-items-center">
-                  <CheckCircle checked={s.done} onToggle={() => onToggle(si)} color="var(--ok)" size={36} label={s.done ? "Undo set" : "Complete set"} />
-                </div>
-              </motion.div>
-              {s.note && (
-                <button
-                  type="button"
-                  onClick={() => onSetMenu(si)}
-                  className="flex w-full items-start gap-1.5 px-3 pt-0.5 pb-1.5 text-left text-[12.5px] leading-snug text-ink-3"
-                >
-                  <MessageSquare className="mt-0.5 size-3 shrink-0" />
-                  {s.note}
-                </button>
-              )}
-            </div>
+          const label = s.warmup ? "W" : String(working);
+          const target = p && !s.warmup ? repsLabel(p.repsMin, p.repsMax, "reps") : null;
+          return s.id === open ? (
+            <OpenSet
+              key={s.id}
+              set={s}
+              label={s.warmup ? "Warm-up" : `Set ${working}`}
+              prev={prev}
+              target={target}
+              isBodyweight={isBodyweight}
+              onChange={(patch) => onChange(s.id, patch)}
+              onBlur={() => onBlurSet(s.id)}
+              onLog={() => onToggle(si)}
+              onClose={onClose}
+              onMenu={() => onSetMenu(si)}
+            />
+          ) : (
+            <SetRow
+              key={s.id}
+              set={s}
+              label={label}
+              prev={prev}
+              target={target}
+              next={upNext === si}
+              isBodyweight={isBodyweight}
+              onOpen={() => onOpen(s.id)}
+              onToggle={() => onToggle(si)}
+              onMenu={() => onSetMenu(si)}
+            />
           );
         })}
       </div>
@@ -847,7 +818,7 @@ function ExerciseCard({
       <button
         type="button"
         onClick={onAddSet}
-        className="tap flex h-12 w-full items-center justify-center gap-1.5 border-t border-line text-[14px] font-semibold text-ink-2"
+        className="tap-row flex h-12 w-full items-center justify-center gap-1.5 border-t border-line text-[14px] font-medium text-ink-2"
       >
         <Plus className="size-4" /> Add set
       </button>
@@ -855,47 +826,229 @@ function ExerciseCard({
   );
 }
 
-function NumInput({
-  id,
-  value,
-  placeholder,
-  decimal,
-  done,
+const kgText = (w: string, bodyweight: boolean) => (bodyweight ? (w && w !== "0" ? `+${w} kg` : "Bodyweight") : `${w || "–"} kg`);
+
+/** One set, closed: number, what was (or will be) lifted, a check. 56px tall. */
+function SetRow({
+  set: s,
+  label,
+  prev,
+  target,
+  next,
+  isBodyweight,
+  onOpen,
+  onToggle,
+  onMenu,
+}: {
+  set: LSet;
+  label: string;
+  prev: PrevSet | null;
+  target: string | null;
+  next: boolean;
+  isBodyweight: boolean;
+  onOpen: () => void;
+  onToggle: () => void;
+  onMenu: () => void;
+}) {
+  const filled = s.weight !== "" || s.reps !== "";
+  const hasPrev = prev && (prev.weightKg != null || prev.reps != null);
+  return (
+    <div>
+      <div
+        className={cn(
+          "grid min-h-14 grid-cols-[44px_1fr_48px] items-center rounded-[12px] transition-colors duration-300",
+          s.done ? "bg-accent-soft" : next && "bg-sunken",
+        )}
+      >
+        <button
+          type="button"
+          onClick={onMenu}
+          aria-label={`Set ${label} options`}
+          className={cn(
+            "tap tnum grid h-14 place-items-center rounded-[12px] text-[15px] font-medium",
+            s.warmup ? "text-warn" : s.done ? "text-accent" : "text-ink-3",
+          )}
+        >
+          {label}
+        </button>
+        <button type="button" onClick={onOpen} className="tap flex h-14 min-w-0 items-center gap-2 px-1 text-left" aria-label={`Edit set ${label}`}>
+          {filled ? (
+            <span className={cn("tnum truncate text-[17px] font-medium", s.done ? "text-ink" : "text-ink-2")}>
+              {kgText(s.weight, isBodyweight)} <span className="text-ink-3">×</span> {s.reps || "–"}
+            </span>
+          ) : hasPrev ? (
+            <span className="tnum truncate text-[15px] text-ink-3">
+              {fmtSet(prev)} <span className="text-[13px]">last time</span>
+            </span>
+          ) : (
+            <span className="truncate text-[15px] text-ink-3">{target ?? "Add weight and reps"}</span>
+          )}
+        </button>
+        <div className="grid place-items-center">
+          <CheckCircle checked={s.done} onToggle={onToggle} color="var(--accent)" size={32} label={s.done ? "Undo set" : "Complete set"} />
+        </div>
+      </div>
+      {s.note && (
+        <button
+          type="button"
+          onClick={onMenu}
+          className="flex w-full items-start gap-1.5 px-3 pt-0.5 pb-1.5 text-left text-[12.5px] leading-snug text-ink-3"
+        >
+          <MessageSquare className="mt-0.5 size-3 shrink-0" />
+          {s.note}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** The set being logged: big steppers for weight and reps, one button. */
+function OpenSet({
+  set: s,
+  label,
+  prev,
+  target,
+  isBodyweight,
   onChange,
   onBlur,
-  label,
+  onLog,
+  onClose,
+  onMenu,
 }: {
-  id: string;
+  set: LSet;
+  label: string;
+  prev: PrevSet | null;
+  target: string | null;
+  isBodyweight: boolean;
+  onChange: (patch: Partial<LSet>) => void;
+  onBlur: () => void;
+  onLog: () => void;
+  onClose: () => void;
+  onMenu: () => void;
+}) {
+  const reduce = useReducedMotion();
+  const hasPrev = prev && (prev.weightKg != null || prev.reps != null);
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, scale: 0.985 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={springs.snappy}
+      className="rounded-[14px] border border-line-strong bg-surface-2 p-3"
+    >
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onMenu}
+          className={cn("tap -my-2 -ml-1 inline-flex h-11 items-center rounded-[10px] px-1 text-[15px] font-semibold", s.warmup ? "text-warn" : "text-ink")}
+          aria-label={`${label} options`}
+        >
+          {label}
+        </button>
+        {target && <span className="tnum text-[13px] text-ink-3">{target}</span>}
+        <span className="flex-1" />
+        {hasPrev && !s.done && (
+          <button
+            type="button"
+            onClick={() =>
+              onChange({
+                weight: prev.weightKg != null ? String(prev.weightKg) : s.weight,
+                reps: prev.reps != null ? String(prev.reps) : s.reps,
+              })
+            }
+            className="tap tnum -my-2 -mr-1 inline-flex h-11 items-center gap-1 rounded-[10px] px-1.5 text-[13px] text-ink-3 hover:text-ink"
+            aria-label={`Use last time: ${fmtSet(prev)}`}
+          >
+            Last <span className="font-medium text-ink-2">{fmtSet(prev)}</span>
+          </button>
+        )}
+      </div>
+      <div className="mt-2.5 grid grid-cols-2 gap-2">
+        <SetStepper
+          label={isBodyweight ? "Added kg" : "kg"}
+          value={s.weight}
+          placeholder={prev?.weightKg != null ? String(prev.weightKg) : "0"}
+          step={2.5}
+          decimal
+          onChange={(v) => onChange({ weight: v })}
+          onBlur={onBlur}
+        />
+        <SetStepper
+          label="Reps"
+          value={s.reps}
+          placeholder={prev?.reps != null ? String(prev.reps) : "0"}
+          step={1}
+          onChange={(v) => onChange({ reps: v })}
+          onBlur={onBlur}
+        />
+      </div>
+      {s.done ? (
+        <div className="mt-3 flex gap-2">
+          <Button variant="ghost" size="md" className="flex-1" onClick={onLog}>
+            Mark not done
+          </Button>
+          <Button variant="outline" size="md" className="flex-1" onClick={onClose}>
+            Done
+          </Button>
+        </div>
+      ) : (
+        <Button variant="accent" size="lg" className="mt-3 h-[52px] text-[16px]" onClick={onLog}>
+          <Check className="size-[18px]" strokeWidth={2.6} /> Log set
+        </Button>
+      )}
+    </motion.div>
+  );
+}
+
+/** Minus, the number (typeable), plus. Every target is at least 44px. */
+function SetStepper({
+  label,
+  value,
+  placeholder,
+  step,
+  decimal,
+  onChange,
+  onBlur,
+}: {
+  label: string;
   value: string;
   placeholder: string;
+  step: number;
   decimal?: boolean;
-  done: boolean;
   onChange: (v: string) => void;
   onBlur: () => void;
-  label: string;
 }) {
+  const bump = (dir: 1 | -1) => {
+    const base = parseNum(value) ?? parseNum(placeholder) ?? 0;
+    const next = Math.max(0, Math.round((base + dir * step) * 100) / 100);
+    onChange(String(next));
+  };
+  const btn = "tap grid h-12 w-11 shrink-0 place-items-center rounded-[10px] border border-line bg-surface text-ink";
   return (
-    <input
-      id={id}
-      type="text"
-      inputMode={decimal ? "decimal" : "numeric"}
-      pattern={decimal ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
-      enterKeyHint="done"
-      autoComplete="off"
-      aria-label={label}
-      value={value}
-      placeholder={placeholder}
-      onFocus={(e) => e.currentTarget.select()}
-      onChange={(e) => {
-        const v = e.target.value.replace(decimal ? /[^0-9.,]/g : /[^0-9]/g, "").slice(0, 6);
-        onChange(v);
-      }}
-      onBlur={onBlur}
-      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className={cn(
-        "tnum h-12 w-full min-w-0 rounded-xl text-center text-[20px] font-semibold text-ink outline-none transition-colors placeholder:font-medium placeholder:text-ink-3/60",
-        done ? "bg-transparent" : "bg-sunken focus:bg-surface focus:ring-[1.5px] focus:ring-inset focus:ring-[color-mix(in_oklab,var(--tint)_70%,transparent)]",
-      )}
-    />
+    <div className="min-w-0">
+      <div className="mb-1 px-1 text-[12.5px] text-ink-3">{label}</div>
+      <div className="flex items-center gap-1 rounded-[12px] bg-sunken p-1">
+        <button type="button" onClick={() => bump(-1)} className={btn} aria-label={`Less ${label}`}>
+          <Minus className="size-4" strokeWidth={2.4} />
+        </button>
+        <input
+          type="text"
+          inputMode={decimal ? "decimal" : "numeric"}
+          pattern={decimal ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
+          enterKeyHint="done"
+          autoComplete="off"
+          aria-label={label}
+          value={value}
+          placeholder={placeholder}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => onChange(e.target.value.replace(decimal ? /[^0-9.,]/g : /[^0-9]/g, "").slice(0, 6))}
+          onBlur={onBlur}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          className="tnum h-12 w-full min-w-0 bg-transparent text-center text-[22px] font-semibold text-ink outline-none placeholder:font-medium placeholder:text-ink-3"
+        />
+        <button type="button" onClick={() => bump(1)} className={btn} aria-label={`More ${label}`}>
+          <Plus className="size-4" strokeWidth={2.4} />
+        </button>
+      </div>
+    </div>
   );
 }

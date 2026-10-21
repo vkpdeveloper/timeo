@@ -61,7 +61,7 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
         <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
           <motion.div className="absolute inset-0" style={{ opacity: backdrop }}>
             <motion.div
-              className="absolute inset-0 bg-black/35 backdrop-blur-[2px] dark:bg-black/60"
+              className="absolute inset-0 bg-black/30 dark:bg-black/60"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -75,7 +75,7 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
             aria-labelledby={title ? titleId : undefined}
             className={cn(
               "relative flex w-full flex-col overflow-hidden bg-surface shadow-float",
-              "rounded-t-[26px] border-t border-line md:max-w-lg md:rounded-[26px] md:border",
+              "rounded-t-[20px] border-t border-line md:max-w-lg md:rounded-[20px] md:border",
               tall ? "h-[92dvh] md:h-[80dvh]" : "max-h-[92dvh] md:max-h-[85dvh]",
               className,
             )}
@@ -100,7 +100,7 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
                 <div className="flex items-start justify-between gap-4 pb-3 md:pt-3">
                   <div className="min-w-0">
                     {title && (
-                      <h2 id={titleId} className="text-[18px] leading-tight font-semibold tracking-tight text-ink">
+                      <h2 id={titleId} className="text-[18px] leading-tight font-semibold tracking-[-0.015em] text-ink">
                         {title}
                       </h2>
                     )}
@@ -110,7 +110,7 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
                     type="button"
                     onClick={onClose}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className="tap relative -mt-0.5 -mr-1 grid size-8 shrink-0 place-items-center rounded-full bg-sunken text-ink-2 before:absolute before:-inset-1.5 before:content-['']"
+                    className="tap relative -mt-0.5 -mr-1 grid size-8 shrink-0 place-items-center rounded-full bg-sunken text-ink-2 before:absolute before:-inset-1.5 before:content-[''] hover:text-ink"
                     aria-label="Close"
                   >
                     <X className="size-4" strokeWidth={2.2} />

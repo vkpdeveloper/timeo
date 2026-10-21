@@ -5,11 +5,10 @@
 /* ─────────────────────────── Tokens ─────────────────────────── */
 
 /*
- * Every colour is a light-dark() pair, resolved by `color-scheme`:
- *   data-mode="light" | "dark" on <html> forces a mode; "system" (or no
- *   attribute) follows the OS. data-theme="<id>" picks a colour theme
- *   (src/lib/themes.ts). The boot script in app/layout.tsx sets both before
- *   first paint. Custom themes set their variables inline on <html>.
+ * Timeo 3, "Pine". Two modes only: data-mode="light" | "dark" on <html>,
+ * set before first paint by the boot script (src/lib/themes.ts). Every colour
+ * is a light-dark() pair resolved by `color-scheme`. Without the attribute
+ * (no JS) the OS decides. Flat surfaces, no gradients, no italics.
  */
 
 /* `dark:` follows the chosen mode, not only the OS. */
@@ -27,52 +26,49 @@
 :root {
   color-scheme: light dark;
 
-  /* Core (Paper). Themes override these. */
-  --bg: light-dark(#f5f4f0, #0b0b0c);
-  --surface: light-dark(#ffffff, #151517);
-  --ink: light-dark(#18171a, #f3f2ee);
-  --ink-2: light-dark(#5b5852, #aaa69f);
-  --accent: light-dark(#e5603b, #ff7a52);
-  --accent-ink: light-dark(#ffffff, #1a0d08);
+  --bg: light-dark(#f6f6f3, #0c0e0d);
+  --surface: light-dark(#ffffff, #151817);
+  --surface-2: light-dark(#fbfbf9, #1a1d1c);
+  --sunken: light-dark(#eeeeea, #101211);
+  --ink: light-dark(#121513, #ecefed);
+  --ink-2: light-dark(#565c58, #a4aba7);
+  --ink-3: light-dark(#8d938f, #6c736f);
+  --line: light-dark(rgb(18 21 19 / 0.08), rgb(255 255 255 / 0.07));
+  --line-strong: light-dark(rgb(18 21 19 / 0.14), rgb(255 255 255 / 0.12));
 
-  /* Derived. Themes may override any of them. */
-  --surface-2: color-mix(in oklab, var(--surface) 55%, var(--bg));
-  --sunken: light-dark(
-    color-mix(in oklab, var(--bg) 95%, var(--ink)),
-    color-mix(in oklab, var(--bg) 60%, var(--surface))
-  );
-  --ink-3: color-mix(in oklab, var(--ink-2) 62%, var(--bg));
-  --line: color-mix(in srgb, var(--ink) 8%, transparent);
-  --line-strong: color-mix(in srgb, var(--ink) 14%, transparent);
-  --glass: light-dark(
-    color-mix(in srgb, var(--bg) 78%, transparent),
-    color-mix(in srgb, var(--bg) 72%, transparent)
-  );
+  --accent: light-dark(#1f6b50, #5cc495);
+  --accent-ink: light-dark(#ffffff, #07140e);
+  --accent-soft: light-dark(#e3eee9, #17271f);
 
-  /* Shared by every theme */
-  --ok: light-dark(#3f9a6c, #5cc28f);
-  --warn: light-dark(#d4952a, #ebb04b);
-  --bad: light-dark(#d4533f, #f0715d);
-  --shadow-sm:
-    0 1px 2px light-dark(rgb(24 22 18 / 0.035), transparent), 0 0 0 0.5px light-dark(rgb(24 22 18 / 0.02), transparent),
-    inset 0 1px 0 light-dark(transparent, rgb(255 255 255 / 0.025));
-  --shadow-md:
-    0 6px 18px -6px light-dark(rgb(24 22 18 / 0.12), rgb(0 0 0 / 0.5)),
-    0 1px 2px light-dark(rgb(24 22 18 / 0.05), transparent);
-  --shadow-lg:
-    0 24px 60px -12px light-dark(rgb(24 22 18 / 0.22), rgb(0 0 0 / 0.7)),
-    0 8px 20px -8px light-dark(rgb(24 22 18 / 0.1), transparent),
-    inset 0 1px 0 light-dark(transparent, rgb(255 255 255 / 0.04));
+  /* Status. There is no red: "bad" is a stronger amber. */
+  --ok: var(--accent);
+  --warn: light-dark(#9a6a12, #d9a548);
+  --bad: light-dark(#7a5410, #e8b85c);
 
-  --c-coral: light-dark(#e5603b, #ff7a52);
-  --c-amber: light-dark(#d4952a, #ebb04b);
-  --c-sage: light-dark(#4f9a6c, #6cc08c);
-  --c-teal: light-dark(#2a9896, #4cc2bf);
-  --c-sky: light-dark(#3a87d0, #63a8ec);
-  --c-indigo: light-dark(#5a60d2, #8288f0);
-  --c-violet: light-dark(#8a5ad0, #ad86ee);
-  --c-rose: light-dark(#d1557b, #f07c9f);
-  --c-slate: light-dark(#6b6f78, #9a9ea8);
+  /* Kept for old code; it is a solid colour now (no blur wash). */
+  --glass: var(--bg);
+
+  /* Only floating layers (sheets, menus, the bottom bar) get a shadow. */
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 4px 16px -6px light-dark(rgb(18 21 19 / 0.1), rgb(0 0 0 / 0.5)), 0 1px 2px light-dark(rgb(18 21 19 / 0.04), rgb(0 0 0 / 0.3));
+  --shadow-lg: 0 16px 40px -12px light-dark(rgb(18 21 19 / 0.16), rgb(0 0 0 / 0.6)), 0 2px 6px light-dark(rgb(18 21 19 / 0.05), rgb(0 0 0 / 0.3));
+
+  /* Goal colours (src/lib/colors.ts) */
+  --c-pine: light-dark(#1f6b50, #5cc495);
+  --c-sage: light-dark(#5e8c6a, #86b593);
+  --c-teal: light-dark(#227c7a, #4db3af);
+  --c-sky: light-dark(#2f6e9e, #6ba6d6);
+  --c-sand: light-dark(#9a7b45, #c9a86a);
+  --c-olive: light-dark(#6e7a33, #a3b061);
+  --c-stone: light-dark(#6e7571, #9aa19c);
+
+  /* Legacy keys stored in the database resolve to the new colours */
+  --c-coral: var(--c-sand);
+  --c-amber: var(--c-sand);
+  --c-rose: var(--c-stone);
+  --c-violet: var(--c-olive);
+  --c-indigo: var(--c-sky);
+  --c-slate: var(--c-stone);
 }
 
 :root[data-mode="light"] {
@@ -82,138 +78,30 @@
   color-scheme: dark;
 }
 
-/* Themes, generated from src/lib/themes.ts. Keep the two in sync. */
-:root:not([data-theme]),
-:root[data-theme="paper"] {
-  --surface-2: light-dark(#fafaf7, #1b1b1e);
-  --sunken: light-dark(#eceae4, #101012);
-  --ink-3: light-dark(#9a968e, #6c6963);
-  --line: light-dark(rgb(24 22 18 / 0.07), rgb(255 255 255 / 0.065));
-  --line-strong: light-dark(rgb(24 22 18 / 0.13), rgb(255 255 255 / 0.12));
-}
-:root[data-theme="graphite"] {
-  --bg: light-dark(#f2f3f5, #0e0f12);
-  --surface: light-dark(#ffffff, #17191d);
-  --ink: light-dark(#16181d, #eceef2);
-  --ink-2: light-dark(#535a66, #a2a8b4);
-  --accent: light-dark(#4f56d6, #8d95ff);
-  --accent-ink: light-dark(#ffffff, #0f1133);
-}
-:root[data-theme="mono"] {
-  --bg: light-dark(#f3f3f3, #0a0a0a);
-  --surface: light-dark(#ffffff, #161616);
-  --ink: light-dark(#141414, #f0f0f0);
-  --ink-2: light-dark(#575757, #a3a3a3);
-  --accent: light-dark(#141414, #f0f0f0);
-  --accent-ink: light-dark(#ffffff, #111111);
-}
-:root[data-theme="nord"] {
-  --bg: light-dark(#e5e9f0, #2e3440);
-  --surface: light-dark(#f4f6f9, #3b4252);
-  --ink: light-dark(#2e3440, #eceff4);
-  --ink-2: light-dark(#4c566a, #b4bccb);
-  --accent: light-dark(#44658f, #96d0e0);
-  --accent-ink: light-dark(#ffffff, #242933);
-  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #434c5e);
-  --sunken: light-dark(#d8dee9, #292e39);
-}
-:root[data-theme="solarized"] {
-  --bg: light-dark(#eee8d5, #002b36);
-  --surface: light-dark(#fdf6e3, #073642);
-  --ink: light-dark(#073642, #eee8d5);
-  --ink-2: light-dark(#4f646b, #93a1a1);
-  --accent: light-dark(#1b6499, #6ab8f0);
-  --accent-ink: light-dark(#fdf6e3, #002b36);
-  --sunken: light-dark(color-mix(in oklab, var(--bg) 95%, var(--ink)), #00252e);
-}
-:root[data-theme="catppuccin"] {
-  --bg: light-dark(#e6e9ef, #181825);
-  --surface: light-dark(#eff1f5, #1e1e2e);
-  --ink: light-dark(#4c4f69, #cdd6f4);
-  --ink-2: light-dark(#5c5f77, #a6adc8);
-  --accent: light-dark(#7a2bdc, #cba6f7);
-  --accent-ink: light-dark(#ffffff, #1e1e2e);
-  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #262637);
-  --sunken: light-dark(#dce0e8, #11111b);
-}
-:root[data-theme="gruvbox"] {
-  --bg: light-dark(#f2e5bc, #1d2021);
-  --surface: light-dark(#fbf1c7, #282828);
-  --ink: light-dark(#3c3836, #ebdbb2);
-  --ink-2: light-dark(#5f5650, #a89984);
-  --accent: light-dark(#a03502, #fe8019);
-  --accent-ink: light-dark(#fbf1c7, #1d2021);
-  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #32302f);
-  --sunken: light-dark(#ebdbb2, color-mix(in oklab, var(--bg) 60%, var(--surface)));
-}
-:root[data-theme="tokyo-night"] {
-  --bg: light-dark(#e1e2e7, #1a1b26);
-  --surface: light-dark(#f2f2f5, #24283b);
-  --ink: light-dark(#343b58, #c0caf5);
-  --ink-2: light-dark(#4f5a85, #a9b1d6);
-  --accent: light-dark(#2a56b8, #7aa2f7);
-  --accent-ink: light-dark(#ffffff, #1a1b26);
-  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #292e42);
-  --sunken: light-dark(#d6d8df, #16161e);
-}
-:root[data-theme="rose-pine"] {
-  --bg: light-dark(#faf4ed, #191724);
-  --surface: light-dark(#fffaf3, #1f1d2e);
-  --ink: light-dark(#464261, #e0def4);
-  --ink-2: light-dark(#625e7c, #a9a5c2);
-  --accent: light-dark(#9f4d65, #ebbcba);
-  --accent-ink: light-dark(#fffaf3, #191724);
-  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #26233a);
-  --sunken: light-dark(#f2e9e1, color-mix(in oklab, var(--bg) 60%, var(--surface)));
-}
-:root[data-theme="dracula"] {
-  --bg: light-dark(#f6f5ef, #21222c);
-  --surface: light-dark(#fffdf7, #282a36);
-  --ink: light-dark(#1f1f2b, #f8f8f2);
-  --ink-2: light-dark(#5b5c70, #b6b9cf);
-  --accent: light-dark(#6c4fd1, #bd93f9);
-  --accent-ink: light-dark(#ffffff, #21222c);
-  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #303341);
-}
-:root[data-theme="github"] {
-  --bg: light-dark(#f6f8fa, #0d1117);
-  --surface: light-dark(#ffffff, #151b23);
-  --ink: light-dark(#1f2328, #f0f6fc);
-  --ink-2: light-dark(#59636e, #9198a1);
-  --accent: light-dark(#085ec4, #4493f8);
-  --accent-ink: light-dark(#ffffff, #0d1117);
-  --sunken: light-dark(#eef1f4, color-mix(in oklab, var(--bg) 60%, var(--surface)));
-}
-:root[data-theme="one"] {
-  --bg: light-dark(#f0f0f1, #21252b);
-  --surface: light-dark(#fafafa, #282c34);
-  --ink: light-dark(#383a42, #dcdfe4);
-  --ink-2: light-dark(#5c5f6b, #abb2bf);
-  --accent: light-dark(#2f5ec9, #61afef);
-  --accent-ink: light-dark(#ffffff, #1b1f24);
-  --surface-2: light-dark(color-mix(in oklab, var(--surface) 55%, var(--bg)), #2f343e);
-  --sunken: light-dark(#e5e5e6, color-mix(in oklab, var(--bg) 60%, var(--surface)));
-}
-
 :root {
-  --c-coral-soft: color-mix(in oklab, var(--c-coral) 13%, var(--surface));
-  --c-amber-soft: color-mix(in oklab, var(--c-amber) 15%, var(--surface));
+  /* Solid soft fills (never gradients) */
+  --c-pine-soft: color-mix(in oklab, var(--c-pine) 14%, var(--surface));
   --c-sage-soft: color-mix(in oklab, var(--c-sage) 14%, var(--surface));
   --c-teal-soft: color-mix(in oklab, var(--c-teal) 14%, var(--surface));
-  --c-sky-soft: color-mix(in oklab, var(--c-sky) 13%, var(--surface));
-  --c-indigo-soft: color-mix(in oklab, var(--c-indigo) 13%, var(--surface));
-  --c-violet-soft: color-mix(in oklab, var(--c-violet) 13%, var(--surface));
-  --c-rose-soft: color-mix(in oklab, var(--c-rose) 13%, var(--surface));
-  --c-slate-soft: color-mix(in oklab, var(--c-slate) 12%, var(--surface));
-  --accent-soft: color-mix(in oklab, var(--accent) 13%, var(--surface));
-  --ok-soft: color-mix(in oklab, var(--ok) 14%, var(--surface));
-  --warn-soft: color-mix(in oklab, var(--warn) 16%, var(--surface));
-  --bad-soft: color-mix(in oklab, var(--bad) 14%, var(--surface));
+  --c-sky-soft: color-mix(in oklab, var(--c-sky) 14%, var(--surface));
+  --c-sand-soft: color-mix(in oklab, var(--c-sand) 16%, var(--surface));
+  --c-olive-soft: color-mix(in oklab, var(--c-olive) 15%, var(--surface));
+  --c-stone-soft: color-mix(in oklab, var(--c-stone) 13%, var(--surface));
+  --c-coral-soft: var(--c-sand-soft);
+  --c-amber-soft: var(--c-sand-soft);
+  --c-rose-soft: var(--c-stone-soft);
+  --c-violet-soft: var(--c-olive-soft);
+  --c-indigo-soft: var(--c-sky-soft);
+  --c-slate-soft: var(--c-stone-soft);
+
+  --ok-soft: var(--accent-soft);
+  --warn-soft: color-mix(in oklab, var(--warn) 14%, var(--surface));
+  --bad-soft: color-mix(in oklab, var(--bad) 18%, var(--surface));
 
   --tint: var(--accent);
   --tint-ink: var(--accent-ink);
-  --focus: color-mix(in oklab, var(--accent) 70%, transparent);
   --tint-soft: var(--accent-soft);
+  --focus: color-mix(in oklab, var(--accent) 60%, transparent);
 
   --tabbar-h: 58px;
   --page-x: 16px;
@@ -244,11 +132,13 @@
   --color-tint-soft: var(--tint-soft);
   --color-tint-ink: var(--tint-ink);
 
-  --font-sans: var(--font-mona-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* No serif any more: display text is Geist semibold */
+  --font-display: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 20px;
+  --radius-card: 16px;
+  --radius-control: 12px;
   --shadow-soft: var(--shadow-sm);
   --shadow-lift: var(--shadow-md);
   --shadow-float: var(--shadow-lg);
@@ -256,8 +146,9 @@
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 
-  --animate-rise: rise 320ms var(--ease-out-soft) both;
-  --animate-pop: pop 260ms var(--ease-spring) both;
+  --animate-rise: rise 260ms var(--ease-out-soft) both;
+  --animate-pop: pop 220ms var(--ease-spring) both;
+  --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
 
   /* shadcn / AI Elements tokens mapped onto the Timeo palette */
   --color-background: var(--bg);
@@ -279,7 +170,7 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-xl: 16px;
 }
 
 /* ─────────────────────────── Base ─────────────────────────── */
@@ -291,7 +182,19 @@
     border-color: var(--line);
   }
 
-  /* Thin, theme-coloured scrollbars. Popovers, sheets and chip rows hide theirs with .no-scrollbar. */
+  /* No italics anywhere, including <em>, <i>, <cite> and markdown output. */
+  em,
+  i,
+  cite,
+  var,
+  dfn,
+  address {
+    font-style: normal;
+  }
+  em {
+    font-weight: 600;
+  }
+
   @supports (scrollbar-color: auto) {
     * {
       scrollbar-width: thin;
@@ -352,13 +255,9 @@ button:disabled {
   cursor: default;
 }
 
-/*
- * Focus is always drawn INSIDE an element's own box (inset outline / inset
- * ring), so scroll areas and overflow-hidden cards can never clip it.
- * Text fields show focus on their border instead of an outline.
- */
+/* Focus is drawn inside an element's own box, so scroll areas never clip it. */
 :focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 :where(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, select, [contenteditable]):focus-visible {
@@ -368,60 +267,61 @@ button:disabled {
 /* ─────────────────────────── Primitives ─────────────────────────── */
 
 @layer components {
+  /* Flat: surface, hairline, radius 16. No shadow. */
   .card {
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-sm);
   }
 
+  /* Big titles and hero numbers: Geist semibold, tight. */
   .display {
-    font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    line-height: 1.02;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
   }
 
+  /* Small quiet label above a title or a group */
   .eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0;
     color: var(--ink-3);
   }
 
-  /* Mona Sans' tabular figures swap in a slab-footed 1, so numbers keep their
-     proportional shapes; only counters that tick go tabular, so they don't jitter */
-  .tnum {
-    font-variant-numeric: lining-nums proportional-nums;
-  }
-
+  .tnum,
   .tnum-live,
   .display.tnum {
     font-variant-numeric: lining-nums tabular-nums;
   }
 
+  /* Clocks, timers and time-of-day labels ("38:12", "14:00") */
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
   .tap {
-    transition: transform 160ms var(--ease-spring), opacity 160ms ease, background-color 160ms ease;
+    transition: transform 150ms var(--ease-spring), opacity 150ms ease, background-color 150ms ease;
     -webkit-user-select: none;
     user-select: none;
   }
   .tap:active:not(:disabled, [aria-disabled="true"]) {
     transform: scale(0.97);
   }
-  /* Rows and wide surfaces: shrink less, darken a touch */
   .tap-row {
-    transition: transform 160ms var(--ease-spring), background-color 160ms ease;
+    transition: background-color 150ms ease;
     -webkit-user-select: none;
     user-select: none;
   }
   .tap-row:active:not(:disabled, [aria-disabled="true"]) {
-    transform: scale(0.99);
     background-color: var(--sunken);
   }
   @media (hover: hover) {
     .tap-row:hover {
-      background-color: color-mix(in oklab, var(--sunken) 55%, transparent);
+      background-color: var(--surface-2);
     }
   }
 
@@ -432,21 +332,20 @@ button:disabled {
 
   .field {
     width: 100%;
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    padding: 11px 14px;
     color: var(--ink);
     outline: none;
-    transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
   }
   .field::placeholder {
     color: var(--ink-3);
   }
   .field:focus {
-    border-color: var(--focus);
-    box-shadow: inset 0 0 0 1px var(--focus);
-    background: var(--surface);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
   }
 
   /* A container that holds a bare input (search with icon, command bar) */
@@ -454,8 +353,8 @@ button:disabled {
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
   .focus-shell:focus-within {
-    border-color: var(--focus);
-    box-shadow: inset 0 0 0 1px var(--focus);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
   }
   textarea.field {
     resize: none;
@@ -463,7 +362,7 @@ button:disabled {
   }
   select.field {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%239a968e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238d938f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 14px center;
     padding-right: 36px;
@@ -476,10 +375,9 @@ button:disabled {
     display: none;
   }
 
+  /* Was a blurred wash; now a solid bar. */
   .glass {
-    background: var(--glass);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    backdrop-filter: saturate(180%) blur(20px);
+    background: var(--bg);
   }
 
   .pb-tabbar {
@@ -495,38 +393,32 @@ button:disabled {
     padding-top: var(--safe-top);
   }
 
+  /* Loading placeholder: a solid block that pulses its opacity */
   .skeleton {
-    background: linear-gradient(
-      90deg,
-      var(--sunken) 0%,
-      color-mix(in oklab, var(--sunken) 55%, var(--surface)) 50%,
-      var(--sunken) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.4s ease-in-out infinite;
-    border-radius: 14px;
+    background: var(--sunken);
+    border-radius: var(--radius-control);
+    animation: pulse-soft 1.6s ease-in-out infinite;
   }
 
   .fade-up {
-    animation: fade-up 420ms var(--ease-spring) both;
+    animation: rise 260ms var(--ease-out-soft) both;
   }
 
-  /* Page enter (template.tsx). Fills backwards only, so no transform lingers to
-     trap fixed children once it ends. */
+  /* Page enter (template.tsx): fade + 4px. Fills backwards only, so no
+     transform lingers to trap fixed children. */
   .page-enter {
-    animation: rise 280ms var(--ease-out-soft) backwards;
+    animation: rise 240ms var(--ease-out-soft) backwards;
   }
 
   .rise {
-    animation: rise 320ms var(--ease-out-soft) backwards;
+    animation: rise 260ms var(--ease-out-soft) backwards;
     animation-delay: var(--delay, 0ms);
   }
 
-  /* Direct children rise one after another. --i is set per child (nth-child up
-     to 12, or explicitly by StaggerItem); --stagger is the step. */
+  /* Direct children rise one after another */
   .stagger > * {
-    animation: rise 320ms var(--ease-out-soft) backwards;
-    animation-delay: calc(var(--stagger-base, 0ms) + var(--i, 0) * var(--stagger, 35ms));
+    animation: rise 260ms var(--ease-out-soft) backwards;
+    animation-delay: calc(var(--stagger-base, 0ms) + var(--i, 0) * var(--stagger, 30ms));
   }
   .stagger > :nth-child(2) { --i: 1; }
   .stagger > :nth-child(3) { --i: 2; }
@@ -540,51 +432,59 @@ button:disabled {
   .stagger > :nth-child(11) { --i: 10; }
   .stagger > :nth-child(n + 12) { --i: 11; }
 
-  /* Meter segments grow in from the left */
+  /* Bars grow in from the left */
   .meter-grow {
     transform-origin: left center;
-    animation: meter-grow 700ms var(--ease-out-soft) backwards;
-    animation-delay: var(--delay, 120ms);
+    animation: meter-grow 600ms var(--ease-out-soft) backwards;
+    animation-delay: var(--delay, 80ms);
   }
-}
 
-@keyframes shimmer {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-}
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+  /* DayLine: segments are revealed left to right */
+  .reveal-x {
+    animation: reveal-x 700ms var(--ease-out-soft) backwards;
+    animation-delay: var(--delay, 60ms);
   }
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
 }
 
 @keyframes pop {
   from {
     opacity: 0;
-    transform: scale(0.92);
+    transform: scale(0.94);
   }
 }
 
 @keyframes meter-grow {
   from {
     transform: scaleX(0);
+  }
+}
+
+@keyframes reveal-x {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes pulse-soft {
+  50% {
+    opacity: 0.5;
   }
 }
 
@@ -600,6 +500,7 @@ button:disabled {
   *::after {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

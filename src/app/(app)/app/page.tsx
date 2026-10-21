@@ -1,183 +1,32 @@
 import { and, eq } from "drizzle-orm";
-import { ArrowRight, Check, ChevronRight, Dumbbell, Moon, Play } from "lucide-react";
+import { Dumbbell, Moon, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { CommandBar } from "@/components/ai/command-bar";
 import { InstallBanner } from "@/components/shell/install";
-import { ButtonLink } from "@/components/ui/button";
-import { CountUp, Stagger } from "@/components/ui/motion";
-import {
-  AskTimi,
-  Card,
-  EmptyState,
-  PageHeader,
-  ProgressRing,
-  Row,
-  Section,
-  SectionLink,
-  Skeleton,
-  Stat,
-  StatStrip,
-  StatusPill,
-  TimeMeter,
-} from "@/components/ui/primitives";
+import { AvatarLink, CardList, DayLine, Row, Skeleton, type DaySegment } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import type { Block } from "@/db/schema";
-import { GUIDE } from "@/lib/ai/guide";
 import { requireUser } from "@/lib/auth";
-import { cn } from "@/lib/cn";
-import { getDailyRead, getGoalHealth } from "@/lib/coach";
-import { colorVar, tint } from "@/lib/colors";
-import { formatDuration, formatMin, formatMonthDay, formatWeekdayShort, nowMinIn } from "@/lib/dates";
+import { getGoalHealth } from "@/lib/coach";
+import { colorVar } from "@/lib/colors";
+import { addDays, formatDuration, formatWeekdayShort, nowMinIn, toUTCDate } from "@/lib/dates";
 import { getTodayTraining, type TodayTraining } from "@/lib/fitness";
 import { getActiveSeason, getDayBlocks, getGoalOptions, getTodayTasks, seasonProgress } from "@/lib/queries";
+import { NowHero, type HeroBlock, type HeroView } from "./_now/hero";
+import { UpNext } from "./_now/up-next";
 import { CoachAction } from "./goals/[id]/goal-client";
-import { dayBounds, dayCapacity, todayHeadline } from "./today-headline";
-import { TodayTasks } from "./today-tasks";
+import { dayBounds, dayCapacity, heroChangesAt, pickHero } from "./today-headline";
 
-export default function TodayPage() {
+export default function NowPage() {
   return (
-    <Suspense fallback={<TodaySkeleton />}>
-      <Today />
+    <Suspense fallback={<NowSkeleton />}>
+      <Now />
     </Suspense>
   );
 }
 
-/** A day with this much unblocked time left gets a "what fits" nudge from Timi. */
-const LIGHT_DAY_MIN = 3 * 60;
-
-async function Today() {
-  const user = await requireUser();
-  const nowMin = nowMinIn(user.timezone);
-  const [season, goals, blocks, tasks, read, health, training, sessions] = await Promise.all([
-    getActiveSeason(user.id),
-    getGoalOptions(user.id),
-    getDayBlocks(user.id, user.today),
-    getTodayTasks(user.id, user.today),
-    getDailyRead(user),
-    getGoalHealth(user.id, user.today),
-    getTodayTraining(user.id, user.today),
-    db
-      .select({ focusedMin: t.focusSessions.focusedMin })
-      .from(t.focusSessions)
-      .where(and(eq(t.focusSessions.userId, user.id), eq(t.focusSessions.date, user.today))),
-  ]);
-  const drifting = health.find((h) => h.autoStatus !== "on_track" && h.recommendation);
-  const progress = season ? seasonProgress(season, user.today) : null;
-  const goalById: GoalMap = new Map(goals.map((g) => [g.id, g]));
-  const headline = todayHeadline({ nowMin, blocks, tasks, training });
-
-  const live = blocks.filter((b) => !b.skippedAt);
-  const bounds = dayBounds(user.dayStartMin, user.dayEndMin, live);
-  const cap = dayCapacity({ blocks, nowMin, bounds });
-  const blocksLeft = live.filter((b) => !b.doneAt && b.endMin > nowMin).length;
-  const tasksLeft = tasks.filter((x) => !x.doneAt).length;
-  const focusMin = sessions.reduce((s, f) => s + f.focusedMin, 0);
-  const dayOver = nowMin >= bounds.end;
-  const light = !dayOver && (live.length === 0 || cap.freeMin >= LIGHT_DAY_MIN);
-
-  return (
-    <Stagger step={45}>
-      <PageHeader
-        eyebrow={`${formatWeekdayShort(user.today)}, ${formatMonthDay(user.today)}${progress ? ` · Day ${progress.day} of ${progress.total}` : ""}`}
-        title={headline.title}
-        subtitle={<span className="text-ink-3">{headline.line}</span>}
-        className="pb-3.5!"
-      />
-
-      <div>
-        <StatStrip className="[&>*]:px-2! [&>*:first-child]:pl-1!">
-          <Stat
-            value={<CountUp value={cap.freeMin} format="duration" />}
-            label={dayOver ? "day's done" : `free till ${formatMin(bounds.end, true)}`}
-          />
-          <Stat value={<CountUp value={blocksLeft} />} label={blocksLeft === 1 ? "block left" : "blocks left"} />
-          <Stat value={<CountUp value={tasksLeft} />} label={tasksLeft === 1 ? "task open" : "tasks open"} />
-          <Stat value={<CountUp value={focusMin} format="duration" />} label="focused" />
-        </StatStrip>
-        <TimeMeter className="mt-3.5" doneMin={cap.doneMin} plannedMin={cap.plannedMin} freeMin={cap.freeMin} />
-      </div>
-
-      <NowNext blocks={blocks} nowMin={nowMin} goalById={goalById} />
-
-      <CommandBar className="mt-3" />
-      <InstallBanner />
-
-      {season ? (
-        <Card className="mt-3 p-4">
-          <div className="flex min-h-6 items-center justify-between gap-2">
-            <span className="eyebrow">Coach</span>
-            {drifting && <StatusPill status={drifting.autoStatus} className="-my-1" />}
-          </div>
-          <p className="mt-1 text-[15.5px] leading-snug font-semibold tracking-tight text-ink">{read.headline}</p>
-          {drifting ? (
-            <p className="mt-1 flex items-center gap-1.5 text-[13px] text-ink-3">
-              <span className="size-1.5 shrink-0 rounded-full" style={{ background: colorVar(drifting.goal.color) }} />
-              <span className="truncate">
-                <span className="text-ink-2">{drifting.goal.title}</span>
-                {drifting.reasons[0] && ` · ${drifting.reasons[0].charAt(0).toLowerCase()}${drifting.reasons[0].slice(1)}`}
-              </span>
-            </p>
-          ) : (
-            read.detail && <p className="mt-0.5 text-[13px] text-ink-3">{read.detail}</p>
-          )}
-          {(drifting?.recommendation || light) && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {drifting?.recommendation && (
-                <CoachAction
-                  compact
-                  rec={drifting.recommendation}
-                  ctx={{ goals, today: user.today }}
-                  goalTitle={drifting.goal.title}
-                />
-              )}
-              {light && (
-                <AskTimi
-                  prompt={GUIDE.planToday}
-                  label={live.length ? `What fits in ${formatDuration(cap.freeMin)}?` : "Plan my day"}
-                />
-              )}
-            </div>
-          )}
-        </Card>
-      ) : (
-        <Card className="mt-3 p-4">
-          <div className="eyebrow">Start here</div>
-          <p className="mt-1 text-[15.5px] font-semibold tracking-tight text-ink">Plan your 12-week season</p>
-          <p className="mt-0.5 text-[13px] text-ink-3">Pick 2–3 goals. Give them time on your calendar.</p>
-          <div className="mt-3.5 flex flex-wrap items-center gap-2">
-            <ButtonLink href="/app/goals/setup" variant="primary" size="sm">
-              Set up season <ArrowRight className="size-4" />
-            </ButtonLink>
-            <AskTimi prompt={GUIDE.firstSeason} label="Set it up with Timi" />
-          </div>
-        </Card>
-      )}
-
-      {/* desktop: schedule on the left, tasks and body on the right */}
-      <div className="mt-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-        <Section
-          title="Schedule"
-          count={blocksLeft ? `${blocksLeft} left` : live.length ? "All done" : undefined}
-          action={<SectionLink href="/app/plan">Plan</SectionLink>}
-          card
-        >
-          <Agenda blocks={blocks} nowMin={nowMin} goalById={goalById} />
-        </Section>
-
-        <div className="mt-6 lg:mt-0">
-          <TodayTasks tasks={tasks} goals={goals} today={user.today} />
-
-          <Section title="Body" action={<SectionLink href="/app/fitness">Fitness</SectionLink>} card>
-            <BodyRows training={training} />
-          </Section>
-        </div>
-      </div>
-    </Stagger>
-  );
-}
-
-type GoalMap = Map<string, { id: string; title: string; color: string }>;
+/** The evening check-in shows from this minute of the day. */
+const EVENING_MIN = 18 * 60;
 
 const KIND_NAME: Record<Block["kind"], string> = {
   focus: "Focus",
@@ -188,245 +37,243 @@ const KIND_NAME: Record<Block["kind"], string> = {
   admin: "Admin",
 };
 
-function NowNext({ blocks, nowMin, goalById }: { blocks: Block[]; nowMin: number; goalById: GoalMap }) {
-  const open = blocks.filter((b) => !b.doneAt && !b.skippedAt);
-  const now = open.find((b) => b.startMin <= nowMin && b.endMin > nowMin);
-  const upcoming = open.filter((b) => b.startMin > nowMin);
-  const b = now ?? upcoming[0];
-  if (!b) return null;
-  const then = now ? upcoming[0] : upcoming[1];
-  const goal = b.goalId ? goalById.get(b.goalId) : undefined;
-  const pct = now ? (nowMin - b.startMin) / (b.endMin - b.startMin) : 0;
-  const action =
-    b.kind === "focus" || b.kind === "admin"
-      ? {
-          href: `/app/focus?block=${b.id}`,
-          label: now ? "Start focus" : "Start early",
-        }
-      : b.kind === "workout"
-        ? { href: "/app/fitness", label: "Start workout" }
-        : null;
+const fmtDayMonth = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** One reading of the clock: unix ms and the minute of the day in the user's timezone. */
+function readClock(timezone: string) {
+  const now = new Date();
+  return { serverNow: now.getTime(), nowMin: nowMinIn(timezone, now) };
+}
+
+async function Now() {
+  const user = await requireUser();
+  const { serverNow, nowMin } = readClock(user.timezone);
+  const tomorrow = addDays(user.today, 1);
+  const [season, goals, blocks, tasks, health, training, sessions, reflection, tomorrowBlocks] = await Promise.all([
+    getActiveSeason(user.id),
+    getGoalOptions(user.id),
+    getDayBlocks(user.id, user.today),
+    getTodayTasks(user.id, user.today),
+    getGoalHealth(user.id, user.today),
+    getTodayTraining(user.id, user.today),
+    db
+      .select({ focusedMin: t.focusSessions.focusedMin })
+      .from(t.focusSessions)
+      .where(and(eq(t.focusSessions.userId, user.id), eq(t.focusSessions.date, user.today))),
+    db
+      .select({ id: t.reflections.id })
+      .from(t.reflections)
+      .where(and(eq(t.reflections.userId, user.id), eq(t.reflections.kind, "daily"), eq(t.reflections.date, user.today)))
+      .get(),
+    getDayBlocks(user.id, tomorrow),
+  ]);
+
+  const goalById = new Map(goals.map((g) => [g.id, g]));
+  const goalOf = (b: Pick<Block, "goalId">) => (b.goalId ? goalById.get(b.goalId) : undefined);
+  const colorOf = (b: Pick<Block, "goalId">) => colorVar(goalOf(b)?.color ?? "stone");
+
+  const live = blocks.filter((b) => !b.skippedAt);
+  const bounds = dayBounds(user.dayStartMin, user.dayEndMin, live);
+  const cap = dayCapacity({ blocks, nowMin, bounds });
+  const hero = pickHero({ blocks, nowMin, bounds });
+
+  // Block minutes -> unix ms. Every real timezone offset is whole minutes, so the
+  // current UTC minute boundary is the local one too.
+  const minuteStart = serverNow - (serverNow % 60_000);
+  const at = (min: number) => minuteStart + (min - nowMin) * 60_000;
+  const heroBlock = (b: Block): HeroBlock => ({
+    id: b.id,
+    title: b.title,
+    kind: b.kind,
+    startMin: b.startMin,
+    endMin: b.endMin,
+    startAt: at(b.startMin),
+    endAt: at(b.endMin),
+    context: goalOf(b)?.title ?? KIND_NAME[b.kind],
+    color: goalOf(b) ? colorOf(b) : "var(--accent)",
+  });
+
+  const blocksDone = live.filter((b) => b.doneAt).length;
+  const blocksLeft = live.filter((b) => !b.doneAt && b.endMin > nowMin).length;
+  const tasksLeft = tasks.filter((x) => !x.doneAt).length;
+  const focusMin = sessions.reduce((s, f) => s + f.focusedMin, 0);
+  const firstTomorrow = tomorrowBlocks.find((b) => !b.skippedAt);
+
+  const view: HeroView =
+    hero.kind === "now" || hero.kind === "next"
+      ? { kind: hero.kind, block: heroBlock(hero.block) }
+      : hero.kind === "free"
+        ? {
+            kind: "free",
+            until: hero.until,
+            freeMin: hero.freeMin,
+            next: hero.next ? { title: hero.next.title, color: colorOf(hero.next) } : null,
+            empty: live.length === 0,
+          }
+        : {
+            kind: "done",
+            line: [
+              live.length ? `${blocksDone} of ${plural(live.length, "block")} done` : "",
+              focusMin ? `${formatDuration(focusMin)} focused` : "",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            tomorrow: firstTomorrow
+              ? { title: firstTomorrow.title, startMin: firstTomorrow.startMin, color: colorOf(firstTomorrow) }
+              : null,
+          };
+  const changesAt = heroChangesAt(hero, bounds);
+
+  const segments: DaySegment[] = blocks.map((b) => ({
+    start: b.startMin,
+    end: b.endMin,
+    color: colorOf(b),
+    state: b.doneAt
+      ? "done"
+      : b.skippedAt || b.endMin <= nowMin
+        ? "skipped"
+        : b.startMin <= nowMin
+          ? "now"
+          : "upcoming",
+    label: b.title,
+  }));
+  const summary = [
+    nowMin < bounds.end && cap.freeMin > 0 ? `${formatDuration(cap.freeMin)} free` : "",
+    blocksLeft
+      ? `${plural(blocksLeft, "block")} left`
+      : !live.length
+        ? ""
+        : blocksDone === live.length
+          ? "All blocks done"
+          : `${blocksDone} of ${plural(live.length, "block")} done`,
+    tasksLeft ? plural(tasksLeft, "task") : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const drifting = health.find((h) => h.autoStatus !== "on_track" && h.recommendation);
+  const progress = season ? seasonProgress(season, user.today) : null;
+  const weeks = progress ? Math.ceil(progress.total / 7) : 0;
+  const dateLine = `${formatWeekdayShort(user.today)} ${fmtDayMonth.format(toUTCDate(user.today))}${progress ? ` · Week ${progress.week} of ${weeks}` : ""}`;
 
   return (
-    <div
-      className="card mt-5 overflow-hidden"
-      style={{
-        ...tint(goal?.color ?? "slate"),
-        background: "linear-gradient(135deg, color-mix(in oklab, var(--tint) 13%, var(--surface)) 0%, var(--surface) 62%)",
-      }}
-    >
-      <div className="p-4">
-        <div className="flex items-center gap-1.5 text-[12.5px] font-semibold">
-          {now && (
-            <span className="relative flex size-2">
-              <span className="absolute inset-0 animate-ping rounded-full bg-tint opacity-60" />
-              <span className="relative size-2 rounded-full bg-tint" />
+    <div className="mx-auto max-w-[600px] pb-10">
+      <header className="flex items-center justify-between gap-3 pt-4 lg:pt-9">
+        <p className="tnum text-[14px] font-medium text-ink-2">{dateLine}</p>
+        <AvatarLink name={user.name} />
+      </header>
+
+      <NowHero view={view} serverNow={serverNow} refreshAt={changesAt == null ? null : at(changesAt)} />
+
+      <DayLine
+        className="rise mt-12"
+        dayStart={bounds.start}
+        dayEnd={bounds.end}
+        nowMin={nowMin}
+        marks={[12 * 60, 18 * 60]}
+        segments={segments}
+        summary={summary || undefined}
+      />
+
+      <UpNext
+        blocks={blocks}
+        tasks={tasks}
+        goals={goals}
+        today={user.today}
+        nowMin={nowMin}
+        heroId={hero.kind === "now" || hero.kind === "next" ? hero.block.id : undefined}
+      />
+
+      {drifting?.recommendation ? (
+        <div className="rise mt-10 border-t border-line pt-5">
+          <p className="flex min-w-0 items-center gap-2 text-[14px] text-ink-2">
+            <span className="size-2 shrink-0 rounded-full" style={{ background: colorVar(drifting.goal.color) }} />
+            <span className="min-w-0 truncate">
+              <span className="font-medium text-ink">{drifting.goal.title}</span>
+              {drifting.reasons[0]
+                ? ` · ${drifting.reasons[0].charAt(0).toLowerCase()}${drifting.reasons[0].slice(1)}`
+                : " needs time this week"}
             </span>
-          )}
-          <span className="text-tint">{now ? "Now" : "Next"}</span>
-          <span className="tnum truncate font-medium text-ink-3">
-            {now
-              ? `· until ${formatMin(b.endMin, true)} · ${formatDuration(b.endMin - nowMin)} left`
-              : `· ${formatMin(b.startMin, true)}, in ${formatDuration(b.startMin - nowMin)}`}
-          </span>
-        </div>
-        <div className="mt-1.5 flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[19px] leading-tight font-semibold tracking-tight text-ink">{b.title}</div>
-            <div className="mt-0.5 truncate text-[13px] text-ink-3">
-              {goal?.title ?? KIND_NAME[b.kind]} · {formatDuration(b.endMin - b.startMin)}
-            </div>
+          </p>
+          <div className="mt-3">
+            <CoachAction
+              compact
+              rec={drifting.recommendation}
+              ctx={{ goals, today: user.today }}
+              goalTitle={drifting.goal.title}
+            />
           </div>
-          {action && (
-            <ButtonLink href={action.href} variant="accent" size="md" className="px-4!">
-              <Play className="size-3.5 fill-current" /> {action.label}
-            </ButtonLink>
-          )}
         </div>
-        {now && (
-          <div className="mt-3.5 h-1 overflow-hidden rounded-full bg-sunken">
-            <div className="meter-grow h-full rounded-full bg-tint" style={{ width: `${pct * 100}%` }} />
-          </div>
-        )}
-      </div>
-      {then && (
-        <Link
-          href={`/app/plan?date=${then.date}`}
-          className="tap-row flex h-11 items-center gap-2.5 border-t border-line px-4 text-[13px]"
-        >
-          <span className="font-medium text-ink-3">Then</span>
-          <span
-            className="h-3.5 w-[3px] shrink-0 rounded-full"
-            style={{
-              background:
-                then.goalId && goalById.get(then.goalId) ? colorVar(goalById.get(then.goalId)!.color) : "var(--line-strong)",
-            }}
+      ) : !season ? (
+        <div className="rise mt-10 border-t border-line pt-5">
+          <p className="text-[14px] text-ink-2">
+            No season yet.{" "}
+            <Link href="/app/goals/setup" className="font-medium text-ink underline decoration-line-strong underline-offset-4">
+              Plan your 12 weeks
+            </Link>
+          </p>
+        </div>
+      ) : null}
+
+      <CardList className="rise mt-10">
+        {nowMin >= EVENING_MIN && (
+          <Row
+            href="/app/review"
+            icon={<NotebookPen />}
+            title="Evening check-in"
+            subtitle={reflection ? "Done for today" : "Two taps, three lines"}
           />
-          <span className="min-w-0 flex-1 truncate font-medium text-ink-2">{then.title}</span>
-          <span className="tnum shrink-0 text-ink-3">{formatMin(then.startMin, true)}</span>
-        </Link>
-      )}
+        )}
+        <Row
+          href="/app/fitness"
+          icon={training.scheduled.isRest && !training.log ? <Moon /> : <Dumbbell />}
+          title={bodyTitle(training)}
+          subtitle={bodyLine(training)}
+        />
+      </CardList>
+
+      <InstallBanner />
     </div>
   );
 }
 
-const PARTS = [
-  { label: "Morning", from: 0, to: 12 * 60 },
-  { label: "Afternoon", from: 12 * 60, to: 17 * 60 },
-  { label: "Evening", from: 17 * 60, to: 24 * 60 },
-];
-
-function Agenda({ blocks, nowMin, goalById }: { blocks: Block[]; nowMin: number; goalById: GoalMap }) {
-  if (!blocks.length) {
-    return (
-      <EmptyState
-        bare
-        className="py-6!"
-        title="Nothing blocked yet"
-        body="Give the goal that matters a slot today."
-        action={
-          <ButtonLink href="/app/plan" variant="secondary" size="sm">
-            Open plan
-          </ButtonLink>
-        }
-      />
-    );
-  }
-  return (
-    <>
-      {PARTS.map((part) => {
-        const list = blocks.filter((b) => b.startMin >= part.from && b.startMin < part.to);
-        if (!list.length) return null;
-        const live = list.filter((b) => !b.skippedAt);
-        const done = live.filter((b) => b.doneAt).length;
-        const behind = list.every((b) => b.doneAt || b.skippedAt || b.endMin <= nowMin);
-        const current = nowMin >= part.from && nowMin < part.to;
-        const minutes = live.reduce((s, b) => s + b.endMin - b.startMin, 0);
-        return (
-          <details key={part.label} open={!behind || current} className="group/part">
-            <summary className="tap-row flex h-10 cursor-pointer list-none items-center gap-2 px-4 [&::-webkit-details-marker]:hidden">
-              <span className={cn("eyebrow", current && "text-ink-2")}>{part.label}</span>
-              <span className="tnum min-w-0 flex-1 truncate text-[12px] text-ink-3">
-                {behind ? `· ${done} of ${live.length} done` : `· ${formatDuration(minutes)}`}
-              </span>
-              <ChevronRight className="size-4 shrink-0 text-ink-3 transition-transform duration-200 group-open/part:rotate-90" />
-            </summary>
-            <div className="pb-1.5">
-              {list.map((b) => (
-                <AgendaRow key={b.id} block={b} nowMin={nowMin} goal={b.goalId ? goalById.get(b.goalId) : undefined} />
-              ))}
-            </div>
-          </details>
-        );
-      })}
-    </>
-  );
-}
-
-function AgendaRow({ block: b, nowMin, goal }: { block: Block; nowMin: number; goal?: { title: string; color: string } }) {
-  const live = !b.doneAt && !b.skippedAt && b.startMin <= nowMin && b.endMin > nowMin;
-  const past = b.endMin <= nowMin;
-  const missed = past && !b.doneAt && !b.skippedAt;
-  const quiet = !live && (b.doneAt || b.skippedAt || past);
-  const color = goal?.color;
-  return (
-    <Link
-      href={`/app/plan?date=${b.date}`}
-      className={cn("tap-row relative mx-1.5 flex min-h-12 items-center gap-3 rounded-[14px] px-2.5 py-1.5")}
-      style={
-        live
-          ? {
-              ...tint(color ?? "slate"),
-              background: "color-mix(in oklab, var(--tint) 12%, transparent)",
-            }
-          : undefined
-      }
-    >
-      <span className={cn("tnum w-[50px] shrink-0 text-[12.5px] font-medium", live ? "text-ink" : "text-ink-3")}>
-        {formatMin(b.startMin, true)}
-      </span>
-      <span
-        className={cn("h-7 w-[3px] shrink-0 rounded-full", quiet && "opacity-50")}
-        style={{ background: color ? colorVar(color) : "var(--line-strong)" }}
-      />
-      <span className={cn("min-w-0 flex-1", quiet && "opacity-55")}>
-        <span className={cn("block truncate text-[14.5px] font-medium text-ink", b.skippedAt && "line-through decoration-ink-3")}>
-          {b.title}
-        </span>
-        <span className="tnum block truncate text-[12px] text-ink-3">
-          {formatDuration(b.endMin - b.startMin)}
-          {goal ? ` · ${goal.title}` : ""}
-        </span>
-      </span>
-      {live ? (
-        <span className="shrink-0 rounded-full bg-tint px-2 py-0.5 text-[11px] font-semibold text-tint-ink">Now</span>
-      ) : b.doneAt ? (
-        <Check className="size-4 shrink-0 text-ink-3" strokeWidth={2.6} />
-      ) : b.skippedAt ? (
-        <span className="shrink-0 text-[12px] text-ink-3">Skipped</span>
-      ) : missed ? (
-        <span className="shrink-0 text-[12px] text-ink-3">Missed</span>
-      ) : null}
-    </Link>
-  );
-}
-
-function BodyRows({ training }: { training: TodayTraining }) {
-  const { scheduled, log, nutrition, water } = training;
+/** "Rest day", "Push day done" */
+function bodyTitle({ scheduled, log }: TodayTraining) {
+  if (scheduled.isRest && !log) return "Rest day";
   const status = log?.status;
-  const statusText =
-    status === "completed"
-      ? "Done"
-      : status === "skipped"
-        ? "Skipped"
-        : status === "unlogged"
-          ? "Not logged"
-          : status === "in_progress"
-            ? "In progress"
-            : null;
-  const kcalTarget = nutrition.target?.calories ?? 0;
-  const proteinTarget = nutrition.target?.proteinG ?? 0;
-  const of = (v: number, target: number, unit: string) => (target ? `${v} of ${target}${unit}` : `${v}${unit}`);
-  const litres = (ml: number) => (ml / 1000).toFixed(1);
-
-  return (
-    <>
-      <Row
-        href={log && status === "in_progress" ? `/app/fitness/workout/${log.id}` : "/app/fitness"}
-        icon={scheduled.isRest ? <Moon /> : <Dumbbell />}
-        iconColor={scheduled.isRest ? undefined : scheduled.color}
-        title={scheduled.isRest && !log ? "Rest day" : (log?.name ?? scheduled.name)}
-        subtitle={
-          scheduled.isRest && !log
-            ? (scheduled.notes ?? scheduled.name)
-            : `${scheduled.exerciseCount} exercises · ${scheduled.setCount} sets${scheduled.startMin != null ? ` · ${formatMin(scheduled.startMin, true)}` : ""}`
-        }
-        value={statusText ?? (scheduled.isRest ? undefined : "To do")}
-      />
-      <Row href="/app/fitness/nutrition">
-        <ProgressRing value={kcalTarget ? nutrition.calories / kcalTarget : 0} size={32} stroke={4} color="var(--c-amber)" />
-        <div className="min-w-0 flex-1">
-          <div className="tnum truncate text-[15px] font-medium text-ink">{of(nutrition.calories, kcalTarget, " kcal")}</div>
-          <div className="tnum truncate text-[13px] text-ink-3">
-            {of(nutrition.proteinG, proteinTarget, " g")} protein · {litres(water.ml)} of {litres(water.targetMl)} L water
-          </div>
-        </div>
-      </Row>
-    </>
-  );
+  const tail =
+    status === "completed" ? " · done" : status === "skipped" ? " · skipped" : status === "in_progress" ? " · in progress" : "";
+  return `${log?.name ?? scheduled.name}${tail}`;
 }
 
-function TodaySkeleton() {
+/** "1,820 of 1,950 kcal · 2.3 L water" */
+function bodyLine({ nutrition, water }: TodayTraining) {
+  const n = (v: number) => Math.round(v).toLocaleString("en-US");
+  const target = nutrition.target?.calories;
+  const kcal = target ? `${n(nutrition.calories)} of ${n(target)} kcal` : `${n(nutrition.calories)} kcal`;
+  return <span className="tnum">{`${kcal} · ${(water.ml / 1000).toFixed(1)} L water`}</span>;
+}
+
+function NowSkeleton() {
   return (
-    <div className="pt-5 lg:pt-10">
-      <Skeleton className="h-3 w-40" />
-      <Skeleton className="mt-2.5 h-9 w-64" />
-      <Skeleton className="mt-2 h-4 w-48" />
-      <Skeleton className="mt-5 h-12" />
-      <Skeleton className="mt-3.5 h-2 rounded-full" />
-      <Skeleton className="mt-5 h-[120px] rounded-[20px]" />
-      <Skeleton className="mt-3 h-[52px] rounded-[22px]" />
-      <Skeleton className="mt-6 h-48 rounded-[20px]" />
+    <div className="mx-auto max-w-[600px]">
+      <div className="flex items-center justify-between pt-4 lg:pt-9">
+        <Skeleton className="h-4 w-44" />
+        <Skeleton className="size-9 rounded-full" />
+      </div>
+      <div className="pt-12 lg:pt-16">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="mt-3 h-8 w-56" />
+        <Skeleton className="mt-9 h-[72px] w-64" />
+        <Skeleton className="mt-7 h-1 rounded-full" />
+        <Skeleton className="mt-9 h-12 rounded-[12px]" />
+      </div>
+      <Skeleton className="mt-14 h-2.5 rounded-full" />
+      <Skeleton className="mt-12 h-4 w-20" />
+      <Skeleton className="mt-4 h-12" />
+      <Skeleton className="mt-2 h-12" />
+      <Skeleton className="mt-2 h-12" />
     </div>
   );
 }

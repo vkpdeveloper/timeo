@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Pencil } from "lucide-react";
+import { Check, CircleAlert, Pencil } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -153,7 +153,12 @@ export function DailyReflection({
         </label>
       ))}
       <div className="p-3">
-        {error && <p className="mb-2.5 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
+        {error && (
+          <p role="alert" className="mb-2.5 flex items-start gap-2 px-1 text-[13.5px] font-medium text-warn">
+            <CircleAlert className="mt-px size-4 shrink-0" />
+            {error}
+          </p>
+        )}
         <div className="flex gap-2">
           {saved && (
             <Button type="button" variant="ghost" onClick={() => setEditing(false)}>

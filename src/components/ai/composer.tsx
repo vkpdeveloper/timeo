@@ -21,7 +21,10 @@ type SpeechRec = {
 
 function getRecognition(): SpeechRec | null {
   if (typeof window === "undefined") return null;
-  const w = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRec;
+    webkitSpeechRecognition?: new () => SpeechRec;
+  };
   const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   return Ctor ? new Ctor() : null;
 }
@@ -33,9 +36,12 @@ function getRecognition(): SpeechRec | null {
 export function Composer({
   onSend,
   autoFocus,
+  suggestions,
 }: {
   onSend: (text: string, origin?: SendOrigin) => Promise<boolean>;
   autoFocus?: boolean;
+  /** Ready prompts shown as pills above the input while it's empty (GUIDE_SUGGESTIONS). */
+  suggestions?: { label: string; prompt: string }[];
 }) {
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
@@ -89,52 +95,69 @@ export function Composer({
   };
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        send();
-      }}
-      className="focus-shell flex items-end gap-1 rounded-[24px] border border-line bg-surface/85 p-1.5 shadow-[0_8px_30px_-12px_rgb(0_0_0/0.18)] backdrop-blur-xl"
-    >
-      <textarea
-        ref={ref}
-        rows={1}
-        value={text}
-        autoFocus={autoFocus}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-            e.preventDefault();
-            send();
-          }
-        }}
-        placeholder={listening ? "Listening…" : "Ask what fits, plan or log"}
-        aria-label="Message Timi"
-        enterKeyHint="send"
-        className="block max-h-[200px] min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-[16px] leading-6 text-ink outline-none placeholder:text-ink-3"
-      />
-      {canListen && (
-        <button
-          type="button"
-          onClick={toggleMic}
-          aria-label={listening ? "Stop listening" : "Speak"}
-          className={cn(
-            "tap relative grid size-11 shrink-0 place-items-center rounded-full",
-            listening ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-sunken",
-          )}
-        >
-          {listening && <span className="absolute inset-0 animate-ping rounded-full bg-accent/40" />}
-          <Mic className="relative size-[18px]" />
-        </button>
+    <>
+      {suggestions && suggestions.length > 0 && !text && !listening && (
+        <div className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3 py-0.5" aria-label="Suggestions">
+          {suggestions.map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              title={s.prompt}
+              onClick={() => onSend(s.prompt)}
+              className="tap relative h-9 shrink-0 rounded-full border border-line-strong bg-surface px-3.5 text-[13.5px] font-medium whitespace-nowrap text-ink-2 after:absolute after:inset-x-0 after:-inset-y-1 hover:text-ink"
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       )}
-      <button
-        type="submit"
-        aria-label="Send"
-        disabled={!text.trim()}
-        className="tap grid size-11 shrink-0 place-items-center rounded-full bg-accent text-accent-ink transition-colors disabled:bg-sunken disabled:text-ink-3"
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+        className="focus-shell flex items-end gap-1 rounded-[22px] border border-line-strong bg-surface p-1.5"
       >
-        <ArrowUp className="size-[18px]" strokeWidth={2.4} />
-      </button>
-    </form>
+        <textarea
+          ref={ref}
+          rows={1}
+          value={text}
+          autoFocus={autoFocus}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          placeholder={listening ? "Listening…" : "Ask what fits, plan or log"}
+          aria-label="Message Timi"
+          enterKeyHint="send"
+          className="block max-h-[200px] min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-[16px] leading-6 text-ink outline-none placeholder:text-ink-3"
+        />
+        {canListen && (
+          <button
+            type="button"
+            onClick={toggleMic}
+            aria-label={listening ? "Stop listening" : "Speak"}
+            className={cn(
+              "tap relative grid size-11 shrink-0 place-items-center rounded-full",
+              listening ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-sunken",
+            )}
+          >
+            {listening && <span className="absolute inset-0 animate-pulse-soft rounded-full bg-accent/40" />}
+            <Mic className="relative size-[18px]" />
+          </button>
+        )}
+        <button
+          type="submit"
+          aria-label="Send"
+          disabled={!text.trim()}
+          className="tap grid size-11 shrink-0 place-items-center rounded-full bg-accent text-accent-ink transition-colors disabled:bg-sunken disabled:text-ink-3"
+        >
+          <ArrowUp className="size-[18px]" strokeWidth={2.4} />
+        </button>
+      </form>
+    </>
   );
 }

@@ -14,7 +14,7 @@ export default function PlanPage(props: PageProps<"/app/fitness/nutrition/plans/
         fallback={
           <div className="pt-6">
             <Skeleton className="h-10 w-48" />
-            <Skeleton className="mt-6 h-64 rounded-[22px]" />
+            <Skeleton className="mt-6 h-64 rounded-[16px]" />
           </div>
         }
       >

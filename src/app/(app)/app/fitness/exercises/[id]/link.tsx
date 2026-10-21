@@ -63,13 +63,13 @@ export function LinkLibrary({ exerciseId, name, linked }: { exerciseId: string; 
       {linked ? (
         <button type="button" onClick={() => setOpen(true)} className="tap mt-2.5 flex w-full items-center justify-between gap-3 px-1 text-left">
           <span className="min-w-0 truncate text-[13px] text-ink-3">Photos from the library · {linked.name}</span>
-          <span className="shrink-0 text-[13px] font-semibold text-accent">Change</span>
+          <span className="shrink-0 text-[13px] font-medium text-ink underline decoration-line-strong underline-offset-4">Change</span>
         </button>
       ) : (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="tap flex min-h-16 w-full items-center gap-3 rounded-[22px] border border-dashed border-line-strong px-4 py-3 text-left"
+          className="tap flex min-h-16 w-full items-center gap-3 rounded-[16px] border border-dashed border-line-strong px-4 py-3 text-left"
         >
           <ImageIcon className="size-5 shrink-0 text-ink-3" strokeWidth={1.8} />
           <span className="min-w-0 flex-1">
@@ -82,7 +82,7 @@ export function LinkLibrary({ exerciseId, name, linked }: { exerciseId: string; 
       <Sheet open={open} onClose={close} title={picked ? "Use this one?" : "Match to library"} tall>
         {picked ? (
           <div>
-            <button type="button" onClick={() => setPicked(null)} className="tap mb-3 -ml-1 inline-flex items-center gap-0.5 text-[14px] font-medium text-accent">
+            <button type="button" onClick={() => setPicked(null)} className="tap mb-3 -ml-1 inline-flex items-center gap-0.5 text-[14px] font-medium text-ink-2">
               <ChevronLeft className="size-4" /> Library
             </button>
             <ExerciseFrames catalogId={picked.id} name={picked.name} images={picked.images} />
@@ -91,7 +91,7 @@ export function LinkLibrary({ exerciseId, name, linked }: { exerciseId: string; 
               <div className="text-[13px] text-ink-3">{catalogSubtitle(picked)}</div>
             </div>
             {picked.name.toLowerCase() !== name.toLowerCase() && (
-              <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-surface-2 px-4 py-2 text-[15px] text-ink">
+              <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-[12px] bg-surface-2 px-4 py-2 text-[15px] text-ink">
                 <span>
                   Rename to “{picked.name}”
                   <span className="block text-[12.5px] text-ink-3">Off keeps “{name}”</span>

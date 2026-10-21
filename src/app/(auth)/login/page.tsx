@@ -6,10 +6,8 @@ export const metadata: Metadata = { title: "Sign in" };
 export default function LoginPage() {
   return (
     <>
-      <h1 className="display text-[34px] leading-[1.04] text-balance text-ink sm:text-[38px]">
-        Welcome <em className="text-accent">back.</em>
-      </h1>
-      <p className="mt-2.5 mb-7 text-[15px] leading-relaxed text-ink-2">Your season is right where you left it.</p>
+      <h1 className="text-[28px] leading-[1.1] font-semibold tracking-[-0.03em] text-balance text-ink sm:text-[30px]">Welcome back</h1>
+      <p className="mt-2 mb-8 text-[15px] leading-relaxed text-pretty text-ink-2">Your season is right where you left it.</p>
       <AuthForm mode="login" />
     </>
   );

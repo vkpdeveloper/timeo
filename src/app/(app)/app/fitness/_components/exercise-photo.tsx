@@ -40,7 +40,7 @@ export function ExerciseFrames({ catalogId, name, images, className }: { catalog
         setFrame((f) => (images > 1 ? 1 - f : f));
       }}
       aria-label={`${name}, ${frame ? "end" : "start"} position. Tap to switch.`}
-      className={cn("relative block aspect-[3/2] w-full overflow-hidden rounded-[22px] bg-sunken", className)}
+      className={cn("relative block aspect-[3/2] w-full overflow-hidden rounded-[16px] bg-sunken", className)}
     >
       {Array.from({ length: images }, (_, i) => (
         // eslint-disable-next-line @next/next/no-img-element -- pre-sized webp from R2, no optimiser needed
@@ -53,7 +53,7 @@ export function ExerciseFrames({ catalogId, name, images, className }: { catalog
         />
       ))}
       {images > 1 && (
-        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-black/55 px-2.5 py-1 text-[11.5px] font-semibold text-white backdrop-blur-sm">
+        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-surface px-2.5 py-1 text-[12px] font-medium text-ink-2">
           {frame ? "End" : "Start"}
         </span>
       )}

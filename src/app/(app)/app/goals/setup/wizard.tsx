@@ -165,7 +165,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
   return (
     <div className="relative -mx-4 min-h-dvh px-4 sm:-mx-6 sm:px-6">
       {/* Top bar */}
-      <div className="glass fixed inset-x-0 top-0 z-40 pt-safe lg:left-60">
+      <div className="fixed inset-x-0 top-0 z-40 border-b border-line bg-bg pt-safe lg:left-[84px]">
         <div className="mx-auto flex h-14 w-full max-w-[640px] items-center gap-3 px-4 sm:px-6 lg:max-w-[760px]">
           {stepIndex === 0 ? (
             <Link href="/app/goals" aria-label="Close" className="tap grid size-10 shrink-0 place-items-center rounded-full bg-sunken text-ink-2">
@@ -219,7 +219,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
                   <Textarea value={intention} onChange={(e) => setIntention(e.target.value)} rows={2} placeholder="e.g. Ship the thing, get strong, stay calm" />
                 </Field>
                 {currentSeason && (
-                  <p className="mt-2 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+                  <p className="mt-2 rounded-[12px] border border-line bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
                     {currentSeason} will be archived when you finish.
                   </p>
                 )}
@@ -230,7 +230,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
               <>
                 <StepTitle title="How much time a week?" body="Only the hours left after work, sleep and life. Most people have 10 to 20." />
                 <div className="card mb-5 px-5 pt-5 pb-4 text-center">
-                  <div className="display tnum text-[56px] leading-none text-ink">{capacity}h</div>
+                  <div className="display tnum text-[52px] leading-none text-ink">{capacity}h</div>
                   <p className="mt-1.5 text-[13.5px] text-ink-3">a week for goals · {capacity * 12}h this season</p>
                   <Stepper className="mt-4" value={capacity} onChange={setCapacity} min={1} max={80} format={(v) => `${v} hours`} />
                 </div>
@@ -278,11 +278,15 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
       </div>
 
       {/* Bottom bar */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:left-60">
-        <div className="h-8 bg-gradient-to-t from-bg to-transparent" />
-        <div className="pointer-events-auto bg-bg pb-[max(16px,var(--safe-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg pt-3 lg:left-[84px]">
+        <div className="pb-[max(16px,var(--safe-bottom))]">
           <div className="mx-auto w-full max-w-[640px] px-4 sm:px-6 lg:max-w-[760px]">
-            {error && <p className="mb-2 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
+            {error && (
+              <p role="alert" className="mb-2 flex items-start gap-2 px-1 text-[13.5px] font-medium text-warn">
+                <AlertTriangle className="mt-px size-4 shrink-0" />
+                {error}
+              </p>
+            )}
             <Button size="lg" variant={canNext ? "accent" : "secondary"} className="disabled:text-ink-3 disabled:opacity-100" onClick={next} disabled={!canNext} loading={pending}>
               {primaryLabel}
             </Button>
@@ -297,7 +301,7 @@ function StepTitle({ title, body, eyebrow }: { title: ReactNode; body?: ReactNod
   return (
     <div className="mb-6">
       {eyebrow && <div className="eyebrow mb-1.5">{eyebrow}</div>}
-      <h1 className="display text-[30px] text-balance text-ink lg:text-[36px]">{title}</h1>
+      <h1 className="display text-[26px] text-balance text-ink lg:text-[28px]">{title}</h1>
       {body && <p className="mt-1.5 max-w-[38ch] text-[15px] leading-snug text-ink-2">{body}</p>}
     </div>
   );
@@ -333,7 +337,7 @@ function GoalsStep({
         }}
       >
         <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a goal" maxLength={200} />
-        <Button type="submit" variant="secondary" size="icon" className="size-[50px] rounded-[14px]" aria-label="Add goal" disabled={!text.trim()}>
+        <Button type="submit" variant="secondary" size="icon" className="size-[50px] rounded-[12px]" aria-label="Add goal" disabled={!text.trim()}>
           <Plus className="size-5" strokeWidth={2.4} />
         </Button>
       </form>
@@ -359,7 +363,7 @@ function GoalsStep({
 
       <Label hint={goals.length ? `${goals.length} ${goals.length === 1 ? "goal" : "goals"}` : undefined}>Your goals</Label>
       {goals.length === 0 ? (
-        <div className="rounded-[22px] border border-dashed border-line-strong px-5 py-8 text-center text-[14px] text-ink-3">
+        <div className="rounded-[16px] border border-dashed border-line-strong px-5 py-8 text-center text-[14px] text-ink-3">
           Nothing yet. Pick one or two to start.
         </div>
       ) : (
@@ -375,7 +379,7 @@ function GoalsStep({
                 className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line"
               >
                 <div className="flex items-center gap-3 py-2 pr-2 pl-4">
-                  <span className="tnum grid size-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold text-white" style={{ background: colorVar(g.color) }}>
+                  <span className="tnum grid size-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold text-accent-ink" style={{ background: colorVar(g.color) }}>
                     {i + 1}
                   </span>
                   <span className="min-w-0 flex-1 py-1.5 text-[15.5px] font-medium text-ink">{g.title}</span>
@@ -397,7 +401,7 @@ function GoalsStep({
 
 function ColorRow({ value, onChange }: { value: string; onChange: (c: string) => void }) {
   return (
-    <div className="grid grid-cols-9">
+    <div className="grid grid-cols-7">
       {PALETTE.map((c) => (
         <button
           key={c}
@@ -411,7 +415,7 @@ function ColorRow({ value, onChange }: { value: string; onChange: (c: string) =>
             className={cn("grid size-8 place-items-center rounded-full transition-shadow", value === c && "ring-2 ring-ink ring-offset-2 ring-offset-bg")}
             style={{ background: colorVar(c) }}
           >
-            {value === c && <Check className="size-4 text-white" strokeWidth={3} />}
+            {value === c && <Check className="size-4 text-accent-ink" strokeWidth={3} />}
           </span>
         </button>
       ))}
@@ -439,7 +443,7 @@ function DetailsStep({
           <span className="size-2 rounded-full" style={{ background: colorVar(goal.color) }} />
           Goal {index + 1} of {count}
         </div>
-        <h1 className="display text-[30px] text-balance text-ink lg:text-[36px]">{goal.title}</h1>
+        <h1 className="display text-[26px] text-balance text-ink lg:text-[28px]">{goal.title}</h1>
       </div>
 
       <Field label={`What should have happened by ${endLabel}?`}>
@@ -505,13 +509,13 @@ function CapacityStep({
       </div>
 
       {core > 3 && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-2xl bg-warn-soft px-4 py-3 text-[14px] font-medium text-warn">
+        <div className="mb-4 flex items-start gap-2.5 rounded-[12px] bg-warn-soft px-4 py-3 text-[14px] font-medium text-warn">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           {core} core goals. Keep it to 3 or fewer.
         </div>
       )}
       {core === 0 && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-2xl bg-warn-soft px-4 py-3 text-[14px] font-medium text-warn">
+        <div className="mb-4 flex items-start gap-2.5 rounded-[12px] bg-warn-soft px-4 py-3 text-[14px] font-medium text-warn">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           Pick one core goal to lead the season.
         </div>
@@ -599,7 +603,7 @@ function MilestonesStep({
             <button
               type="button"
               onClick={() => setAdding(g.key)}
-              className="tap flex w-full items-center gap-2 px-4 py-3.5 text-[14.5px] font-medium text-accent active:bg-sunken"
+              className="tap flex min-h-[52px] w-full items-center gap-2 px-4 py-3.5 text-[14.5px] font-medium text-ink-2 active:bg-sunken"
             >
               <Plus className="size-4" strokeWidth={2.4} /> Add milestone
             </button>

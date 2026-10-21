@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Countdown, LinearProgress } from "@/components/ui/live";
 import { springs } from "@/components/ui/motion";
 
 type RestState = { end: number; total: number } | null;
@@ -79,6 +80,7 @@ export function useRestTimer(logId: string) {
   return {
     remaining,
     total: state?.total ?? 0,
+    end: state?.end ?? 0,
     active: !!state,
     finished,
     start: (sec: number) => set({ end: Date.now() + sec * 1000, total: sec }),
@@ -91,13 +93,11 @@ export function useRestTimer(logId: string) {
 
 export type RestTimer = ReturnType<typeof useRestTimer>;
 
-const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
-/** Floating bottom bar with the rest countdown and what comes next. */
+/** Floating bottom bar: the rest countdown (Geist Mono), a thin bar, what comes next. */
 export function RestBar({ rest, next }: { rest: RestTimer; next?: string }) {
   const show = rest.active || rest.finished;
-  const pct = rest.total ? rest.remaining / rest.total : 0;
   const reduce = useReducedMotion();
+  const btn = "tap tnum grid h-12 min-w-12 shrink-0 place-items-center rounded-[12px] px-3 text-[15px] font-medium";
   return (
     <AnimatePresence>
       {show && (
@@ -106,60 +106,44 @@ export function RestBar({ rest, next }: { rest: RestTimer; next?: string }) {
           animate={{ y: 0, opacity: 1 }}
           exit={reduce ? { opacity: 0 } : { y: 120, opacity: 0 }}
           transition={springs.sheet}
-          className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(10px,var(--safe-bottom))] lg:left-60"
+          className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(10px,var(--safe-bottom))] lg:left-[84px]"
         >
-          <div className="mx-auto max-w-[620px] overflow-hidden rounded-[24px] border border-line bg-surface shadow-float">
+          <div className="mx-auto max-w-[620px] overflow-hidden rounded-[20px] border border-line-strong bg-surface shadow-float">
             {rest.active ? (
-              <>
-                <div className="h-1 bg-sunken">
-                  <div className="h-full bg-tint transition-[width] duration-300 ease-linear" style={{ width: `${pct * 100}%` }} />
-                </div>
-                <div className="flex items-center gap-2 px-3 pt-3">
-                  <div className="flex min-w-0 flex-1 items-baseline gap-2 pl-1" aria-live="polite">
-                    <span className="tnum-live text-[34px] leading-none font-semibold tracking-tight text-ink">{mmss(rest.remaining)}</span>
-                    <span className="text-[12px] font-semibold tracking-wide text-ink-3 uppercase">Rest</span>
+              <div className="px-4 pt-3.5 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1" aria-live="polite">
+                    <div className="text-[12.5px] font-medium text-ink-3">Rest</div>
+                    <Countdown to={rest.end} className="mt-1 text-[40px] font-medium tracking-tight text-ink" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => rest.adjust(-15)}
-                    aria-label="15 seconds less"
-                    className="tap tnum h-12 w-[52px] shrink-0 rounded-2xl bg-sunken text-[15px] font-semibold text-ink"
-                  >
+                  <button type="button" onClick={() => rest.adjust(-15)} aria-label="15 seconds less" className={`${btn} bg-sunken text-ink`}>
                     −15
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => rest.adjust(15)}
-                    aria-label="15 seconds more"
-                    className="tap tnum h-12 w-[52px] shrink-0 rounded-2xl bg-sunken text-[15px] font-semibold text-ink"
-                  >
+                  <button type="button" onClick={() => rest.adjust(15)} aria-label="15 seconds more" className={`${btn} bg-sunken text-ink`}>
                     +15
                   </button>
-                  <button
-                    type="button"
-                    onClick={rest.skip}
-                    className="tap h-12 shrink-0 rounded-2xl bg-ink px-4 text-[15px] font-semibold text-bg"
-                  >
+                  <button type="button" onClick={rest.skip} className={`${btn} bg-ink px-4 text-bg`}>
                     Skip
                   </button>
                 </div>
-                <div className="truncate px-4 pt-1.5 pb-3 text-[13px] text-ink-3">
+                <LinearProgress startAt={rest.end - rest.total * 1000} endAt={rest.end} color="var(--accent)" height={3} className="mt-3" />
+                <div className="mt-2.5 truncate text-[13px] text-ink-3">
                   {next ? (
                     <>
-                      Next <span className="font-medium text-ink-2">{next}</span>
+                      Next: <span className="text-ink-2">{next}</span>
                     </>
                   ) : (
                     "\u00a0"
                   )}
                 </div>
-              </>
+              </div>
             ) : (
               <button
                 type="button"
                 onClick={rest.dismiss}
                 className="flex min-h-16 w-full flex-col items-center justify-center px-4 py-2.5 text-center"
               >
-                <span className="text-[16px] font-semibold text-ok">Rest over</span>
+                <span className="text-[16px] font-semibold text-accent">Rest over</span>
                 {next && <span className="mt-0.5 max-w-full truncate text-[13px] text-ink-2">{next}</span>}
               </button>
             )}

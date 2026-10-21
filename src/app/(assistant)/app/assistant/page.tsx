@@ -62,7 +62,7 @@ function AssistantSkeleton() {
     <div className="flex h-dvh flex-col px-4">
       <div className="h-14" />
       <div className="mx-auto mt-auto w-full max-w-[720px] pb-6">
-        <Skeleton className="h-28 rounded-[24px]" />
+        <Skeleton className="h-14 rounded-[22px]" />
       </div>
     </div>
   );

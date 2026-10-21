@@ -23,12 +23,12 @@ export default function WeekReviewPage(props: PageProps<"/app/review/week">) {
 function WeekSkeleton() {
   return (
     <div>
-      <SubHeader back="/app/review" backLabel="Review" />
+      <SubHeader back="/app/goals" backLabel="Season" />
       <Skeleton className="mx-auto mt-3 h-2 w-32" />
       <Skeleton className="mt-6 h-3 w-24" />
       <Skeleton className="mt-2 h-9 w-40" />
-      <Skeleton className="mt-5 h-[76px] rounded-[20px]" />
-      <Skeleton className="mt-6 h-40 rounded-[20px]" />
+      <Skeleton className="mt-5 h-[76px] rounded-[16px]" />
+      <Skeleton className="mt-6 h-40 rounded-[16px]" />
     </div>
   );
 }

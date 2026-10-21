@@ -1,15 +1,17 @@
 "use client";
 
-import { Check, ChevronLeft } from "lucide-react";
+import { Check, ChevronLeft, CircleAlert } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/controls";
 import { springs } from "@/components/ui/motion";
-import { Card, Meter, Row, RowIcon, Section, Stat, StatStrip, StatusPill, SubHeader } from "@/components/ui/primitives";
+import { Card, Meter, Row, Section, Stat, StatStrip, StatusPill, SubHeader } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { colorVar, tint } from "@/lib/colors";
 import { formatDuration } from "@/lib/dates";
+import { ConfidenceSlider } from "../../goals/_components/confidence-slider";
+import { tierLabel } from "../../goals/_components/meta";
 import { saveGoalUpdate, saveWeeklyReflection } from "../actions";
 import { roundedTime } from "../shared";
 import type { GoalStatus, GoalWeek, WeekStats } from "../data";
@@ -130,14 +132,16 @@ export function WeekFlow({
   const setField = (k: keyof ReflectionFields) => (v: string) => setFields((f) => ({ ...f, [k]: v }));
 
   const reduce = useReducedMotion();
+  // From Season (this week) back goes to Season; past weeks open from Review.
+  const back = isCurrent ? { href: "/app/goals", label: "Season" } : { href: "/app/review", label: "Review" };
   const total = steps.length - 1; // the done screen is not a step
   const isLast = step.kind === "energy";
 
   return (
     <div>
       <SubHeader
-        back="/app/review"
-        backLabel="Review"
+        back={back.href}
+        backLabel={back.label}
         title={`${title} review`}
         action={
           step.kind !== "done" ? (
@@ -224,19 +228,23 @@ export function WeekFlow({
               />
             </Questions>
           )}
-          {step.kind === "done" && <Done title={title} goals={goals} assessments={assessments} next={fields.next} />}
+          {step.kind === "done" && <Done title={title} goals={goals} assessments={assessments} next={fields.next} doneHref={back.href} />}
         </motion.div>
       </AnimatePresence>
 
       {step.kind !== "done" && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:left-60">
-          <div className="h-8 bg-gradient-to-t from-bg to-transparent" />
-          <div className="pointer-events-auto bg-bg pb-[max(16px,var(--safe-bottom))]">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg pt-3 lg:left-[84px]">
+          <div className="pb-[max(16px,var(--safe-bottom))]">
             <div className="mx-auto w-full max-w-[640px] px-4 sm:px-6 lg:max-w-[760px]">
-              {error && <p className="mb-2 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
+              {error && (
+                <p role="alert" className="mb-2 flex items-start gap-2 px-1 text-[13.5px] font-medium text-warn">
+                  <CircleAlert className="mt-px size-4 shrink-0" />
+                  {error}
+                </p>
+              )}
               <div className="flex gap-2">
                 {index > 0 && (
-                  <Button variant="secondary" size="icon" className="size-12 rounded-2xl" onClick={() => go(-1)} aria-label="Back">
+                  <Button variant="secondary" size="icon" className="size-12 rounded-[12px]" onClick={() => go(-1)} aria-label="Back">
                     <ChevronLeft className="size-5" />
                   </Button>
                 )}
@@ -281,7 +289,7 @@ function Intro({
   return (
     <div>
       <div className="eyebrow">{range}</div>
-      <h1 className="display mt-1 text-[32px] text-ink">{title}</h1>
+      <h1 className="display mt-1 text-[28px] text-ink">{title}</h1>
       <p className="mt-1.5 text-[15px] leading-snug text-ink">{summary}</p>
       <p className="mt-0.5 text-[14px] text-ink-3">
         {reviewed
@@ -292,7 +300,7 @@ function Intro({
       </p>
 
       <StatStrip card className="mt-5">
-        <Stat value={formatDuration(stats.focusMin)} label={`focus · ${stats.sessions} ${stats.sessions === 1 ? "session" : "sessions"}`} />
+        <Stat value={formatDuration(stats.focusMin)} label="focus" sub={`${stats.sessions} ${stats.sessions === 1 ? "session" : "sessions"}`} />
         <Stat value={stats.blocks.done} unit={`of ${stats.blocks.planned}`} label="blocks done" />
         <Stat value={stats.workouts.done} unit={`of ${stats.workouts.scheduled}`} label="workouts" />
       </StatStrip>
@@ -302,13 +310,8 @@ function Intro({
           {goals.map((g) => (
             <Row
               key={g.id}
-              icon={
-                <RowIcon color={g.color}>
-                  <span className="size-2.5 rounded-full bg-current" />
-                </RowIcon>
-              }
-              title={g.title}
-              subtitle={`${roundedTime(Math.max(g.doneMin, g.focusMin))} of ${roundedTime(g.plannedMin)} planned`}
+              title={<GoalName title={g.title} color={g.color} />}
+              subtitle={<span className="pl-[18px]">{`${roundedTime(Math.max(g.doneMin, g.focusMin))} of ${roundedTime(g.plannedMin)} planned`}</span>}
             >
               <StatusPill status={g.update?.status ?? g.currentStatus} />
             </Row>
@@ -335,9 +338,9 @@ function GoalStep({ goal, value, onChange }: { goal: GoalWeek; value: Assessment
     <div style={tint(goal.color)}>
       <div className="flex items-center gap-2">
         <span className="size-2.5 rounded-full" style={{ background: colorVar(goal.color) }} />
-        <span className="eyebrow">{goal.tier} goal</span>
+        <span className="eyebrow">{tierLabel(goal.tier)} goal</span>
       </div>
-      <h1 className="display mt-1 text-[28px] text-balance text-ink">{goal.title}</h1>
+      <h1 className="display mt-1 text-[26px] text-balance text-ink">{goal.title}</h1>
       {goal.outcome && <p className="mt-1 text-[14px] leading-snug text-ink-3">{goal.outcome}</p>}
 
       <Card className="mt-5 p-4">
@@ -413,40 +416,23 @@ function GoalStep({ goal, value, onChange }: { goal: GoalWeek; value: Assessment
   );
 }
 
-const STATUS_TEXT: Record<GoalStatus, string> = { on_track: "On track", adjust: "Adjust", off_track: "Off track" };
-
-function ConfidenceSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+/** Goal colour dot + title, for list rows. */
+function GoalName({ title, color }: { title: string; color: string }) {
   return (
-    <input
-      type="range"
-      min={0}
-      max={100}
-      step={5}
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      aria-label="Confidence"
-      className={cn(
-        "h-11 w-full cursor-pointer appearance-none bg-transparent",
-        "[&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--tint)_var(--fill),var(--sunken)_var(--fill))]",
-        "[&::-webkit-slider-thumb]:-mt-[11px] [&::-webkit-slider-thumb]:size-7 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-line [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_2px_8px_rgb(0_0_0/0.18)]",
-        "[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-sunken",
-        "[&::-moz-range-progress]:h-1.5 [&::-moz-range-progress]:rounded-full [&::-moz-range-progress]:bg-tint",
-        "[&::-moz-range-thumb]:size-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-[0_2px_8px_rgb(0_0_0/0.18)]",
-      )}
-      style={
-        {
-          "--fill": `${value}%`,
-        } as React.CSSProperties
-      }
-    />
+    <span className="flex min-w-0 items-center gap-2.5">
+      <span className="size-2 shrink-0 rounded-full" style={{ background: colorVar(color) }} />
+      <span className="truncate">{title}</span>
+    </span>
   );
 }
+
+const STATUS_TEXT: Record<GoalStatus, string> = { on_track: "On track", adjust: "Adjust", off_track: "Off track" };
 
 function Questions({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
   return (
     <div>
       <div className="eyebrow">{eyebrow}</div>
-      <h1 className="display mt-1 text-[30px] text-ink">{title}</h1>
+      <h1 className="display mt-1 text-[26px] text-ink">{title}</h1>
       <div className="mt-5 flex flex-col gap-4">{children}</div>
     </div>
   );
@@ -502,11 +488,13 @@ function Done({
   goals,
   assessments,
   next,
+  doneHref,
 }: {
   title: string;
   goals: GoalWeek[];
   assessments: Record<string, Assessment>;
   next: string | null;
+  doneHref: string;
 }) {
   return (
     <div>
@@ -518,7 +506,7 @@ function Done({
       >
         <Check className="size-7" strokeWidth={2.6} />
       </motion.div>
-      <h1 className="display mt-4 text-[32px] text-ink">{title} reviewed</h1>
+      <h1 className="display mt-4 text-[28px] text-ink">{title} reviewed</h1>
       <p className="mt-1 text-[15px] text-ink-2">That&apos;s the habit. See you next week.</p>
 
       {goals.length > 0 && (
@@ -528,12 +516,7 @@ function Done({
             return (
               <Row
                 key={g.id}
-                icon={
-                <RowIcon color={g.color}>
-                  <span className="size-2.5 rounded-full bg-current" />
-                </RowIcon>
-              }
-                title={g.title}
+                title={<GoalName title={g.title} color={g.color} />}
                 value={`${a.confidence}%`}
               >
                 <StatusPill status={a.status} className="ml-auto" />
@@ -550,7 +533,7 @@ function Done({
         </Card>
       )}
 
-      <ButtonLink href="/app/review" variant="accent" size="lg" className="mt-6">
+      <ButtonLink href={doneHref} variant="accent" size="lg" className="mt-6">
         Done
       </ButtonLink>
     </div>

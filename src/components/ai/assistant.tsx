@@ -27,7 +27,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { undoTell } from "@/actions/ai";
 import { MessageResponse } from "@/components/ai-elements/message";
-import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/shadcn/collapsible";
 import { CardList } from "@/components/ui/primitives";
 import { springs } from "@/components/ui/motion";
@@ -93,7 +92,7 @@ const toolLabel = (name: string) => TOOL_LABEL[name] ?? name.replace(/_/g, " ");
  */
 const BESIDE_PANEL = "xl:pr-[332px] xl:pl-[max(24px,min(332px,calc(100%_-_1092px)))]";
 
-const fmt = (opts: Intl.DateTimeFormatOptions, timeZone: string) => new Intl.DateTimeFormat("en-US", { ...opts, timeZone });
+const fmt = (opts: Intl.DateTimeFormatOptions, timeZone: string, locale = "en-US") => new Intl.DateTimeFormat(locale, { ...opts, timeZone });
 const secs = (ms: number) => (ms < 60_000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`);
 
 /** Ticks every second while `active`, for "Working · 4s". */
@@ -128,7 +127,10 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
   const router = useRouter();
   const [runs, setRuns] = useState<Record<string, AssistantRun>>(() => Object.fromEntries(initialRuns.map((r) => [r.id, r])));
   // the message just sent: it flies up from the composer (or rises in, if sent from a suggestion)
-  const [sent, setSent] = useState<{ id: string; from: SendOrigin | null } | null>(null);
+  const [sent, setSent] = useState<{
+    id: string;
+    from: SendOrigin | null;
+  } | null>(null);
   const { tracked } = useRuns();
 
   const [todayOpen, setTodayOpen] = useState(false);
@@ -204,6 +206,8 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
   };
 
   const day = fmt({ weekday: "short", month: "short", day: "numeric" }, timezone);
+  const working = list.some((r) => r.status === "running");
+  const latestId = list[list.length - 1]?.id;
 
   // the chat scrolls the page itself; header and composer float over it, the panel sits on the right (xl)
   return (
@@ -218,9 +222,12 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
             <ChevronLeft className="size-5" strokeWidth={2} />
             Back
           </button>
-          <div className="flex items-center gap-1.5 text-[15px] font-semibold tracking-tight text-ink">
-            <Timi size={26} mood={list.some((r) => r.status === "running") ? "thinking" : "idle"} />
-            Timi
+          <div className="flex items-center gap-2">
+            <Timi size={28} mood={working ? "thinking" : "idle"} />
+            <div className="leading-tight">
+              <div className="text-[15px] font-semibold tracking-[-0.01em] text-ink">Timi</div>
+              {working && <div className="animate-pulse-soft text-[11.5px] text-ink-3">Working</div>}
+            </div>
           </div>
           <div className="flex items-center gap-1 justify-self-end">
             <button
@@ -235,11 +242,7 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
         </div>
       </header>
 
-      <div
-        ref={contentRef}
-        role="log"
-        className={cn("px-4 pt-[calc(var(--safe-top)+56px)] pb-[calc(var(--composer-h)+16px)] sm:px-6", BESIDE_PANEL)}
-      >
+      <div ref={contentRef} role="log" className={cn("px-4 pt-[calc(var(--safe-top)+56px)] pb-[calc(var(--composer-h)+16px)] sm:px-6", BESIDE_PANEL)}>
         <div className="mx-auto w-full max-w-[760px]">
           {list.length === 0 && <EmptyState onPick={send} />}
           {list.map((run, i) => {
@@ -247,7 +250,7 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
             return (
               <div key={run.id}>
                 {newDay && (
-                  <div className="my-4 flex items-center gap-3 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">
+                  <div className="my-5 flex items-center gap-3 text-[12px] font-medium text-ink-3">
                     <span className="h-px flex-1 bg-line" />
                     {day.format(run.createdAt)}
                     <span className="h-px flex-1 bg-line" />
@@ -257,7 +260,13 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
                   run={run}
                   timezone={timezone}
                   sentFrom={sent?.id === run.id ? sent.from : undefined}
-                  onUndone={() => setRuns((p) => ({ ...p, [run.id]: { ...run, undone: true } }))}
+                  latest={run.id === latestId}
+                  onUndone={() =>
+                    setRuns((p) => ({
+                      ...p,
+                      [run.id]: { ...run, undone: true },
+                    }))
+                  }
                 />
               </div>
             );
@@ -266,7 +275,7 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
       </div>
 
       <aside className="fixed top-[calc(var(--safe-top)+60px)] right-4 z-20 hidden w-[300px] xl:block">
-        <div className="no-scrollbar max-h-[calc(100dvh-var(--safe-top)-76px)] overflow-y-auto overscroll-contain rounded-[18px] border border-line bg-surface/80 p-1.5 shadow-float backdrop-blur-xl">
+        <div className="no-scrollbar max-h-[calc(100dvh-var(--safe-top)-76px)] overflow-y-auto overscroll-contain rounded-[16px] border border-line bg-surface p-1.5">
           {today}
         </div>
       </aside>
@@ -274,29 +283,23 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
         {today}
       </Sheet>
 
-      {/* messages blur out as they pass under the composer */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[calc(var(--composer-h)+36px)] bg-gradient-to-t from-bg via-bg/60 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,#000_50%,transparent)]"
-      />
+      {/* a solid floor under the composer: messages pass behind it */}
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[var(--composer-h)] bg-bg" />
 
-      <div
-        ref={composerRef}
-        className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pt-2 pb-[max(12px,var(--safe-bottom))]", BESIDE_PANEL)}
-      >
+      <div ref={composerRef} className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pt-2 pb-[max(12px,var(--safe-bottom))]", BESIDE_PANEL)}>
         <div className="pointer-events-auto relative mx-auto max-w-[760px]">
           {!atBottom && (
             <button
               type="button"
               onClick={() => toBottom()}
               aria-label="Scroll to latest"
-              className="tap absolute bottom-full left-1/2 mb-3 grid size-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-soft animate-in fade-in"
+              className="tap absolute bottom-full left-1/2 mb-3 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-line-strong bg-surface text-ink-2 shadow-float animate-in fade-in"
             >
               <ArrowDown className="size-4" />
             </button>
           )}
-          <Composer onSend={send} autoFocus={list.length === 0} />
-          <p className="mt-2 hidden text-center text-[11.5px] text-ink-3 sm:block">Runs in the background. You can close Timeo; you&apos;ll get a notification.</p>
+          <Composer onSend={send} autoFocus={list.length === 0} suggestions={list.length > 0 && !working ? GUIDE_SUGGESTIONS : undefined} />
+          <p className="mt-2 hidden text-center text-[11.5px] text-ink-3 sm:block">Runs in the background. You can close Timeo and get a notification.</p>
         </div>
       </div>
     </div>
@@ -378,14 +381,22 @@ function UserBubble({ text, sentFrom }: { text: string; sentFrom?: SendOrigin | 
     }
     // px-3.5 / py-2 on the bubble: line its text up with the composer's, then let it go
     const box = el.getBoundingClientRect();
-    animate(el, { x: [sentFrom.x - (box.left + 14), 0], y: [sentFrom.y - (box.top + 8), 0], opacity: [0.5, 1] }, spring);
+    animate(
+      el,
+      {
+        x: [sentFrom.x - (box.left + 14), 0],
+        y: [sentFrom.y - (box.top + 8), 0],
+        opacity: [0.5, 1],
+      },
+      spring,
+    );
   }, [sentFrom]);
 
   return (
     <div className="flex justify-end">
       <div
         ref={ref}
-        className="max-w-[85%] rounded-[20px] rounded-br-md bg-surface px-3.5 py-2 text-[15px] leading-[1.5] whitespace-pre-wrap text-ink shadow-soft ring-1 ring-line will-change-transform"
+        className="max-w-[85%] rounded-[18px] rounded-br-[6px] border border-line bg-surface px-3.5 py-2 text-[15px] leading-[1.5] whitespace-pre-wrap text-ink will-change-transform"
       >
         {text}
       </div>
@@ -394,27 +405,45 @@ function UserBubble({ text, sentFrom }: { text: string; sentFrom?: SendOrigin | 
 }
 
 function placeholder(id: string, input: string): AssistantRun {
-  return { id, input, reply: null, status: "running", error: null, parts: [], saved: 0, undone: false, model: "", ms: null, createdAt: Date.now() };
+  return {
+    id,
+    input,
+    reply: null,
+    status: "running",
+    error: null,
+    parts: [],
+    saved: 0,
+    undone: false,
+    model: "",
+    ms: null,
+    createdAt: Date.now(),
+  };
 }
 
 function RunView({
   run,
   timezone,
   sentFrom,
+  latest,
   onUndone,
 }: {
   run: AssistantRun;
   timezone: string;
   sentFrom?: SendOrigin | null;
+  /** The newest run: Timi is happy about it once it's done. */
+  latest?: boolean;
   onUndone: () => void;
 }) {
   const parts = run.parts as AiPart[];
   const running = run.status === "running";
-  const finalIdx = parts.map((p, i) => (p.type === "text" ? i : -1)).filter((i) => i >= 0).pop();
+  const finalIdx = parts
+    .map((p, i) => (p.type === "text" ? i : -1))
+    .filter((i) => i >= 0)
+    .pop();
   const answer = running ? undefined : finalIdx != null ? (parts[finalIdx] as { text: string }).text : (run.reply ?? undefined);
   const steps = parts.filter((p, i) => !(p.type === "text" && i === finalIdx && !running));
-  const saved = parts.flatMap((p) => (p.type === "tool" ? (((p.output as { saved?: SavedItem[] } | undefined)?.saved) ?? []) : []));
-  const time = fmt({ hour: "numeric", minute: "2-digit" }, timezone).format(run.createdAt);
+  const saved = parts.flatMap((p) => (p.type === "tool" ? ((p.output as { saved?: SavedItem[] } | undefined)?.saved ?? []) : []));
+  const time = fmt({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" }, timezone, "en-GB").format(run.createdAt);
 
   return (
     <article id={`run-${run.id}`} className="scroll-mt-24 py-3">
@@ -422,10 +451,10 @@ function RunView({
 
       {/* Timi */}
       <div className={cn("mt-3 space-y-3", sentFrom !== undefined && "rise [--delay:120ms]")}>
-        {(steps.length > 0 || running) && <Progress run={run} steps={steps} />}
+        <Progress run={run} steps={steps} latest={latest} />
 
         {run.status === "error" && (
-          <p className="rise flex items-start gap-2 rounded-2xl bg-bad-soft px-3.5 py-2.5 text-[14px] leading-snug font-medium text-bad">
+          <p className="rise flex items-start gap-2 text-[14px] leading-snug font-medium text-warn" role="alert">
             <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <span>Couldn&apos;t finish. {run.error?.slice(0, 180)}</span>
           </p>
@@ -454,7 +483,7 @@ function RunView({
  * What Timi is doing. While a run works, finished steps rise in one by one under a live
  * "Working" line; once it's done they fold into "Worked for 6.2s · 3 steps".
  */
-function Progress({ run, steps }: { run: AssistantRun; steps: AiPart[] }) {
+function Progress({ run, steps, latest }: { run: AssistantRun; steps: AiPart[]; latest?: boolean }) {
   const running = run.status === "running";
   const now = useNow(running);
   const [open, setOpen] = useState<boolean | null>(null);
@@ -469,20 +498,20 @@ function Progress({ run, steps }: { run: AssistantRun; steps: AiPart[] }) {
     <Collapsible open={isOpen} onOpenChange={setOpen}>
       <CollapsibleTrigger
         disabled={!shown.length && !running}
-        className="group tap -ml-1 flex min-h-8 max-w-full items-center gap-1.5 rounded-full py-0.5 pr-2.5 pl-1 text-[13px] text-ink-3 hover:text-ink-2"
+        className="group tap -ml-1 flex min-h-9 max-w-full items-center gap-1.5 rounded-full py-0.5 pr-2.5 pl-1 text-[13px] text-ink-3 hover:text-ink-2"
       >
-        <Timi size={22} mood={running ? "thinking" : run.status === "error" ? "error" : "idle"} className="-my-1" />
+        <Timi size={24} mood={running ? "thinking" : run.status === "error" ? "error" : latest && !run.undone ? "happy" : "idle"} className="-my-1" />
         {running ? (
-          <Shimmer as="span" className="truncate text-[13px]">
-            {last ? "Working…" : "Thinking…"}
-          </Shimmer>
+          <span className="animate-pulse-soft truncate text-[13px] text-ink-2">{last ? "Working…" : "Thinking…"}</span>
+        ) : run.status === "error" ? (
+          <span className="truncate">Stopped after {secs(elapsed)}</span>
         ) : (
           <span className="truncate">
-            Worked for {secs(elapsed)}
+            {run.ms != null ? `Worked for ${secs(elapsed)}` : "Done"}
             {tools.length > 0 && ` · ${tools.length} ${tools.length === 1 ? "step" : "steps"}`}
           </span>
         )}
-        {running && elapsed >= 1000 && <span className="tnum-live shrink-0 text-ink-3/70">{Math.round(elapsed / 1000)}s</span>}
+        {running && elapsed >= 1000 && <span className="tnum-live shrink-0 text-ink-3">{Math.round(elapsed / 1000)}s</span>}
         {shown.length > 0 && <ChevronRight className="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />}
       </CollapsibleTrigger>
       <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
@@ -511,7 +540,7 @@ function Step({ part }: { part: AiPart }) {
   const failed = part.state === "error" || output?.ok === false;
   const n = output?.saved?.length ?? 0;
   return (
-    <li className={cn("rise flex items-center gap-2 text-[13px]", failed ? "text-bad" : part.name.startsWith("get_") ? "text-ink-3" : "text-ink-2")}>
+    <li className={cn("rise flex items-center gap-2 text-[13px]", failed ? "text-warn" : part.name.startsWith("get_") ? "text-ink-3" : "text-ink-2")}>
       {failed ? (
         <AlertCircle className="size-3.5 shrink-0" />
       ) : (
@@ -536,9 +565,7 @@ function SavedCard({ run, saved, onUndone }: { run: AssistantRun; saved: SavedIt
   return (
     <CardList className={cn("stagger divide-y divide-line [--stagger:40ms]", run.undone && "opacity-60")}>
       <div className="flex h-10 items-center gap-2 pr-1.5 pl-4">
-        <span className="text-[12px] font-semibold tracking-wide text-ink-3 uppercase">
-          {run.undone ? "Undone" : `Saved · ${saved.length}`}
-        </span>
+        <span className="text-[12.5px] font-medium text-ink-3">{run.undone ? "Undone" : `Saved · ${saved.length}`}</span>
         {done && run.saved > 0 && !run.undone && (
           <button
             type="button"
@@ -561,7 +588,7 @@ function SavedCard({ run, saved, onUndone }: { run: AssistantRun; saved: SavedIt
         const Icon = ICONS[s.icon ?? "check"] ?? Check;
         return (
           <div key={i} className="flex min-h-11 items-center gap-2.5 px-4 py-2 text-[14px] text-ink">
-            <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-ok-soft text-ok">
+            <span className="grid size-6 shrink-0 place-items-center rounded-[8px] bg-accent-soft text-accent">
               <Icon className="size-3.5" strokeWidth={2.2} />
             </span>
             <span className={cn("min-w-0 truncate", run.undone && "text-ink-3 line-through")}>{s.label}</span>
@@ -579,7 +606,7 @@ function Actions({ run, answer, time }: { run: AssistantRun; answer?: string; ti
 
   const copy = async () => {
     const savedText = (run.parts as AiPart[])
-      .flatMap((p) => (p.type === "tool" ? (((p.output as { saved?: SavedItem[] } | undefined)?.saved) ?? []) : []))
+      .flatMap((p) => (p.type === "tool" ? ((p.output as { saved?: SavedItem[] } | undefined)?.saved ?? []) : []))
       .map((s) => `- ${s.label}`)
       .join("\n");
     await navigator.clipboard.writeText([answer, savedText].filter(Boolean).join("\n\n") || run.input).catch(() => {});
@@ -599,9 +626,9 @@ function Actions({ run, answer, time }: { run: AssistantRun; answer?: string; ti
         {copied ? <Check className="size-3.5 text-ok" /> : <Copy className="size-3.5" />}
         {copied ? "Copied" : "Copy"}
       </button>
-      <span className="ml-auto pr-1 text-[11.5px] text-ink-3 tabular-nums">
-        {time}
-        {run.ms != null && ` · ${secs(run.ms)}`}
+      <span className="ml-auto pr-1 text-[11.5px] text-ink-3">
+        <span className="mono">{time}</span>
+        {run.ms != null && <span className="tnum"> · {secs(run.ms)}</span>}
       </span>
     </div>
   );
@@ -610,22 +637,22 @@ function Actions({ run, answer, time }: { run: AssistantRun; answer?: string; ti
 /** First visit: what Timi is for, and the questions people actually have. */
 function EmptyState({ onPick }: { onPick: (s: string) => Promise<boolean> }) {
   return (
-    <div className="flex min-h-[calc(100dvh-var(--safe-top)-56px-var(--composer-h)-24px)] flex-col justify-end pb-2">
+    <div className="flex min-h-[calc(100dvh-var(--safe-top)-56px-var(--composer-h)-24px)] flex-col justify-end pb-3">
       <div className="rise">
-        <Timi size={72} interactive className="-ml-1.5 mb-1" />
-        <h1 className="display text-[30px] leading-tight text-ink">What fits in your time?</h1>
-        <p className="mt-1 max-w-[38ch] text-[15px] leading-snug text-ink-2">
+        <Timi size={80} interactive className="-ml-2 mb-3" />
+        <h1 className="display text-[26px] text-ink">What fits in your time?</h1>
+        <p className="mt-2 max-w-[38ch] text-[15px] leading-normal text-ink-2">
           Timi checks your free time, goals and season, says what fits, and blocks it. It logs workouts and meals too.
         </p>
       </div>
-      <div className="stagger mt-5 flex flex-wrap gap-2 [--stagger-base:120ms]">
+      <div className="stagger mt-6 flex flex-wrap gap-2 [--stagger-base:120ms]">
         {GUIDE_SUGGESTIONS.map((s) => (
           <button
             key={s.label}
             type="button"
             title={s.prompt}
             onClick={() => onPick(s.prompt)}
-            className="tap h-10 rounded-full bg-surface px-3.5 text-[14px] font-medium text-ink-2 ring-1 ring-line hover:text-ink"
+            className="tap h-11 rounded-full border border-line-strong bg-surface px-4 text-[14px] font-medium text-ink-2 hover:text-ink"
           >
             {s.label}
           </button>

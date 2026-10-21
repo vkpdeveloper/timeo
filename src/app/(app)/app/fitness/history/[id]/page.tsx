@@ -28,7 +28,7 @@ export default function SessionPage(props: PageProps<"/app/fitness/history/[id]"
               <Skeleton className="h-9 w-40" />
             </div>
             <Skeleton className="h-12" />
-            <Skeleton className="mt-6 h-60 rounded-[20px]" />
+            <Skeleton className="mt-6 h-60 rounded-[16px]" />
           </div>
         }
       >
@@ -74,7 +74,7 @@ async function Session({ params }: { params: PageProps<"/app/fitness/history/[id
   const template = templates.find((x) => x.id === log.templateId);
   const planned = templates.find((x) => x.id === log.plannedTemplateId);
   const swapped = log.status !== "skipped" && !!log.templateId && !!log.plannedTemplateId && log.templateId !== log.plannedTemplateId;
-  const color = template?.color ?? "slate";
+  const color = template?.color ?? "stone";
 
   const blocks: { key: string; exerciseId: string; name: string; basis: string | null; sets: typeof sets }[] = [];
   for (const s of sets) {
@@ -98,7 +98,12 @@ async function Session({ params }: { params: PageProps<"/app/fitness/history/[id
   return (
     <div style={tint(color)}>
       <PageHeader
-        eyebrow={<span style={{ color: colorVar(color) }}>{formatLongDate(log.date)}</span>}
+        eyebrow={
+          <span className="inline-flex items-center gap-2">
+            <span className="size-2 rounded-full" style={{ background: colorVar(color) }} />
+            {formatLongDate(log.date)}
+          </span>
+        }
         title={log.name}
         action={<StatusChip status={log.status} />}
         subtitle={
@@ -162,13 +167,13 @@ async function Session({ params }: { params: PageProps<"/app/fitness/history/[id
                     return (
                       <div key={s.id} className="border-t border-line py-2 first:border-0">
                         <div className="flex items-center gap-3">
-                          <span className={`tnum w-6 text-[13px] font-semibold ${s.warmup ? "text-warn" : "text-ink-3"}`}>
+                          <span className={`tnum w-6 text-[13px] font-medium ${s.warmup ? "text-warn" : "text-ink-3"}`}>
                             {s.warmup ? "W" : n}
                           </span>
                           <span className={`tnum flex-1 text-[15px] ${s.warmup ? "text-ink-3" : "text-ink"}`}>
-                            <span className={s.weightKg == null ? "font-semibold text-warn" : "font-semibold"}>{fmtKg(s.weightKg)}</span>
+                            <span className={s.weightKg == null ? "font-medium text-warn" : "font-medium"}>{fmtKg(s.weightKg)}</span>
                             <span className="text-ink-3"> kg × </span>
-                            <span className="font-semibold">{s.reps ?? "?"}</span>
+                            <span className="font-medium">{s.reps ?? "?"}</span>
                           </span>
                           {s.warmup && <span className="text-[11.5px] font-medium text-ink-3">warm-up</span>}
                           {!s.done && <span className="text-[11.5px] font-medium text-ink-3">not done</span>}

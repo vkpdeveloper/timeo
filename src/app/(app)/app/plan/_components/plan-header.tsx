@@ -6,20 +6,13 @@ import { useRouter } from "next/navigation";
 import { useOptimistic, useRef, useTransition } from "react";
 import { Segmented } from "@/components/ui/controls";
 import { springs } from "@/components/ui/motion";
-import { PageHeader } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
-import { addDays, dayOfMonth, startOfWeek, toUTCDate, weekDays, WEEKDAY_LETTER } from "@/lib/dates";
+import { addDays, dayOfMonth, diffDays, formatWeekdayShort, startOfWeek, toUTCDate, weekDays, WEEKDAY_LETTER } from "@/lib/dates";
+import { type Capacity, capacityText, type DayLoad } from "./capacity";
 import type { PlanView } from "./types";
 
-const monthFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: "UTC",
-  month: "long",
-});
-const monthShortFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: "UTC",
-  month: "short",
-});
+const monthDay = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
 
 export const planHref = (date: string, view: PlanView, today?: string) => {
   const params = new URLSearchParams();
@@ -29,21 +22,40 @@ export const planHref = (date: string, view: PlanView, today?: string) => {
   return q ? `/app/plan?${q}` : "/app/plan";
 };
 
+/** "Oct 19 – 25", or "Oct 26 – Nov 1" across a month. */
+function rangeLabel(weekStart: string) {
+  const a = toUTCDate(weekStart);
+  const b = toUTCDate(addDays(weekStart, 6));
+  return a.getUTCMonth() === b.getUTCMonth()
+    ? `${monthDay.format(a)} – ${b.getUTCDate()}`
+    : `${monthDay.format(a)} – ${monthDay.format(b)}`;
+}
+
+function seasonWeek(season: { startDate: string; endDate: string } | null, weekStart: string) {
+  if (!season) return null;
+  // the season week that holds most of this calendar week (its Thursday)
+  const mid = addDays(weekStart, 3);
+  if (mid < season.startDate || mid > season.endDate) return null;
+  const total = Math.ceil((diffDays(season.endDate, season.startDate) + 1) / 7);
+  return `Week ${Math.floor(diffDays(mid, season.startDate) / 7) + 1} of ${total}`;
+}
+
 export function PlanHeader({
   date,
   today,
   view,
-  eyebrow,
-  dots,
-  summary,
+  season,
+  loads,
+  caps,
+  weekCap,
 }: {
   date: string;
   today: string;
   view: PlanView;
-  eyebrow: string;
-  dots: Record<string, string[]>;
-  /** Capacity line pinned under the strip. */
-  summary?: React.ReactNode;
+  season: { startDate: string; endDate: string } | null;
+  loads: Record<string, DayLoad>;
+  caps: Record<string, Capacity>;
+  weekCap: Capacity;
 }) {
   const router = useRouter();
   const [, start] = useTransition();
@@ -58,13 +70,17 @@ export function PlanHeader({
 
   const weekStart = startOfWeek(state.date);
   const days = weekDays(weekStart);
-  const weekEnd = days[6];
-  const title =
-    state.view === "week" && toUTCDate(weekStart).getUTCMonth() !== toUTCDate(weekEnd).getUTCMonth()
-      ? `${monthShortFmt.format(toUTCDate(weekStart))} – ${monthShortFmt.format(toUTCDate(weekEnd))}`
-      : monthFmt.format(toUTCDate(state.date));
   const inThisWeek = startOfWeek(today) === weekStart;
-  const isToday = state.date === today;
+  const atToday = state.view === "day" ? state.date === today : inThisWeek;
+  const week = seasonWeek(season, weekStart);
+
+  // known only for the week the server rendered; a new week fills in when it arrives
+  const sameWeek = startOfWeek(date) === weekStart;
+  const dayCap = sameWeek ? caps[state.date] : undefined;
+  const capLine =
+    state.view === "day"
+      ? dayCap && `${formatWeekdayShort(state.date)} · ${capacityText(dayCap)}`
+      : sameWeek && capacityText(weekCap);
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
     const dx = info.offset.x;
@@ -77,124 +93,156 @@ export function PlanHeader({
 
   return (
     <>
-      <PageHeader
-        eyebrow={eyebrow}
-        title={title}
-        className="pb-3!"
-        action={
-          <div className="flex items-center gap-2">
+      <header className="pt-5 pb-3 lg:pt-10">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="display text-[26px] text-ink lg:text-[28px]">Week</h1>
+          <div className="-my-1 flex items-center">
+            <button
+              type="button"
+              aria-label="Previous week"
+              onClick={() => go(addDays(state.date, -7))}
+              className="tap grid size-11 place-items-center rounded-full text-ink-2 hover:text-ink"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
             <button
               type="button"
               onClick={() => go(today)}
-              disabled={state.view === "day" ? isToday : inThisWeek}
-              className="tap h-9 rounded-full px-3.5 text-[13px] font-semibold text-accent disabled:text-ink-3 disabled:opacity-60"
+              disabled={atToday}
+              className="tap relative h-9 rounded-full border border-line-strong px-3.5 text-[13.5px] font-medium text-ink before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] disabled:border-line disabled:text-ink-3"
             >
               Today
             </button>
-            <Segmented
-              size="sm"
-              className="w-[118px]"
-              value={state.view}
-              onChange={(v) => go(state.date, v)}
-              options={[
-                { value: "day", label: "Day" },
-                { value: "week", label: "Week" },
-              ]}
-            />
-          </div>
-        }
-      />
-
-      <div className="glass sticky top-0 z-30 -mx-4 border-b border-line px-2 pt-safe sm:-mx-6 sm:px-4 lg:mx-0 lg:rounded-b-2xl lg:border-x">
-        <div className="flex items-center py-1.5">
-          <button
-            type="button"
-            aria-label="Previous week"
-            onClick={() => go(addDays(state.date, -7))}
-            className="tap grid h-[60px] w-8 shrink-0 place-items-center rounded-xl text-ink-3 hover:text-ink"
-          >
-            <ChevronLeft className="size-[18px]" />
-          </button>
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <motion.div
-              key={weekStart}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.35}
-              dragSnapToOrigin
-              onDragEnd={onDragEnd}
-              initial={{ opacity: 0.4 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.25 }}
-              className="grid touch-pan-y grid-cols-7"
+            <button
+              type="button"
+              aria-label="Next week"
+              onClick={() => go(addDays(state.date, 7))}
+              className="tap -mr-2.5 grid size-11 place-items-center rounded-full text-ink-2 hover:text-ink"
             >
-              {days.map((d, i) => {
-                const selected = state.view === "day" && d === state.date;
-                const isT = d === today;
-                const dayDots = dots[d] ?? [];
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => {
-                      if (dragged.current) return;
-                      go(d, "day");
-                    }}
-                    aria-label={d}
-                    aria-current={selected ? "date" : undefined}
-                    className="tap relative mx-[3px] flex h-[60px] flex-col items-center justify-center gap-[3px] rounded-2xl"
-                  >
-                    {selected && (
-                      <motion.span
-                        layoutId="plan-day-pill"
-                        transition={springs.snappy}
-                        className={cn("absolute inset-0 rounded-2xl", isT ? "bg-accent" : "bg-ink")}
-                      />
-                    )}
-                    {!selected && isT && <span className="absolute inset-0 rounded-2xl bg-accent-soft" />}
-                    <span
-                      className={cn(
-                        "relative text-[10.5px] font-semibold tracking-wide",
-                        selected ? (isT ? "text-accent-ink/80" : "text-bg/70") : isT ? "text-accent" : "text-ink-3",
-                      )}
-                    >
-                      {WEEKDAY_LETTER[i]}
-                    </span>
-                    <span
-                      className={cn(
-                        "tnum relative text-[16px] leading-none font-semibold",
-                        selected ? (isT ? "text-accent-ink" : "text-bg") : isT ? "text-accent" : "text-ink",
-                      )}
-                    >
-                      {dayOfMonth(d)}
-                    </span>
-                    <span className="relative flex h-1 items-center gap-[3px]" aria-hidden>
-                      {dayDots.map((c, j) => (
-                        <span
-                          key={j}
-                          className={cn("size-1 rounded-full", selected && "ring-1 ring-black/10")}
-                          style={{
-                            background: c === "neutral" ? "var(--ink-3)" : colorVar(c),
-                          }}
-                        />
-                      ))}
-                    </span>
-                  </button>
-                );
-              })}
-            </motion.div>
+              <ChevronRight className="size-5" />
+            </button>
           </div>
-          <button
-            type="button"
-            aria-label="Next week"
-            onClick={() => go(addDays(state.date, 7))}
-            className="tap grid h-[60px] w-8 shrink-0 place-items-center rounded-xl text-ink-3 hover:text-ink"
-          >
-            <ChevronRight className="size-[18px]" />
-          </button>
         </div>
-        {summary}
+        <p className="tnum mt-0.5 text-[14.5px] text-ink-3">
+          {rangeLabel(weekStart)}
+          {week && <> · {week}</>}
+        </p>
+      </header>
+
+      <div data-week-sticky className="sticky top-0 z-30 -mx-4 border-b border-line bg-bg px-4 pt-safe sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+        <div className="overflow-hidden pt-1">
+          <motion.div
+            key={weekStart}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.35}
+            dragSnapToOrigin
+            onDragEnd={onDragEnd}
+            initial={{ opacity: 0.4 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
+            className="grid touch-pan-y grid-cols-7 gap-1"
+            role="tablist"
+            aria-label="Days of the week"
+          >
+            {days.map((d, i) => (
+              <RibbonDay
+                key={d}
+                date={d}
+                letter={WEEKDAY_LETTER[i]}
+                today={today}
+                selected={state.view === "day" && d === state.date}
+                load={sameWeek ? loads[d] : undefined}
+                onSelect={() => {
+                  if (!dragged.current) go(d, "day");
+                }}
+              />
+            ))}
+          </motion.div>
+        </div>
+        <div className="flex h-12 items-center gap-3">
+          <p className="tnum min-w-0 flex-1 truncate text-[13px] text-ink-2" aria-live="polite">
+            {capLine || "\u00a0"}
+          </p>
+          <Segmented
+            size="sm"
+            className="w-[112px] shrink-0"
+            value={state.view}
+            onChange={(v) => go(state.date, v)}
+            options={[
+              { value: "day", label: "Day" },
+              { value: "week", label: "Week" },
+            ]}
+          />
+        </div>
       </div>
     </>
+  );
+}
+
+const BAR_H = 32;
+
+function RibbonDay({
+  date,
+  letter,
+  today,
+  selected,
+  load,
+  onSelect,
+}: {
+  date: string;
+  letter: string;
+  today: string;
+  selected: boolean;
+  load: DayLoad | undefined;
+  onSelect: () => void;
+}) {
+  const isToday = date === today;
+  const past = date < today;
+  const parts = load?.parts ?? [];
+  const span = load?.span ?? 1;
+  return (
+    <button
+      type="button"
+      role="tab"
+      onClick={onSelect}
+      aria-selected={selected}
+      aria-label={`${formatWeekdayShort(date)} ${dayOfMonth(date)}`}
+      className="tap relative flex h-[88px] flex-col items-center justify-center gap-1.5 rounded-[14px]"
+    >
+      {selected && (
+        <motion.span
+          layoutId="week-ribbon-day"
+          transition={springs.snappy}
+          className="absolute inset-0 rounded-[14px] border-[1.5px] border-accent bg-accent-soft"
+        />
+      )}
+      <span className={cn("relative text-[11px] font-medium", isToday ? "text-accent" : "text-ink-3")}>{letter}</span>
+      <span
+        className={cn(
+          "tnum relative text-[16px] leading-none font-semibold",
+          isToday ? "text-accent" : past ? "text-ink-3" : "text-ink",
+        )}
+      >
+        {dayOfMonth(date)}
+      </span>
+      {/* load: planned (solid, by colour) over free (the track) */}
+      <span
+        aria-hidden
+        className="relative flex w-2 flex-col-reverse overflow-hidden rounded-full bg-line-strong"
+        style={{ height: BAR_H }}
+      >
+        {parts.map((p, j) => (
+          <motion.span
+            key={j}
+            className={cn("block w-full shrink-0", past && "opacity-60")}
+            initial={false}
+            animate={{ height: Math.max(2, Math.min(1, p.min / span) * BAR_H) }}
+            transition={springs.smooth}
+            style={{ background: p.color ? colorVar(p.color) : "var(--ink-2)" }}
+          />
+        ))}
+      </span>
+    </button>
   );
 }

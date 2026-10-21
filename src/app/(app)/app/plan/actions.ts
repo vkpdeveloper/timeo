@@ -45,3 +45,21 @@ export async function addScheduledWorkout(date: string) {
   });
   refresh();
 }
+
+/** Drag the bottom edge of a block: a new end time, at least 15 minutes after the start. */
+export async function resizeBlock(id: string, rawEnd: number) {
+  const user = await requireUser();
+  if (typeof id !== "string" || !Number.isFinite(rawEnd)) throw new Error("Pick a valid time");
+  const b = await db
+    .select({ startMin: t.blocks.startMin })
+    .from(t.blocks)
+    .where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id)))
+    .get();
+  if (!b) throw new Error("Block not found");
+  const endMin = Math.min(24 * 60, Math.max(b.startMin + 15, Math.round(rawEnd)));
+  await db
+    .update(t.blocks)
+    .set({ endMin })
+    .where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id)));
+  refresh();
+}

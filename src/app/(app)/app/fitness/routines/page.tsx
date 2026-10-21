@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { SubmitButton } from "@/components/ui/button";
 import { EmptyState, PageHeader, Row, RowIcon, Section, Skeleton, SubHeader } from "@/components/ui/primitives";
 import { requireUser } from "@/lib/auth";
+import { colorVar } from "@/lib/colors";
 import { WEEKDAY_SHORT } from "@/lib/dates";
 import { getRoutines, getSchedule } from "@/lib/fitness";
 import { startWorkout } from "../actions";
@@ -11,24 +12,14 @@ import { createRoutine } from "./actions";
 export default function RoutinesPage() {
   return (
     <>
-      <SubHeader
-        back="/app/fitness"
-        backLabel="Fitness"
-        action={
-          <form action={createRoutine}>
-            <SubmitButton variant="ghost" size="icon" className="-mr-2 text-accent" aria-label="New routine">
-              <Plus className="size-5" />
-            </SubmitButton>
-          </form>
-        }
-      />
+      <SubHeader back="/app/fitness" backLabel="Body" />
       <Suspense
         fallback={
           <div>
             <div className="pt-5 pb-4">
               <Skeleton className="h-9 w-40" />
             </div>
-            <Skeleton className="h-72 rounded-[20px]" />
+            <Skeleton className="h-72 rounded-[16px]" />
           </div>
         }
       >
@@ -80,8 +71,8 @@ async function RoutineList() {
                 href={`/app/fitness/routines/${r.id}`}
                 className="min-w-0 flex-1 border-b-0! pr-2"
                 icon={
-                  <RowIcon color={r.color}>
-                    <Dumbbell />
+                  <RowIcon>
+                    <span className="size-2.5 rounded-full" style={{ background: colorVar(r.color) }} />
                   </RowIcon>
                 }
                 title={r.name}
@@ -89,7 +80,7 @@ async function RoutineList() {
                 chevron={false}
               />
               <form action={startWorkout.bind(null, r.id, undefined)} className="shrink-0 pr-3">
-                <SubmitButton variant="secondary" size="sm" aria-label={`Start ${r.name}`}>
+                <SubmitButton variant="secondary" size="sm" className="h-11 px-3.5" aria-label={`Start ${r.name}`}>
                   <Play className="size-3 fill-current" /> Start
                 </SubmitButton>
               </form>

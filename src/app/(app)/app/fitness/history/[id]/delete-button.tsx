@@ -13,7 +13,7 @@ export function DeleteWorkoutButton({ id }: { id: string }) {
       variant="danger"
       size={confirm ? "lg" : "icon"}
       loading={pending}
-      className={confirm ? "flex-1" : "size-12 rounded-2xl"}
+      className={confirm ? "flex-1" : "size-12 rounded-[12px]"}
       aria-label="Delete session"
       onClick={() => (confirm ? start(() => deleteWorkout(id)) : setConfirm(true))}
     >

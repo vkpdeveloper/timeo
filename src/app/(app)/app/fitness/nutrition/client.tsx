@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useOptimistic, useState, useTransition } from "react";
 import { deleteMealLog, logPlannedMeal } from "@/actions/health";
@@ -10,8 +10,9 @@ import { listItem } from "@/components/ui/motion";
 import { Sheet } from "@/components/ui/sheet";
 import type { DietPlanMeal, MealLog } from "@/db/schema";
 import { cn } from "@/lib/cn";
-import { formatMin } from "@/lib/dates";
+import { toTimeInput } from "@/lib/dates";
 import { GOAL_LABEL, type LibraryPlan } from "@/lib/diet-library";
+import { ConfirmDelete } from "../_components/confirm-delete";
 import { addLibraryPlan, setActivePlan } from "./actions";
 
 const macroLine = (m: { calories: number; proteinG: number; carbsG: number; fatG: number }) =>
@@ -38,8 +39,8 @@ export function PlanMeals({ meals, logged, today }: { meals: DietPlanMeal[]; log
         const ate = done.includes(m.id);
         return (
           <div key={m.id} className="flex min-h-[52px] items-center gap-3 px-4 py-2.5">
-            <div className="tnum w-11 shrink-0 text-[12.5px] font-medium text-ink-3">
-              {m.timeMin != null ? formatMin(m.timeMin, true) : ""}
+            <div className="mono w-11 shrink-0 text-[12.5px] text-ink-3">
+              {m.timeMin != null ? toTimeInput(m.timeMin) : ""}
             </div>
             <div className="min-w-0 flex-1">
               <div className={cn("truncate text-[15px] font-medium transition-colors", ate ? "text-ink-3" : "text-ink")}>{m.name}</div>
@@ -57,7 +58,7 @@ export function PlanMeals({ meals, logged, today }: { meals: DietPlanMeal[]; log
                 })
               }
               className={cn(
-                "tap inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-semibold transition-colors",
+                "tap inline-flex h-11 shrink-0 items-center gap-1 rounded-[12px] px-3.5 text-[14px] font-medium transition-colors",
                 ate ? "bg-ok-soft text-ok" : "bg-sunken text-ink",
               )}
               aria-label={ate ? `Log ${m.name} again` : `Log ${m.name}`}
@@ -91,19 +92,15 @@ export function LoggedMeals({ meals }: { meals: MealLog[] }) {
               <div className="truncate text-[15px] font-medium text-ink">{m.name}</div>
               <div className="tnum truncate text-[12.5px] text-ink-3">{macroLine(m)}</div>
             </div>
-            <button
-              type="button"
-              aria-label={`Delete ${m.name}`}
-              onClick={() =>
+            <ConfirmDelete
+              label={`Delete ${m.name}`}
+              onDelete={() =>
                 start(async () => {
                   remove(m.id);
                   await deleteMealLog(m.id);
                 })
               }
-              className="tap grid size-11 shrink-0 place-items-center rounded-full text-ink-3"
-            >
-              <Trash2 className="size-4" />
-            </button>
+            />
           </motion.div>
         ))}
       </AnimatePresence>
@@ -169,7 +166,7 @@ export function LibraryCard({ plan, added }: { plan: LibraryPlan; added: boolean
             ["Carbs", `${plan.carbsG} g`],
             ["Fat", `${plan.fatG} g`],
           ].map(([l, v]) => (
-            <div key={l} className="rounded-2xl bg-sunken px-2 py-2.5">
+            <div key={l} className="rounded-[12px] bg-sunken px-2 py-2.5">
               <div className="text-[15px] font-semibold text-ink">{v}</div>
               <div className="text-[11px] text-ink-3">{l}</div>
             </div>
@@ -179,7 +176,7 @@ export function LibraryCard({ plan, added }: { plan: LibraryPlan; added: boolean
           <div key={m.name} className="border-b border-line py-3 last:border-0">
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[15px] font-semibold text-ink">{m.name}</span>
-              <span className="tnum text-[12.5px] text-ink-3">{m.time}</span>
+              <span className="mono text-[12.5px] text-ink-3">{m.time}</span>
             </div>
             <ul className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
               {m.items.map((i) => (

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Landing } from "@/components/landing/landing";
 
-const title = "Timeo · Always know what to do next";
+const title = "Timeo · Put your hours where your goals are";
 const description =
-  "Twelve-week seasons, time blocks, focus, training and an assistant that runs in the background. Every day opens with a plain answer: what matters now, how much time is left, what to do next.";
+  "Choose two or three goals for a 12-week season. Timeo turns them into time blocks and focus sessions, with an assistant that plans with you.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "https://timeo.ordinity.com"),
@@ -14,9 +14,10 @@ export const metadata: Metadata = {
     siteName: "Timeo",
     title,
     description,
-    images: [{ url: "/landing/desktop.png", width: 2880, height: 1800, alt: "Timeo on desktop" }],
+    url: "/",
+    images: [{ url: "/landing/og.png", width: 1200, height: 630, alt: "Timeo. Put your hours where your goals are." }],
   },
-  twitter: { card: "summary_large_image", title, description, images: ["/landing/desktop.png"] },
+  twitter: { card: "summary_large_image", title, description, images: ["/landing/og.png"] },
 };
 
 export default function WelcomePage() {

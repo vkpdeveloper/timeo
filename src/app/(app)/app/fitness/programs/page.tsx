@@ -10,15 +10,15 @@ import { ProgramCard, SaveCurrentButton, type ProgramView } from "./client";
 export default function ProgramsPage() {
   return (
     <>
-      <SubHeader back="/app/fitness" backLabel="Fitness" />
+      <SubHeader back="/app/fitness" backLabel="Body" />
       <Suspense
         fallback={
           <div>
             <div className="pt-5 pb-4">
               <Skeleton className="h-9 w-40" />
             </div>
-            <Skeleton className="h-48 rounded-[20px]" />
-            <Skeleton className="mt-3 h-48 rounded-[20px]" />
+            <Skeleton className="h-48 rounded-[16px]" />
+            <Skeleton className="mt-3 h-48 rounded-[16px]" />
           </div>
         }
       >
@@ -34,7 +34,7 @@ function view(data: ProgramData): Pick<ProgramView, "days" | "routines"> {
     days: Array.from({ length: 7 }, (_, wd) => {
       const d = data.schedule.find((x) => x.weekday === wd);
       const name = d?.routine ?? null;
-      return { name: name ?? d?.label ?? "Rest", color: name ? (colorOf.get(name.toLowerCase()) ?? "slate") : null };
+      return { name: name ?? d?.label ?? "Rest", color: name ? (colorOf.get(name.toLowerCase()) ?? "stone") : null };
     }),
     routines: data.routines.map((r) => ({
       name: r.name,

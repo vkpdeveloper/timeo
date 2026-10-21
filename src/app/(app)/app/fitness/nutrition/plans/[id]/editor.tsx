@@ -7,7 +7,7 @@ import { Field, Input, PillPicker, Textarea } from "@/components/ui/controls";
 import { TimePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
 import type { DietPlan, DietPlanMeal } from "@/db/schema";
-import { formatMin, toTimeInput } from "@/lib/dates";
+import { toTimeInput } from "@/lib/dates";
 import { GOAL_LABEL } from "@/lib/diet-library";
 import { sumMacros } from "@/lib/fitness-math";
 import { ErrorNote } from "../../../_components/day-actions";
@@ -54,9 +54,9 @@ export function PlanEditor({ plan, meals, isNew }: { plan: DietPlan; meals: Diet
             {GOAL_LABEL[plan.goal]}
             {plan.active && <span className="text-ok"> · Active</span>}
           </div>
-          <h1 className="display mt-1 text-[32px] lg:text-[40px] text-ink">{plan.name}</h1>
+          <h1 className="display mt-1 text-[28px] text-ink">{plan.name}</h1>
           {plan.description && <p className="mt-1 text-[14.5px] leading-relaxed text-ink-2">{plan.description}</p>}
-          <span className="mt-2 inline-block text-[13px] font-semibold text-accent">Edit targets</span>
+          <span className="mt-2 inline-block text-[13px] font-medium text-ink underline decoration-line-strong underline-offset-4">Edit targets</span>
         </button>
       </header>
 
@@ -79,7 +79,7 @@ export function PlanEditor({ plan, meals, isNew }: { plan: DietPlan; meals: Diet
           type="button"
           disabled={pending}
           onClick={() => start(() => syncPlanTotals(plan.id))}
-          className="tap mt-2 w-full rounded-2xl px-4 py-2 text-left text-[13px] font-medium text-accent"
+          className="tap mt-2 w-full rounded-[12px] px-4 py-2 text-left text-[13px] font-medium text-ink-2"
         >
           Meals add up differently. Use meal totals as targets.
         </button>
@@ -97,11 +97,11 @@ export function PlanEditor({ plan, meals, isNew }: { plan: DietPlan; meals: Diet
             onClick={() => setMeal(m)}
             className="tap flex w-full items-start gap-3 border-b border-line px-4 py-3.5 text-left last:border-0 active:bg-sunken"
           >
-            <div className="tnum w-14 shrink-0 pt-0.5 text-[12.5px] font-medium text-ink-3">
-              {m.timeMin != null ? formatMin(m.timeMin, true) : ""}
+            <div className="mono w-12 shrink-0 pt-0.5 text-[12.5px] text-ink-3">
+              {m.timeMin != null ? toTimeInput(m.timeMin) : ""}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-semibold text-ink">{m.name}</div>
+              <div className="text-[15px] font-medium text-ink">{m.name}</div>
               {m.items && <div className="mt-0.5 text-[13px] leading-snug whitespace-pre-line text-ink-2">{m.items}</div>}
               <div className="tnum mt-1 text-[12px] text-ink-3">
                 {m.calories} kcal · P {m.proteinG} · C {m.carbsG} · F {m.fatG}
@@ -112,7 +112,7 @@ export function PlanEditor({ plan, meals, isNew }: { plan: DietPlan; meals: Diet
         <button
           type="button"
           onClick={() => setMeal("new")}
-          className={`tap flex w-full items-center justify-center gap-1.5 py-3.5 text-[14.5px] font-semibold text-accent ${meals.length ? "border-t border-line" : ""}`}
+          className={`tap flex w-full items-center justify-center gap-1.5 py-3.5 text-[14.5px] font-medium text-ink-2 ${meals.length ? "border-t border-line" : ""}`}
         >
           <Plus className="size-4" /> Add meal
         </button>
@@ -221,7 +221,7 @@ function MealEditSheet({ planId, meal, onClose }: { planId: string; meal: DietPl
                 type="button"
                 variant="danger"
                 size="icon"
-                className="size-[52px] rounded-2xl"
+                className="size-[52px] rounded-[12px]"
                 loading={pending}
                 aria-label="Delete meal"
                 onClick={() =>
@@ -252,7 +252,7 @@ function DeletePlan({ id }: { id: string }) {
       type="button"
       disabled={pending}
       onClick={() => (confirm ? start(() => deletePlan(id)) : setConfirm(true))}
-      className="tap h-11 w-full rounded-2xl text-[14px] font-semibold text-bad"
+      className="tap h-11 w-full rounded-[12px] text-[14px] font-medium text-ink-2 hover:text-ink"
     >
       {pending ? "Deleting…" : confirm ? "Tap again to delete this plan" : "Delete plan"}
     </button>

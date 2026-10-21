@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { db, t } from "@/db";
 import { GOAL_AREAS, GOAL_STATUSES, GOAL_TIERS } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { isPaletteColor } from "@/lib/colors";
+import { DEFAULT_COLOR, isPaletteColor } from "@/lib/colors";
 import { addDays, isValidISODate, nowMinIn, startOfWeek } from "@/lib/dates";
 import { clamp, date, int, num, oneOf, reqStr, str } from "@/lib/form";
 import { getActiveSeason, ownGoalId, seasonEndFor } from "@/lib/queries";
@@ -54,7 +54,7 @@ export async function createSeason(draft: SeasonDraft) {
     why: cut(g.why, 500) || null,
     tier: pick(g.tier, GOAL_TIERS, "core"),
     area: pick(g.area, GOAL_AREAS, "work"),
-    color: isPaletteColor(g.color) ? g.color : "coral",
+    color: isPaletteColor(g.color) ? g.color : DEFAULT_COLOR,
     weeklyHours: clamp(Number(g.weeklyHours) || 0, 0, 80),
     system: cut(g.system, 300) || null,
     sortOrder: i,
@@ -115,7 +115,7 @@ function goalFields(fd: FormData) {
     system: str(fd, "system"),
     tier: oneOf(fd, "tier", GOAL_TIERS, "core"),
     area: oneOf(fd, "area", GOAL_AREAS, "work"),
-    color: isPaletteColor(color) ? color : "coral",
+    color: isPaletteColor(color) ? color : DEFAULT_COLOR,
     weeklyHours: clamp(num(fd, "weeklyHours") ?? 3, 0, 80),
   };
 }

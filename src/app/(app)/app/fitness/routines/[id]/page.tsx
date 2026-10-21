@@ -15,8 +15,10 @@ export default function RoutinePage(props: PageProps<"/app/fitness/routines/[id]
       <Suspense
         fallback={
           <div className="pt-6">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="mt-6 h-64 rounded-[22px]" />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="mt-2 h-8 w-48" />
+            <Skeleton className="mt-5 h-[52px] rounded-[12px]" />
+            <Skeleton className="mt-8 h-64 rounded-[16px]" />
           </div>
         }
       >

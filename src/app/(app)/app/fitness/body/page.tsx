@@ -13,7 +13,7 @@ import { BodyEntries, WeighInButton } from "./client";
 export default function BodyPage() {
   return (
     <>
-      <SubHeader back="/app/fitness" backLabel="Fitness" />
+      <SubHeader back="/app/fitness" backLabel="Body" />
       <Suspense
         fallback={
           <div>
@@ -21,7 +21,7 @@ export default function BodyPage() {
               <Skeleton className="h-9 w-40" />
             </div>
             <Skeleton className="h-12" />
-            <Skeleton className="mt-6 h-56 rounded-[20px]" />
+            <Skeleton className="mt-6 h-56 rounded-[16px]" />
           </div>
         }
       >
@@ -55,7 +55,7 @@ async function Body() {
   return (
     <div>
       <PageHeader
-        title="Body"
+        title="Weight"
         subtitle={latest ? "Weigh in at the same time each day. Watch the average." : "A few weigh-ins a week is enough to see the trend."}
       />
 
@@ -79,16 +79,16 @@ async function Body() {
               action={
                 <span className="flex items-center gap-3 text-[12px] font-normal">
                   <span className="flex items-center gap-1.5">
-                    <span className="h-0.5 w-3.5 rounded-full bg-[var(--c-teal)]" /> Average
+                    <span className="h-0.5 w-3.5 rounded-full bg-accent" /> Average
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-[var(--c-teal)] opacity-40" /> Daily
+                    <span className="size-1.5 rounded-full bg-accent opacity-40" /> Daily
                   </span>
                 </span>
               }
             >
               <Card className="rise px-2 pt-2 pb-2">
-                <LineChart points={points} avg={avg} unit=" kg" color="var(--c-teal)" height={200} label="Body weight with 7-day average" />
+                <LineChart points={points} avg={avg} unit=" kg" color="var(--accent)" height={200} label="Body weight with 7-day average" />
               </Card>
             </Section>
           )}

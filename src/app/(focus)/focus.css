@@ -1,204 +1,44 @@
-/* Focus mode is always dark and immersive, whatever the system theme.
-   .focus-vars carries the tokens alone, for sheets portalled out of the page. */
-.focus-theme,
-.focus-vars {
-  --bg: #0a0a0b;
-  --surface: #151517;
-  --surface-2: #1b1b1e;
-  --sunken: #19191c;
-  --line: rgb(255 255 255 / 0.07);
-  --line-strong: rgb(255 255 255 / 0.13);
-  --ink: #f3f2ee;
-  --ink-2: #aaa69f;
-  --ink-3: #6c6963;
-  --accent: #ff7a52;
-  --accent-ink: #1a0d08;
-  --ok: #5cc28f;
-  --warn: #ebb04b;
-  --bad: #f0715d;
-  --shadow-sm: 0 0 0 1px rgb(255 255 255 / 0.02);
-  --shadow-lg: 0 24px 60px -12px rgb(0 0 0 / 0.7);
-  --glass: rgb(10 10 11 / 0.72);
+/* Focus mode uses the normal Pine tokens. Only the big clock needs sizing rules. */
 
-  --c-coral: #ff7a52;
-  --c-amber: #ebb04b;
-  --c-sage: #6cc08c;
-  --c-teal: #4cc2bf;
-  --c-sky: #63a8ec;
-  --c-indigo: #8288f0;
-  --c-violet: #ad86ee;
-  --c-rose: #f07c9f;
-  --c-slate: #9a9ea8;
-
-  --c-coral-soft: color-mix(in oklab, var(--c-coral) 16%, var(--surface));
-  --c-amber-soft: color-mix(in oklab, var(--c-amber) 16%, var(--surface));
-  --c-sage-soft: color-mix(in oklab, var(--c-sage) 16%, var(--surface));
-  --c-teal-soft: color-mix(in oklab, var(--c-teal) 16%, var(--surface));
-  --c-sky-soft: color-mix(in oklab, var(--c-sky) 16%, var(--surface));
-  --c-indigo-soft: color-mix(in oklab, var(--c-indigo) 16%, var(--surface));
-  --c-violet-soft: color-mix(in oklab, var(--c-violet) 16%, var(--surface));
-  --c-rose-soft: color-mix(in oklab, var(--c-rose) 16%, var(--surface));
-  --c-slate-soft: color-mix(in oklab, var(--c-slate) 14%, var(--surface));
-  --accent-soft: color-mix(in oklab, var(--accent) 16%, var(--surface));
-  --ok-soft: color-mix(in oklab, var(--ok) 16%, var(--surface));
-  --warn-soft: color-mix(in oklab, var(--warn) 16%, var(--surface));
-  --bad-soft: color-mix(in oklab, var(--bad) 16%, var(--surface));
-  --tint: var(--accent);
-  --tint-soft: var(--accent-soft);
-  --focus: rgb(255 255 255 / 0.28);
-
-  color-scheme: dark;
-  color: var(--ink);
+/* The timer: Geist Mono, light, sized to the screen whatever its shape. */
+.focus-clock {
+  font-family: var(--font-mono);
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  font-size: clamp(64px, min(24vw, 17dvh), 168px);
 }
-.focus-theme {
-  background: var(--bg);
+.focus-clock[data-long] {
+  font-size: clamp(52px, min(18vw, 14dvh), 132px);
 }
 
-.focus-glow {
-  background: radial-gradient(60% 42% at 50% 46%, color-mix(in oklab, var(--glow, var(--accent)) 22%, transparent), transparent 70%);
-  animation: focus-breathe 8s ease-in-out infinite;
+/* Phones on their side and short windows: a little less air. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .focus-clock {
+    font-size: clamp(56px, 24dvh, 120px);
+  }
+  .focus-clock[data-long] {
+    font-size: clamp(48px, 20dvh, 104px);
+  }
 }
 
+/* Paused: the clock breathes (opacity only). */
+.focus-breathe {
+  animation: focus-breathe 2.4s ease-in-out infinite;
+}
 @keyframes focus-breathe {
   0%,
   100% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.06);
-  }
-}
-
-/* Timer: what you're on, the dial, then controls in thumb reach. */
-.focus-run {
-  flex: 1;
-  display: grid;
-  grid-template: "." 1fr "label" auto "dial" auto "." 1fr "controls" auto / 1fr;
-  row-gap: 28px;
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
-/* The dial fits the screen whatever its shape; the clock inside scales with it (cqw). */
-.focus-dial {
-  width: min(84vw, calc(100dvh - 400px), 480px);
-  min-width: 232px;
-  aspect-ratio: 1;
-  container-type: inline-size;
-}
-.focus-dial.focus-dial-setup {
-  width: min(68vw, calc(100dvh - 520px), 340px);
-  min-width: 200px;
-}
-
-.focus-dial-in {
-  animation: focus-dial-in 900ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-@keyframes focus-dial-in {
-  from {
-    opacity: 0;
-    transform: rotate(-150deg) scale(0.94);
-  }
-}
-
-/* Phones on their side and short windows: dial left, the rest beside it. */
-@media (orientation: landscape) and (max-height: 600px) {
-  .focus-run {
-    grid-template: "dial label" 1fr "dial controls" 1fr / 1fr 1fr;
-    align-content: center;
-    column-gap: 40px;
-    row-gap: 24px;
-    padding-top: 0;
-  }
-  .focus-dial {
-    width: min(calc(100dvh - 110px), 44vw);
-    min-width: 0;
-  }
-  .focus-label {
-    align-self: end;
-  }
-  .focus-controls {
-    align-self: start;
-  }
-  .focus-glow {
-    background: radial-gradient(40% 70% at 27% 50%, color-mix(in oklab, var(--glow, var(--accent)) 22%, transparent), transparent 70%);
-  }
-}
-
-/* The end of a session: one soft bloom behind the closing ring. */
-.focus-glow-once {
-  animation: focus-glow-once 2.4s ease-out both;
-}
-@keyframes focus-glow-once {
-  0% {
-    opacity: 0;
-  }
-  35% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.45;
-  }
-}
-.focus-bloom {
-  opacity: 0;
-  filter: blur(18px);
-  animation: focus-bloom 1.8s 0.6s ease-out both;
-}
-@keyframes focus-bloom {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  40% {
-    opacity: 0.45;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.9);
-  }
-}
-
-/* Light, slightly wide Mona Sans for the big numbers. */
-.focus-numerals {
-  font-family: var(--font-sans);
-  font-weight: 250;
-  font-stretch: 112%;
-  letter-spacing: -0.02em;
-}
-.focus-digit {
-  display: inline-block;
-  width: 0.62em;
-  text-align: center;
-}
-.focus-colon {
-  display: inline-block;
-  width: 0.25em;
-  text-align: center;
-  color: var(--ink-3);
-  transform: translateY(-0.05em);
-}
-
-.focus-pulse {
-  animation: focus-blink 2s ease-in-out infinite;
-}
-@keyframes focus-blink {
-  0%,
-  100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.25;
+    opacity: 0.4;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .focus-glow,
-  .focus-pulse,
-  .focus-dial-in,
-  .focus-bloom {
+  .focus-breathe {
     animation: none;
   }
 }

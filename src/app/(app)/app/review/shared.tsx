@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { addDays, diffDays, formatDuration, formatMonthDay } from "@/lib/dates";
 import type { GoalStatus } from "./data";
 
-const DOT: Record<GoalStatus, string> = { on_track: "bg-ok", adjust: "bg-warn", off_track: "bg-bad" };
+const DOT: Record<GoalStatus, string> = { on_track: "bg-ok", adjust: "bg-warn", off_track: "bg-bad" }; // bad is a stronger amber
 
 /** Season week number for the calendar week starting on `weekStart`, or null outside the season. */
 export function seasonWeek(weekStart: string, season?: { startDate: string; endDate: string } | null) {

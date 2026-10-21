@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, LineChart, Repeat, Trash2, Trophy } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, LineChart, Repeat, Trash2, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ function MenuItem({
 }) {
   const cls = cn(
     "tap flex h-14 w-full items-center gap-3.5 border-b border-line px-1 text-left text-[16px] font-medium last:border-0 disabled:opacity-35 [&_svg]:size-[19px]",
-    danger ? "text-bad" : "text-ink",
+    "text-ink",
   );
   return href ? (
     <Link href={href} className={cls}>
@@ -46,7 +46,7 @@ function MenuItem({
     </Link>
   ) : (
     <button type="button" onClick={onClick} disabled={disabled} className={cls}>
-      <span className={danger ? "text-bad" : "text-ink-3"}>{icon}</span>
+      <span className={danger ? "text-ink-2" : "text-ink-3"}>{icon}</span>
       {children}
     </button>
   );
@@ -147,7 +147,7 @@ export function SetMenu({
               type="button"
               variant="danger"
               size="icon"
-              className="size-[52px] rounded-2xl"
+              className="size-12 rounded-[12px]"
               aria-label="Delete set"
               onClick={onDelete}
             >
@@ -239,8 +239,8 @@ export function FinishSheet({
       <p className="mt-2 px-1 text-[12px] text-ink-3">Volume counts sets with known weight, as logged.</p>
 
       {prs.length > 0 && (
-        <div className="mt-4 animate-pop rounded-2xl bg-[var(--c-amber-soft)] p-3.5">
-          <div className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-[var(--c-amber)]">
+        <div className="mt-4 animate-pop rounded-[16px] bg-accent-soft p-3.5">
+          <div className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-accent">
             <Trophy className="size-4" /> {prs.length === 1 ? "New best" : `${prs.length} new bests`}
           </div>
           <ul className="flex flex-col gap-1.5">
@@ -257,7 +257,7 @@ export function FinishSheet({
       )}
 
       {undone > 0 && (
-        <p className="mt-4 rounded-2xl bg-warn-soft px-3.5 py-2.5 text-[13.5px] text-warn">
+        <p className="mt-4 rounded-[12px] bg-warn-soft px-3.5 py-2.5 text-[13.5px] text-warn">
           {undone} unticked {undone === 1 ? "set" : "sets"} will be dropped. Tick a set to keep it.
         </p>
       )}
@@ -271,7 +271,7 @@ export function FinishSheet({
               aria-pressed={feeling === f.value}
               onClick={() => setFeeling(feeling === f.value ? null : f.value)}
               className={cn(
-                "tap flex h-14 flex-col items-center justify-center rounded-2xl text-[12px] font-semibold",
+                "tap flex h-14 flex-col items-center justify-center rounded-[12px] text-[12px] font-medium",
                 feeling === f.value ? "bg-ink text-bg" : "bg-sunken text-ink-2",
               )}
             >
@@ -284,7 +284,12 @@ export function FinishSheet({
       <Field label="Notes">
         <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Energy, form, anything to change next time" />
       </Field>
-      {error && <p className="mb-3 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
+      {error && (
+        <p role="alert" className="mb-3 flex items-start gap-2 text-[13.5px] leading-snug font-medium text-bad">
+          <CircleAlert className="mt-px size-4 shrink-0" />
+          {error}
+        </p>
+      )}
 
       <button
         type="button"
@@ -293,7 +298,7 @@ export function FinishSheet({
                 clearDraft(logId);
                 return discardWorkout(logId);
               }) : setConfirmDiscard(true))}
-        className="tap mt-1 h-11 w-full rounded-2xl text-[14px] font-semibold text-bad"
+        className="tap mt-1 h-11 w-full rounded-[12px] text-[14px] font-medium text-ink-2 hover:text-ink"
       >
         {discarding ? "Discarding…" : confirmDiscard ? "Tap again to delete this workout" : editing ? "Delete session" : "Discard workout"}
       </button>

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
-import { formatDuration, formatMin } from "@/lib/dates";
+import { formatDuration, toTimeInput } from "@/lib/dates";
 import { usePlan } from "./plan-provider";
 import type { GoalInfo, UnscheduledTask } from "./types";
 
@@ -65,9 +65,14 @@ export function UnscheduledTray({ date, tasks, goals }: { date: string; tasks: U
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-medium text-ink">{task.title}</div>
                       <div className="tnum truncate text-[12px] text-ink-3">
-                        {task.overdue && <span className="font-medium text-bad">Overdue · </span>}
+                        {task.overdue && <span className="font-medium text-warn">Overdue · </span>}
                         {formatDuration(minutes)}
-                        {task.slot && ` · free at ${formatMin(task.slot.start, true)}`}
+                        {task.slot && (
+                          <>
+                            {" · free at "}
+                            <span className="mono">{toTimeInput(task.slot.start)}</span>
+                          </>
+                        )}
                         {goal && ` · ${goal.title}`}
                       </div>
                     </div>

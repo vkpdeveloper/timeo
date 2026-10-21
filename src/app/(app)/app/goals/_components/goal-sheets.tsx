@@ -1,8 +1,8 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { CircleAlert } from "lucide-react";
 import { useState } from "react";
-import { Button, SubmitButton } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/button";
 import { ColorPicker, Field, Input, PillPicker, Segmented, Stepper, Textarea } from "@/components/ui/controls";
 import { Sheet } from "@/components/ui/sheet";
 import type { Goal, Season } from "@/db/schema";
@@ -28,7 +28,12 @@ export function useSubmit(action: (fd: FormData) => Promise<unknown>, onDone: ()
 
 export function ErrorNote({ error }: { error: string | null }) {
   if (!error) return null;
-  return <p className="mb-3 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>;
+  return (
+    <p role="alert" className="mb-3 flex items-start gap-2 px-1 text-[13.5px] font-medium text-warn">
+      <CircleAlert className="mt-px size-4 shrink-0" />
+      {error}
+    </p>
+  );
 }
 
 export function GoalSheet({
@@ -71,7 +76,7 @@ export function GoalSheet({
           <PillPicker<Area> name="area" defaultValue={goal?.area ?? "work"} options={AREAS.map((a) => ({ ...a }))} />
         </Field>
         <Field label="Colour">
-          <ColorPicker name="color" defaultValue={goal?.color ?? "coral"} />
+          <ColorPicker name="color" defaultValue={goal?.color} />
         </Field>
         <Field label="Hours per week">
           <Stepper name="weeklyHours" value={hours} onChange={setHours} step={0.5} min={0} max={40} format={fmtHours} />
@@ -80,18 +85,6 @@ export function GoalSheet({
         <SubmitButton variant="accent" size="lg" className="mt-2">{goal ? "Save" : "Add goal"}</SubmitButton>
       </form>
     </Sheet>
-  );
-}
-
-export function AddGoalButton({ endDateLabel }: { endDateLabel: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button variant="secondary" size="icon" aria-label="New goal" onClick={() => setOpen(true)}>
-        <Plus className="size-5" strokeWidth={2.2} />
-      </Button>
-      <GoalSheet open={open} onClose={() => setOpen(false)} endDateLabel={endDateLabel} />
-    </>
   );
 }
 

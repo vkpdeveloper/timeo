@@ -70,7 +70,7 @@ export function CatalogRows({
         <button
           type="button"
           onClick={() => setShown((n) => n + PAGE * 2)}
-          className="tap mt-3 h-11 rounded-2xl bg-sunken text-[14px] font-semibold text-ink-2"
+          className="tap mt-3 h-11 rounded-[12px] bg-sunken text-[14px] font-medium text-ink-2"
         >
           Show more · {entries.length - shown} left
         </button>
@@ -116,7 +116,7 @@ export function LibraryBrowser({ owned }: { owned: string[] }) {
       {!entries ? (
         <div className="space-y-2 pt-2">
           {Array.from({ length: 8 }, (_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded-2xl bg-sunken" />
+            <div key={i} className="h-16 animate-pulse rounded-[12px] bg-sunken" />
           ))}
         </div>
       ) : list.length ? (

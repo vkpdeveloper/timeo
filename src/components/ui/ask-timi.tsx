@@ -62,10 +62,10 @@ export function AskTimi({
       aria-live="polite"
       title={prompt}
       className={cn(
-        "tap relative inline-flex h-9 max-w-full shrink-0 items-center gap-1.5 rounded-full before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] border border-line bg-surface pr-3.5 pl-1.5 text-[13px] font-medium text-ink-2 shadow-soft",
+        "tap relative inline-flex h-9 max-w-full shrink-0 items-center gap-1.5 rounded-full before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] border border-line-strong bg-surface pr-3.5 pl-1.5 text-[13.5px] font-medium text-ink-2",
         "hover:text-ink",
         state === "sent" && "text-ink",
-        state === "error" && "text-bad",
+        state === "error" && "text-warn",
         className,
       )}
     >
@@ -82,8 +82,8 @@ export function AskTimi({
               <Check className="size-3.5" strokeWidth={3} />
             </motion.span>
           ) : (
-            <motion.span key="timi" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}>
-              <Timi size={22} mood={state === "sending" ? "thinking" : state === "error" ? "error" : "idle"} />
+            <motion.span key="timi" className="grid place-items-center" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}>
+              <Timi size={24} mood={state === "sending" ? "thinking" : state === "error" ? "error" : "idle"} />
             </motion.span>
           )}
         </AnimatePresence>

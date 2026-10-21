@@ -10,7 +10,7 @@ export default function LibraryPage() {
     <>
       <SubHeader back="/app/fitness/exercises" backLabel="Exercises" />
       <PageHeader title="Library" subtitle="Every exercise with photos and steps. Add one to use it in routines." />
-      <Suspense fallback={<Skeleton className="h-96 rounded-[20px]" />}>
+      <Suspense fallback={<Skeleton className="h-96 rounded-[16px]" />}>
         <Browser />
       </Suspense>
     </>

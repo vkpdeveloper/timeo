@@ -20,10 +20,10 @@ export default function FocusPage(props: PageProps<"/app/focus">) {
 
 function FocusSkeleton() {
   return (
-    <div className="mx-auto flex w-full max-w-[520px] flex-1 flex-col items-center justify-center gap-7 pt-12">
-      <Skeleton className="h-9 w-28" />
-      <Skeleton className="aspect-square w-[min(68vw,300px)] rounded-full!" />
-      <Skeleton className="h-11 w-72 rounded-full!" />
+    <div className="mx-auto flex w-full max-w-[520px] flex-1 flex-col items-center justify-center gap-6 pt-12">
+      <Skeleton className="h-5 w-40" />
+      <Skeleton className="h-24 w-[min(72vw,320px)]" />
+      <Skeleton className="h-1 w-[min(80vw,340px)]" />
       <Skeleton className="mt-auto h-14 w-full max-w-[400px]" />
     </div>
   );

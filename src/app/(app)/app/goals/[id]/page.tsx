@@ -24,14 +24,14 @@ export default function GoalPage(props: PageProps<"/app/goals/[id]">) {
 function GoalSkeleton() {
   return (
     <>
-      <SubHeader back="/app/goals" backLabel="Goals" />
+      <SubHeader back="/app/goals" backLabel="Season" />
       <div className="pt-4">
         <Skeleton className="h-3 w-28" />
-        <Skeleton className="mt-2 h-9 w-64" />
+        <Skeleton className="mt-2 h-8 w-64" />
         <Skeleton className="mt-2 h-4 w-56" />
-        <Skeleton className="mt-5 h-40 rounded-[20px]" />
-        <Skeleton className="mt-6 h-[104px] rounded-[20px]" />
-        <Skeleton className="mt-6 h-[160px] rounded-[20px]" />
+        <Skeleton className="mt-5 h-40 rounded-[16px]" />
+        <Skeleton className="mt-6 h-[104px] rounded-[16px]" />
+        <Skeleton className="mt-6 h-[160px] rounded-[16px]" />
       </div>
     </>
   );
@@ -82,21 +82,21 @@ async function GoalContent({ params }: { params: PageProps<"/app/goals/[id]">["p
 
   return (
     <div style={tint(goal.color)}>
-      <SubHeader back="/app/goals" backLabel="Goals" action={<GoalMenu goal={goal} endDateLabel={endLabel} />} />
+      <SubHeader back="/app/goals" backLabel="Season" action={<GoalMenu goal={goal} endDateLabel={endLabel} />} />
 
       {/* Hero: what it is, why it matters, how it's going */}
-      <header className="pt-4 pb-5">
+      <header className="page-enter pt-4 pb-5">
         <div className="eyebrow flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-tint" />
           {tierLabel(goal.tier)} · {areaLabel(goal.area)}
         </div>
-        <h1 className={cn("display mt-1.5 text-[30px] text-balance text-ink lg:text-[36px]", done && "text-ink-3 line-through decoration-line-strong")}>
+        <h1 className={cn("display mt-1.5 text-[26px] text-balance text-ink lg:text-[28px]", done && "text-ink-3 line-through decoration-line-strong")}>
           {goal.title}
         </h1>
         {goal.why && <p className="mt-1.5 text-[14.5px] leading-snug text-ink-2">{goal.why}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           {done ? (
-            <span className="inline-flex rounded-full bg-ok-soft px-2.5 py-1 text-[11.5px] font-semibold text-ok">
+            <span className="inline-flex rounded-full bg-ok-soft px-2.5 py-1 text-[12px] font-medium text-ok">
               Completed {goal.completedAt ? formatMonthDay(todayIn(user.timezone, new Date(goal.completedAt))) : ""}
             </span>
           ) : (
@@ -155,7 +155,7 @@ async function GoalContent({ params }: { params: PageProps<"/app/goals/[id]">["p
                     <span
                       className={cn(
                         "relative z-10 mt-[9px] size-2.5 rounded-full ring-4 ring-surface",
-                        u.status === "on_track" ? "bg-ok" : u.status === "adjust" ? "bg-warn" : "bg-bad",
+                        u.status === "on_track" ? "bg-ok" : "bg-warn",
                       )}
                     />
                     {i < updates.length - 1 && <span className="absolute top-[16px] -bottom-[18px] w-px bg-line-strong" />}

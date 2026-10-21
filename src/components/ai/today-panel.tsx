@@ -11,7 +11,7 @@ import { CheckCircle } from "@/components/ui/controls";
 import type { Block, Task } from "@/db/schema";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
-import { formatMin, formatMonthDay, formatWeekdayShort, relativeDay } from "@/lib/dates";
+import { formatMonthDay, formatWeekdayShort, relativeDay, toTimeInput } from "@/lib/dates";
 
 type Props = { today: string; nowMin: number; blocks: Block[]; tasks: Task[]; goals: GoalOption[] };
 
@@ -19,6 +19,7 @@ type Props = { today: string; nowMin: number; blocks: Block[]; tasks: Task[]; go
 const row = "flex min-h-11 items-center gap-2.5 rounded-[10px] px-2.5 lg:min-h-8 hover:bg-sunken";
 const title = "min-w-0 flex-1 truncate text-left text-[15px] text-ink lg:text-[13px]";
 const meta = "tnum shrink-0 text-[12.5px] text-ink-3 lg:text-[11.5px]";
+const time = "mono shrink-0 text-[12.5px] text-ink-3 lg:text-[11.5px]";
 
 /** Today's plan and tasks beside the chat, so you can tick things off while talking to Timi. */
 export function TodayPanel({ today, nowMin, blocks, tasks, goals }: Props) {
@@ -101,8 +102,8 @@ function PlanList({ blocks, goals, goalById, today, nowMin }: Omit<Props, "tasks
             <button type="button" onClick={() => setEditing(b)} className={cn(title, (isDone || b.skippedAt) && "text-ink-3 line-through")}>
               {b.title}
             </button>
-            {live && <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent" aria-label="Now" />}
-            <span className={cn(meta, live && "text-accent")}>{formatMin(b.startMin, true)}</span>
+            {live && <span className="size-1.5 shrink-0 animate-pulse-soft rounded-full bg-accent" aria-label="Now" />}
+            <span className={cn(time, live && "text-accent")}>{toTimeInput(b.startMin)}</span>
           </div>
         );
       })}
@@ -151,9 +152,9 @@ function TaskList({ tasks, goals, goalById, today }: { tasks: Task[]; goals: Goa
               {task.title}
             </button>
             {overdue ? (
-              <span className={cn(meta, "text-bad")}>{relativeDay(task.dueDate!, today)}</span>
+              <span className={cn(meta, "text-warn")}>{relativeDay(task.dueDate!, today)}</span>
             ) : (
-              task.dueMin != null && <span className={meta}>{formatMin(task.dueMin, true)}</span>
+              task.dueMin != null && <span className={time}>{toTimeInput(task.dueMin)}</span>
             )}
           </div>
         );

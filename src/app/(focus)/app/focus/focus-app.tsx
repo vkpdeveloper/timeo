@@ -1,12 +1,13 @@
 "use client";
 
-import { Check, ChevronDown, Minus, Pause, Play, Plus, Square, X } from "lucide-react";
+import { AlertCircle, Check, ChevronDown, Minus, Pause, Play, Plus, Square, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Segmented, Textarea } from "@/components/ui/controls";
-import { springs } from "@/components/ui/motion";
+import { Countdown, LinearProgress, useNow } from "@/components/ui/live";
+import { CountUp, springs } from "@/components/ui/motion";
 import { Section, Stat, StatStrip } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
@@ -70,8 +71,8 @@ type Run = {
 type Result = { quality: number; focusedMin: number; sessions: FocusSessionSummary[]; label: string; color: string | null };
 
 const STORE = "timeo.focus.v1";
-/** Text on a goal-coloured fill. The focus screen is always dark, so the palette is bright. */
-const ON_COLOR = "#0a0a0b";
+/** Text on a goal-coloured fill: goal colours are deep in light mode and bright in dark, like the accent. */
+const ON_COLOR = "var(--accent-ink)";
 
 function loadRun(): Run | null {
   try {
@@ -96,23 +97,34 @@ function focusedMs(r: Run, now: number) {
   return Math.max(0, end - r.startedAt - r.pausedMs);
 }
 
-/** "9:12 → 9:57 PM": the day period is shown once when both ends share it. */
-function timeRange(from: number, to: number, timezone: string) {
-  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "numeric", minute: "2-digit" });
-  const parts = (t: number) => {
-    const p = fmt.formatToParts(t);
-    const period = p.find((x) => x.type === "dayPeriod")?.value ?? "";
-    const time = p
-      .filter((x) => x.type !== "dayPeriod")
-      .map((x) => x.value)
-      .join("")
-      .trim();
-    return { time, period };
-  };
-  const a = parts(from);
-  const b = parts(to);
-  return a.period === b.period ? `${a.time} → ${b.time} ${b.period}` : `${a.time} ${a.period} → ${b.time} ${b.period}`;
+const clockFmt = new Map<string, Intl.DateTimeFormat>();
+/** unix ms -> "21:44" in the user's timezone */
+function clockAt(ms: number, timezone: string) {
+  let f = clockFmt.get(timezone);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    clockFmt.set(timezone, f);
+  }
+  return f.format(ms);
 }
+
+/** "21:44 → 22:29" (times in Geist Mono, the arrow in Geist so it keeps its size) */
+function TimeRange({ from, to, timezone }: { from: number; to: number; timezone: string }) {
+  return (
+    <span className="whitespace-nowrap">
+      <span className="mono">{clockAt(from, timezone)}</span>
+      <span className="px-1.5 font-sans" aria-label="to">
+        →
+      </span>
+      <span className="mono">{clockAt(to, timezone)}</span>
+    </span>
+  );
+}
+
+/** The bar's track sits on the page background here, so it needs a little more contrast than sunken. */
+const TRACK = "[&>div:first-child]:bg-line-strong";
+
+const pausesText = (n: number) => (n > 0 ? ` · ${n} ${n === 1 ? "pause" : "pauses"}` : "");
 
 export function FocusApp({
   options,
@@ -238,10 +250,10 @@ function Screen({ wide, children }: { wide?: boolean; children: ReactNode }) {
   return (
     <motion.div
       className={cn("flex flex-1 flex-col", !wide && "mx-auto w-full max-w-[520px]")}
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
     >
       {children}
     </motion.div>
@@ -256,7 +268,7 @@ function TopBar({ onClose, children }: { onClose?: () => void; children?: ReactN
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="tap -ml-1 grid size-11 place-items-center rounded-full text-ink-2 hover:bg-white/[0.05]"
+          className="tap -ml-2 grid size-11 place-items-center rounded-full text-ink-2 hover:bg-sunken hover:text-ink"
         >
           <X className="size-5" strokeWidth={2} />
         </button>
@@ -268,127 +280,31 @@ function TopBar({ onClose, children }: { onClose?: () => void; children?: ReactN
   );
 }
 
-// ─────────────────────────── Dial ───────────────────────────
-
-const R = 94;
-const C = 2 * Math.PI * R;
-
-/**
- * The focus ring. The arc is the time left: it starts full and is eaten
- * clockwise from 12 o'clock, with a small head marking now. `live` is read on
- * every frame, so the ring moves smoothly between clock ticks.
- */
-function Dial({
-  color,
-  progress = 0,
-  live,
-  head = false,
-  children,
-  className,
-}: {
-  color: string;
-  progress?: number;
-  live?: () => number;
-  head?: boolean;
-  children?: ReactNode;
-  className?: string;
-}) {
-  const arc = useRef<SVGCircleElement>(null);
-  const dot = useRef<SVGGElement>(null);
-  const read = useRef(live);
-  useEffect(() => {
-    read.current = live;
-  });
-  const isLive = Boolean(live);
-
-  useEffect(() => {
-    const paint = (p: number) => {
-      const v = Math.min(1, Math.max(0, p));
-      arc.current?.setAttribute("stroke-dasharray", `${C * (1 - v)} ${C}`);
-      arc.current?.setAttribute("stroke-dashoffset", String(-C * v));
-      dot.current?.setAttribute("transform", `rotate(${v * 360} 100 100)`);
-    };
-    if (!isLive) {
-      paint(progress);
-      return;
-    }
-    let id = 0;
-    const loop = () => {
-      paint(read.current?.() ?? progress);
-      id = requestAnimationFrame(loop);
-    };
-    loop();
-    return () => cancelAnimationFrame(id);
-  }, [isLive, progress]);
-
-  return (
-    <div className={cn("focus-dial relative", className)}>
-      <svg viewBox="0 0 200 200" className="focus-dial-in absolute inset-0 size-full -rotate-90 overflow-visible" aria-hidden>
-        <circle cx="100" cy="100" r={R} fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="5" />
-        <circle
-          ref={arc}
-          cx="100"
-          cy="100"
-          r={R}
-          fill="none"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeDasharray={`${C} ${C}`}
-          style={{ stroke: color, transition: "stroke 500ms ease" }}
-        />
-        {head && (
-          <g ref={dot}>
-            <g opacity="0.22">
-              <circle cx={100 + R} cy="100" r="10" style={{ fill: color, transition: "fill 500ms ease" }} className="focus-pulse" />
-            </g>
-            <circle cx={100 + R} cy="100" r="4.5" fill="var(--bg)" style={{ stroke: color, transition: "stroke 500ms ease" }} strokeWidth="2.5" />
-          </g>
-        )}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
-    </div>
-  );
-}
-
-/** Minutes and seconds sit in fixed-width boxes so the clock doesn't shift as it ticks; the hour,
- * which changes once an hour, keeps its natural width. */
-function Clock({ value }: { value: string }) {
-  const hours = value.length > 5;
-  return (
-    <span className="inline-flex" aria-label={value} role="timer">
-      {[...value].map((ch, i) =>
-        ch === ":" ? (
-          <span key={i} className="focus-colon" aria-hidden>
-            :
-          </span>
-        ) : (
-          <span key={i} className={hours && i === 0 ? undefined : "focus-digit"} aria-hidden>
-            {ch}
-          </span>
-        ),
-      )}
-    </span>
-  );
-}
-
-function Numerals({ value }: { value: string }) {
-  return (
-    <div
-      className="focus-numerals text-[22cqw] leading-none text-ink data-[long]:text-[16cqw]"
-      data-long={value.length > 5 || undefined}
-    >
-      <Clock value={value} />
-    </div>
-  );
-}
-
-/** What the session is about, in its goal colour. */
-function FocusLabel({ label, color, className }: { label: string; color: string; className?: string }) {
+/** What the session is about: goal dot + title. */
+function OnLabel({ label, color, className }: { label: string; color: string; className?: string }) {
   return (
     <span className={cn("flex min-w-0 items-center gap-2.5", className)}>
-      <span className="size-2.5 shrink-0 rounded-full" style={{ background: color, boxShadow: `0 0 12px ${color}` }} />
+      <span className="size-2.5 shrink-0 rounded-full transition-colors duration-500" style={{ background: color }} />
       <span className="truncate">{label}</span>
     </span>
+  );
+}
+
+/** The big clock. Hours make it a little smaller. */
+function Clock({ value, className }: { value: string; className?: string }) {
+  return (
+    <span className={cn("focus-clock inline-block text-ink", className)} data-long={value.length > 5 || undefined} role="timer" aria-label={value}>
+      {value}
+    </span>
+  );
+}
+
+function ErrorLine({ children }: { children: ReactNode }) {
+  return (
+    <p className="mb-3 flex items-start gap-2 text-[13.5px] leading-snug font-medium text-warn" role="alert">
+      <AlertCircle className="mt-0.5 size-4 shrink-0" />
+      <span>{children}</span>
+    </p>
   );
 }
 
@@ -440,7 +356,7 @@ function SetupView({
 
   const chosen = options.find((o) => o.key === selected) ?? null;
   const label = chosen?.label ?? custom.trim();
-  const color = chosen?.color ? colorVar(chosen.color) : label ? "var(--accent)" : "var(--ink-3)";
+  const color = chosen?.color ? colorVar(chosen.color) : "var(--accent)";
 
   const pick = (o: FocusOption) => {
     setSelected(o.key);
@@ -484,8 +400,7 @@ function SetupView({
   };
 
   return (
-    <div className="relative flex flex-1 flex-col" style={{ ["--glow" as string]: color }}>
-      <div className="focus-glow pointer-events-none fixed inset-0 opacity-50" aria-hidden />
+    <div className="flex flex-1 flex-col">
       <TopBar onClose={onClose}>
         {todayCount > 0 && (
           <span className="tnum text-[13px] text-ink-3">
@@ -494,17 +409,30 @@ function SetupView({
         )}
       </TopBar>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-7 py-4">
-        <header className="text-center">
-          <h1 className="display text-[32px] text-ink">Focus</h1>
-          <p className="tnum mt-1 text-[14px] text-ink-3">{timeRange(now, now + minutes * 60_000, timezone)}</p>
-        </header>
+      <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
+        <button
+          type="button"
+          onClick={() => setPicking(true)}
+          className="tap inline-flex h-11 max-w-full items-center gap-2 rounded-full px-4 hover:bg-sunken"
+        >
+          {label ? (
+            <OnLabel label={label} color={color} className="text-[17px] font-semibold tracking-[-0.01em] text-ink" />
+          ) : (
+            <span className="text-[16px] font-medium text-ink-2">Choose what to focus on</span>
+          )}
+          <ChevronDown className="size-4 shrink-0 text-ink-3" />
+        </button>
 
-        <Dial color={color} className="focus-dial-setup">
-          <Numerals value={formatClock(minutes * 60)} />
-        </Dial>
+        <Clock value={formatClock(minutes * 60)} className="mt-5" />
 
-        <div className="flex items-center gap-1.5" role="group" aria-label="Length">
+        <div className="mt-8 w-full max-w-[340px]">
+          <LinearProgress value={0} color={color} className={TRACK} />
+          <p className="mt-3 text-[13px] text-ink-3">
+            <TimeRange from={now} to={now + minutes * 60_000} timezone={timezone} />
+          </p>
+        </div>
+
+        <div className="mt-8 flex items-center gap-1" role="group" aria-label="Length">
           <StepButton label="5 minutes less" onClick={() => setMinutes((m) => clampMin(m - 5))} disabled={minutes <= FOCUS_MIN}>
             <Minus className="size-4" />
           </StepButton>
@@ -517,7 +445,7 @@ function SetupView({
                 onClick={() => setMinutes(p)}
                 aria-pressed={on}
                 className={cn(
-                  "tap tnum relative h-11 min-w-[62px] rounded-full px-3 text-[14px] font-semibold transition-colors",
+                  "tap tnum relative h-11 min-w-[64px] rounded-full px-3 text-[14px] font-medium transition-colors",
                   on ? "text-bg" : "text-ink-2 hover:text-ink",
                 )}
               >
@@ -532,31 +460,9 @@ function SetupView({
         </div>
       </div>
 
-      <div className="relative mx-auto w-full max-w-[400px] space-y-2.5 pt-2 pb-1">
-        <button
-          type="button"
-          onClick={() => setPicking(true)}
-          className="tap flex min-h-14 w-full items-center gap-3 rounded-2xl border border-line bg-surface/70 px-4 text-left backdrop-blur"
-        >
-          <span className="min-w-0 flex-1">
-            <span className="block text-[12px] font-medium text-ink-3">Focus on</span>
-            {label ? (
-              <FocusLabel label={label} color={color} className="text-[15.5px] font-semibold text-ink" />
-            ) : (
-              <span className="block text-[15.5px] font-medium text-ink-2">Choose a block, task or goal</span>
-            )}
-          </span>
-          <ChevronDown className="size-4 shrink-0 text-ink-3" />
-        </button>
-        {error && <p className="rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
-        <Button
-          size="lg"
-          className="h-14 text-[16px]"
-          loading={pending}
-          onClick={begin}
-          style={label ? { background: color, color: ON_COLOR } : undefined}
-          variant={label ? "primary" : "secondary"}
-        >
+      <div className="mx-auto w-full max-w-[400px] pt-2 pb-1">
+        {error && <ErrorLine>{error}</ErrorLine>}
+        <Button variant="accent" size="lg" className="h-14 rounded-[14px] text-[16px]" loading={pending} onClick={begin}>
           <Play className="size-4 fill-current" />
           Start {formatDuration(minutes)}
         </Button>
@@ -586,7 +492,7 @@ function StepButton({ label, onClick, disabled, children }: { label: string; onC
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="tap grid size-11 place-items-center rounded-full border border-line text-ink-2 hover:text-ink disabled:opacity-40"
+      className="tap grid size-11 place-items-center rounded-full border border-line-strong text-ink-2 hover:text-ink disabled:opacity-40"
     >
       {children}
     </button>
@@ -622,7 +528,7 @@ function FocusPicker({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Focus on" className="focus-vars" tall={options.length > 6}>
+    <Sheet open={open} onClose={onClose} title="Focus on" tall={options.length > 6}>
       {blocks.length > 0 && (
         <Section title="Planned today" card>
           {blocks.map((o) => (
@@ -656,12 +562,11 @@ function FocusPicker({
                   onClick={() => onPick(o)}
                   aria-pressed={on}
                   className={cn(
-                    "tap inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[14px] font-medium transition-colors",
-                    on ? "border-transparent" : "border-line bg-surface-2 text-ink-2",
+                    "tap inline-flex h-11 items-center gap-2 rounded-full border px-4 text-[14px] font-medium transition-colors",
+                    on ? "border-transparent bg-ink text-bg" : "border-line-strong bg-surface text-ink-2",
                   )}
-                  style={on ? { background: c, color: ON_COLOR } : undefined}
                 >
-                  {!on && <span className="size-2 rounded-full" style={{ background: c }} />}
+                  <span className="size-2 rounded-full" style={{ background: c }} />
                   {o.label}
                 </button>
               );
@@ -680,7 +585,7 @@ function FocusPicker({
             autoFocus={options.length === 0}
             aria-label="Something else"
           />
-          <Button type="submit" variant="secondary" className="h-[50px] rounded-[14px]" disabled={!text.trim()}>
+          <Button type="submit" variant="secondary" className="h-[46px]" disabled={!text.trim()}>
             Use
           </Button>
         </form>
@@ -698,7 +603,7 @@ function OptionRow({ option, selected, onPick, meta }: { option: FocusOption; se
       aria-pressed={selected}
       className="tap-row flex min-h-[52px] w-full items-center gap-3 px-4 py-2.5 text-left"
     >
-      <span className="h-7 w-[3px] shrink-0 rounded-full" style={{ background: c }} />
+      <span className="size-2.5 shrink-0 rounded-full" style={{ background: c }} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-medium text-ink">{option.label}</span>
         {meta && <span className="tnum block text-[12.5px] text-ink-3">{meta}</span>}
@@ -706,11 +611,10 @@ function OptionRow({ option, selected, onPick, meta }: { option: FocusOption; se
       <span
         className={cn(
           "grid size-6 shrink-0 place-items-center rounded-full border-[1.75px] transition-colors",
-          selected ? "border-transparent" : "border-line-strong",
+          selected ? "border-transparent bg-accent" : "border-line-strong",
         )}
-        style={selected ? { background: c } : undefined}
       >
-        {selected && <Check className="size-3.5" style={{ color: ON_COLOR }} strokeWidth={3} />}
+        {selected && <Check className="size-3.5 text-accent-ink" strokeWidth={3} />}
       </span>
     </button>
   );
@@ -754,25 +658,19 @@ function RunningView({
   ensureAudio: () => void;
   timezone: string;
 }) {
-  const [now, setNow] = useState(() => Date.now());
+  // the shared one-second clock that also drives the Countdown and the bar
+  const now = useNow();
   const paused = run.pausedAt != null;
   const plannedMs = run.plannedMin * 60_000;
-  const elapsed = focusedMs(run, now);
-  const remaining = Math.max(0, plannedMs - elapsed);
-  const progress = Math.min(1, elapsed / plannedMs);
+  const remaining = now ? Math.max(0, plannedMs - focusedMs(run, now)) : plannedMs;
+  // while running, focus started (pauses excluded) at `from` and ends at `to`
+  const from = run.startedAt + run.pausedMs;
+  const to = from + plannedMs;
   const goal = run.color ? colorVar(run.color) : "var(--accent)";
-  const color = paused ? "var(--ink-3)" : goal;
-
-  // tick
-  useEffect(() => {
-    if (paused) return;
-    const id = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(id);
-  }, [paused]);
 
   // time is up
   useEffect(() => {
-    if (paused || remaining > 0) return;
+    if (!now || paused || remaining > 0) return;
     const endedAt = run.startedAt + run.pausedMs + plannedMs;
     // only chime when it ends while the screen is open, not when reopening hours later
     if (Date.now() - endedAt < 10_000) {
@@ -782,7 +680,7 @@ function RunningView({
       } catch {}
     }
     setRun({ ...run, endedAt, completed: true });
-  }, [remaining, paused, run, plannedMs, setRun, audio]);
+  }, [now, remaining, paused, run, plannedMs, setRun, audio]);
 
   // keep the screen awake while running
   useEffect(() => {
@@ -825,7 +723,6 @@ function RunningView({
     const t = Date.now();
     if (paused) setRun({ ...run, pausedAt: null, pausedMs: run.pausedMs + (t - run.pausedAt!) });
     else setRun({ ...run, pausedAt: t, pauses: run.pauses + 1 });
-    setNow(t);
   };
   const extend = () => setRun({ ...run, plannedMin: Math.min(FOCUS_MAX + 120, run.plannedMin + 5) });
   const end = () => {
@@ -834,70 +731,73 @@ function RunningView({
     setRun({ ...run, pausedAt: null, pausedMs, endedAt: t, completed: false });
   };
 
-  const live = paused ? undefined : () => Math.min(1, focusedMs(run, Date.now()) / plannedMs);
+  const endsAt = paused ? (now || run.pausedAt!) + remaining : to;
 
   return (
-    <div className="relative flex flex-1 flex-col" style={{ ["--glow" as string]: goal }}>
-      <div className={cn("focus-glow pointer-events-none fixed inset-0 transition-opacity duration-700", paused && "opacity-30")} aria-hidden />
+    <div className="flex flex-1 flex-col">
       <TopBar onClose={onClose}>
-        <span className="flex h-8 items-center gap-2 rounded-full bg-white/[0.05] px-3 text-[13px] font-medium text-ink-2">
-          <span className={cn("size-1.5 rounded-full", !paused && "focus-pulse")} style={{ background: color }} />
+        <span className="flex h-8 items-center gap-2 text-[13px] font-medium text-ink-3" aria-live="polite">
+          <span className={cn("size-1.5 rounded-full transition-colors", paused ? "bg-ink-3" : "bg-accent")} />
           {paused ? "Paused" : "Focusing"}
         </span>
       </TopBar>
 
-      <div className="focus-run relative">
-        <div className="focus-label [grid-area:label] flex flex-col items-center text-center">
-          <FocusLabel label={run.label} color={goal} className="max-w-[30rem] text-[19px] font-semibold tracking-[-0.02em] text-ink" />
-          <div className="tnum mt-1.5 text-[13.5px] text-ink-3">
-            {timeRange(run.startedAt, now + remaining, timezone)}
-            {run.pauses > 0 && ` · ${run.pauses} ${run.pauses === 1 ? "pause" : "pauses"}`}
-          </div>
+      <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
+        <OnLabel label={run.label} color={goal} className="max-w-[min(30rem,100%)] text-[17px] font-semibold tracking-[-0.01em] text-ink" />
+
+        <div className="mt-5">
+          {paused ? (
+            <Clock value={clock} className="focus-breathe text-ink-2" />
+          ) : (
+            <span className="focus-clock inline-block text-ink" data-long={clock.length > 5 || undefined}>
+              <Countdown to={to} roll={false} className="tracking-[-0.05em]" />
+            </span>
+          )}
         </div>
 
-        <div className="[grid-area:dial] grid place-items-center">
-          <Dial color={color} progress={progress} live={live} head>
-            <motion.div
-              animate={{ opacity: paused ? [1, 0.45, 1] : 1 }}
-              transition={paused ? { duration: 2.4, repeat: Infinity } : { duration: 0.2 }}
-            >
-              <Numerals value={clock} />
-            </motion.div>
-            <div className="mt-[3cqw] text-[clamp(12px,3.4cqw,14px)] font-medium text-ink-3">
-              {paused ? "Paused" : `${formatDuration(run.plannedMin)} session`}
-            </div>
-          </Dial>
+        <div className="mt-8 w-full max-w-[360px]">
+          {paused ? (
+            <LinearProgress value={1 - remaining / plannedMs} color="var(--ink-3)" className={TRACK} />
+          ) : (
+            <LinearProgress startAt={from} endAt={to} color={goal} className={TRACK} />
+          )}
+          <p className="mt-3 text-[13px] text-ink-3">
+            <TimeRange from={run.startedAt} to={endsAt} timezone={timezone} />
+            {pausesText(run.pauses)}
+          </p>
         </div>
+      </div>
 
-        <div className="focus-controls [grid-area:controls] mx-auto grid w-full max-w-[22rem] grid-cols-3 items-center">
-          <QuietAction label="+5 min" onClick={extend}>
-            <Plus className="size-[18px]" />
-          </QuietAction>
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={paused ? "Resume" : "Pause"}
-              className="tap grid size-[76px] place-items-center rounded-full text-bg shadow-float transition-colors duration-300"
-              style={{ background: paused ? goal : "var(--ink)" }}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={paused ? "play" : "pause"}
-                  initial={{ scale: 0.6, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.6, opacity: 0 }}
-                  transition={{ duration: 0.14 }}
-                >
-                  {paused ? <Play className="ml-1 size-7 fill-current" /> : <Pause className="size-7 fill-current" />}
-                </motion.span>
-              </AnimatePresence>
-            </button>
-          </div>
-          <QuietAction label="End" onClick={end}>
-            <Square className="size-3.5 fill-current" />
-          </QuietAction>
+      <div className="mx-auto grid w-full max-w-[22rem] grid-cols-3 items-center pb-2">
+        <QuietAction label="+5 min" onClick={extend}>
+          <Plus className="size-[18px]" />
+        </QuietAction>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={paused ? "Resume" : "Pause"}
+            className={cn(
+              "tap grid size-20 place-items-center rounded-full transition-colors duration-300",
+              paused ? "bg-accent text-accent-ink" : "bg-ink text-bg",
+            )}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={paused ? "play" : "pause"}
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.6, opacity: 0 }}
+                transition={{ duration: 0.14 }}
+              >
+                {paused ? <Play className="ml-1 size-7 fill-current" /> : <Pause className="size-7 fill-current" />}
+              </motion.span>
+            </AnimatePresence>
+          </button>
         </div>
+        <QuietAction label="End" onClick={end}>
+          <Square className="size-3.5 fill-current" />
+        </QuietAction>
       </div>
     </div>
   );
@@ -905,12 +805,8 @@ function RunningView({
 
 function QuietAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="tap mx-auto flex flex-col items-center gap-1.5 rounded-2xl px-3 py-1.5 text-ink-3 hover:text-ink"
-    >
-      <span className="grid size-11 place-items-center rounded-full border border-line text-ink-2">{children}</span>
+    <button type="button" onClick={onClick} className="tap mx-auto flex flex-col items-center gap-1.5 rounded-2xl px-3 py-1.5 text-ink-3 hover:text-ink">
+      <span className="grid size-11 place-items-center rounded-full border border-line-strong text-ink-2">{children}</span>
       <span className="text-[12px] font-medium">{label}</span>
     </button>
   );
@@ -972,21 +868,24 @@ function FinishView({
     });
 
   return (
-    <div className="relative flex flex-1 flex-col" style={{ ["--glow" as string]: color }}>
-      <div className="focus-glow focus-glow-once pointer-events-none fixed inset-0" aria-hidden />
+    <div className="flex flex-1 flex-col">
       <TopBar />
 
-      <header className="relative flex flex-col items-center pt-2 text-center">
-        <Completion color={color} done={run.completed} />
-        <h1 className="display mt-5 text-[32px] text-ink">{run.completed ? "Time’s up" : "Session ended"}</h1>
-        <FocusLabel label={run.label} color={color} className="mt-2 max-w-full text-[14.5px] font-medium text-ink-2" />
-        <p className="tnum mt-1 text-[13.5px] text-ink-3">
-          {formatDuration(focusedMin)} of {formatDuration(run.plannedMin)} · {timeRange(run.startedAt, run.endedAt ?? run.startedAt, timezone)}
-          {run.pauses > 0 && ` · ${run.pauses} ${run.pauses === 1 ? "pause" : "pauses"}`}
+      <header className="flex flex-col items-center pt-2 text-center">
+        <Completion />
+        <h1 className="display mt-5 text-[26px] text-ink">{run.completed ? "Time’s up" : "Session ended"}</h1>
+        <OnLabel label={run.label} color={color} className="mt-2 max-w-full text-[15px] font-medium text-ink-2" />
+        <p className="mt-1.5 text-[13.5px] text-ink-3">
+          <span className="tnum">
+            {formatDuration(focusedMin)} of {formatDuration(run.plannedMin)}
+          </span>
+          {" · "}
+          <TimeRange from={run.startedAt} to={run.endedAt ?? run.startedAt} timezone={timezone} />
+          {pausesText(run.pauses)}
         </p>
       </header>
 
-      <Section title="How focused were you?" className="relative mt-8!">
+      <Section title="How focused were you?" className="mt-8!">
         <div className="grid grid-cols-5 gap-2">
           {[1, 2, 3, 4, 5].map((n) => {
             const on = rating === n;
@@ -998,10 +897,9 @@ function FinishView({
                 aria-pressed={on}
                 aria-label={`${n}: ${RATING_LABELS[n - 1]}`}
                 className={cn(
-                  "tap tnum h-12 rounded-2xl border text-[18px] font-semibold transition-colors",
-                  on ? "border-transparent" : "border-line bg-surface text-ink-2",
+                  "tap tnum h-12 rounded-[12px] border text-[17px] font-semibold transition-colors",
+                  on ? "border-transparent bg-ink text-bg" : "border-line-strong bg-surface text-ink-2",
                 )}
-                style={on ? { background: color, color: ON_COLOR } : undefined}
               >
                 {n}
               </button>
@@ -1015,7 +913,7 @@ function FinishView({
         </div>
       </Section>
 
-      <Section title="Energy now" className="relative">
+      <Section title="Energy now">
         <Segmented
           size="sm"
           className="[&>button]:h-10 [&>button]:text-[12px]"
@@ -1025,7 +923,7 @@ function FinishView({
         />
       </Section>
 
-      <div className="relative mt-5 overflow-hidden rounded-[20px] border border-line bg-surface">
+      <div className="card mt-5 overflow-hidden">
         {run.blockId && (
           <button
             type="button"
@@ -1070,16 +968,15 @@ function FinishView({
         </AnimatePresence>
       </div>
 
-      <div className="relative mt-auto pt-8">
-        {error && <p className="mb-3 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
+      <div className="mt-auto pt-8">
+        {error && <ErrorLine>{error}</ErrorLine>}
         <Button
           size="lg"
-          className="h-14 text-[16px]"
-          variant={rating == null ? "secondary" : "primary"}
+          className="h-14 rounded-[14px] text-[16px]"
+          variant={rating == null ? "secondary" : "accent"}
           disabled={rating == null}
           loading={pending}
           onClick={save}
-          style={rating != null ? { background: color, color: ON_COLOR } : undefined}
         >
           {rating == null ? "Rate your focus to save" : `Save · ${preview}% quality`}
         </Button>
@@ -1096,43 +993,28 @@ function FinishView({
   );
 }
 
-/** The gentle end: the ring closes, then a check draws in. */
-function Completion({ color, done }: { color: string; done: boolean }) {
-  const size = 84;
-  const r = 38;
-  const c = 2 * Math.PI * r;
+/** The gentle end: a check draws in. */
+function Completion() {
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <span className="focus-bloom absolute inset-0 rounded-full" style={{ background: color }} aria-hidden />
-      <svg viewBox={`0 0 ${size} ${size}`} className="relative size-full -rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="4" />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          initial={{ strokeDashoffset: c }}
-          animate={{ strokeDashoffset: done ? 0 : c * 0.25 }}
-          transition={{ duration: 1.1, ease: [0.32, 0.72, 0, 1] }}
-        />
-      </svg>
-      <svg viewBox="0 0 24 24" className="absolute inset-0 m-auto size-8" fill="none" aria-hidden>
+    <motion.div
+      className="grid size-16 place-items-center rounded-full bg-accent-soft"
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={springs.gentle}
+    >
+      <svg viewBox="0 0 24 24" className="size-7" fill="none" aria-hidden>
         <motion.path
           d="M5 12.5l4.5 4.5L19 7.5"
-          stroke={color}
+          stroke="var(--accent)"
           strokeWidth="2.4"
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ delay: 0.75, duration: 0.45, ease: "easeOut" }}
+          transition={{ delay: 0.25, duration: 0.45, ease: "easeOut" }}
         />
       </svg>
-    </div>
+    </motion.div>
   );
 }
 
@@ -1151,81 +1033,52 @@ function ResultView({
 }) {
   const color = result.color ? colorVar(result.color) : "var(--accent)";
   const total = result.sessions.reduce((s, x) => s + x.focusedMin, 0);
-  const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "numeric", minute: "2-digit" });
-  const [shown, setShown] = useState(0);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setShown(result.quality));
-    return () => cancelAnimationFrame(id);
-  }, [result.quality]);
-
-  const size = 176;
-  const stroke = 6;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
 
   return (
-    <div className="relative flex flex-1 flex-col" style={{ ["--glow" as string]: color }}>
-      <div className="focus-glow pointer-events-none fixed inset-0 opacity-60" aria-hidden />
+    <div className="flex flex-1 flex-col">
       <TopBar onClose={onClose} />
 
-      <div className="relative flex flex-col items-center pt-2 text-center">
-        <div className="relative size-[176px]">
-          <svg viewBox={`0 0 ${size} ${size}`} className="size-full -rotate-90">
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth={stroke} />
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={r}
-              fill="none"
-              stroke={color}
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={`${(c * shown) / 100} ${c}`}
-              style={{ transition: "stroke-dasharray 1200ms cubic-bezier(0.32,0.72,0,1)" }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="focus-numerals tnum-live text-[52px] leading-none text-ink">
-              {result.quality}
-              <span className="text-[26px] text-ink-2">%</span>
-            </div>
-            <div className="mt-1.5 text-[12px] font-medium text-ink-3">Focus quality</div>
-          </div>
+      <div className="flex flex-col items-center pt-4 text-center">
+        <div className="eyebrow">Focus quality</div>
+        <div className="display tnum-live mt-2 text-[72px] leading-none text-ink">
+          <CountUp value={result.quality} />
+          <span className="text-[32px] text-ink-3">%</span>
         </div>
-        <h1 className="display mt-5 text-[30px] text-ink">{qualityLabel(result.quality)}</h1>
-        <p className="tnum mt-1 text-[14.5px] text-ink-2">
-          {formatDuration(result.focusedMin)} on {result.label}
-        </p>
+        <h1 className="mt-4 text-[20px] font-semibold tracking-[-0.02em] text-ink">{qualityLabel(result.quality)}</h1>
+        <OnLabel
+          label={`${formatDuration(result.focusedMin)} on ${result.label}`}
+          color={color}
+          className="tnum mt-1.5 max-w-full text-[14.5px] text-ink-2"
+        />
+        <LinearProgress value={result.quality / 100} color={color} className={cn(TRACK, "mt-6 w-full max-w-[320px]")} />
       </div>
 
-      <StatStrip card className="relative mt-7">
+      <StatStrip card className="mt-8">
         <Stat value={formatDuration(total)} label="focused today" />
         <Stat value={result.sessions.length} label={result.sessions.length === 1 ? "session" : "sessions"} />
       </StatStrip>
 
       {result.sessions.length > 0 && (
-        <Section title="Today" card className="relative">
+        <Section title="Today" card>
           {result.sessions.map((s) => (
             <div key={s.id} className="flex min-h-[48px] items-center gap-3 px-4 py-2.5">
-              <span className="tnum w-[62px] shrink-0 text-[12.5px] text-ink-3">{timeFmt.format(s.startedAt)}</span>
+              <span className="mono w-[44px] shrink-0 text-[12.5px] text-ink-3">{clockAt(s.startedAt, timezone)}</span>
               <span className="size-2 shrink-0 rounded-full" style={{ background: s.color ? colorVar(s.color) : "var(--ink-3)" }} />
               <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-ink">{s.label}</span>
               <span className="tnum shrink-0 text-[13px] text-ink-2">{formatDuration(s.focusedMin)}</span>
               {s.quality != null && (
-                <span className="tnum w-11 shrink-0 rounded-full bg-sunken py-0.5 text-center text-[12px] font-semibold text-ink-2">
-                  {s.quality}%
-                </span>
+                <span className="tnum w-11 shrink-0 rounded-full bg-sunken py-0.5 text-center text-[12px] font-semibold text-ink-2">{s.quality}%</span>
               )}
             </div>
           ))}
         </Section>
       )}
 
-      <div className="relative mt-auto grid grid-cols-2 gap-2.5 pt-8">
+      <div className="mt-auto grid grid-cols-2 gap-2.5 pt-8">
         <Button variant="secondary" size="lg" onClick={onAgain}>
           Another session
         </Button>
-        <Button size="lg" onClick={onClose} style={{ background: color, color: ON_COLOR }}>
+        <Button variant="accent" size="lg" onClick={onClose}>
           Done
         </Button>
       </div>

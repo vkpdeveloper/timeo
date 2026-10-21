@@ -4,15 +4,15 @@ import { cn } from "@/lib/cn";
 import { colorVar, softVar } from "@/lib/colors";
 import { WEEKDAY_LETTER, dayOfMonth } from "@/lib/dates";
 import type { DayStatus, TrainingDay } from "@/lib/fitness";
-import { fmtCompact, type MacroTotals } from "@/lib/fitness-math";
-import { Bar, Ring } from "./charts";
+import type { MacroTotals } from "@/lib/fitness-math";
+import { Bar } from "./charts";
 
 // Server-safe building blocks used across the Fitness screens.
 
 const CHIP: Record<string, { label: string; cls: string }> = {
   completed: { label: "Done", cls: "bg-ok-soft text-ok" },
   in_progress: { label: "In progress", cls: "bg-accent-soft text-accent" },
-  skipped: { label: "Skipped", cls: "bg-bad-soft text-bad" },
+  skipped: { label: "Skipped", cls: "bg-sunken text-ink-2" },
   unlogged: { label: "Done, not logged", cls: "bg-warn-soft text-warn" },
   planned: { label: "Planned", cls: "bg-sunken text-ink-2" },
   rest: { label: "Rest", cls: "bg-sunken text-ink-3" },
@@ -22,27 +22,27 @@ const CHIP: Record<string, { label: string; cls: string }> = {
 export function StatusChip({ status, className }: { status: DayStatus; className?: string }) {
   const c = CHIP[status];
   return (
-    <span className={cn("inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-[11.5px] font-semibold", c.cls, className)}>
+    <span className={cn("inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-[12px] font-medium", c.cls, className)}>
       {c.label}
     </span>
   );
 }
 
-/** Mon–Sun strip with plan vs actual per day. */
+/** Mon–Sun strip with plan vs actual per day. Compact: letter, state, name. */
 export function WeekStrip({ days, href }: { days: TrainingDay[]; href?: (d: TrainingDay) => string | null }) {
   return (
-    <div className="stagger grid grid-cols-7 gap-1">
+    <div className="stagger grid grid-cols-7 gap-0.5">
       {days.map((d) => {
         const link = href?.(d) ?? null;
         const inner = (
           <>
-            <span className={cn("text-[11px] font-semibold", d.isToday ? "text-ink" : "text-ink-3")}>
+            <span className={cn("text-[11.5px]", d.isToday ? "font-semibold text-ink" : "font-medium text-ink-3")}>
               {WEEKDAY_LETTER[d.weekday]}
             </span>
             <DayDot day={d} />
             <span
               className={cn(
-                "w-full truncate text-center text-[10.5px] font-medium leading-tight",
+                "w-full truncate px-0.5 text-center text-[11px] leading-tight",
                 d.status === "rest" || d.status === "unreported" ? "text-ink-3" : "text-ink-2",
               )}
             >
@@ -51,7 +51,7 @@ export function WeekStrip({ days, href }: { days: TrainingDay[]; href?: (d: Trai
           </>
         );
         const cls = cn(
-          "flex min-w-0 flex-col items-center gap-1.5 rounded-2xl py-2",
+          "flex min-h-[76px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-[12px] py-2",
           d.isToday && "bg-sunken",
           link && "tap",
         );
@@ -77,18 +77,18 @@ function shortName(d: TrainingDay) {
 
 function DayDot({ day: d }: { day: TrainingDay }) {
   const c = colorVar(d.color);
-  const base = "relative grid size-9 place-items-center rounded-full text-[13px] font-semibold tnum";
+  const base = "relative grid size-8 place-items-center rounded-full text-[12.5px] font-medium tnum";
   switch (d.status) {
     case "completed":
       return (
-        <span className={base} style={{ background: c, color: "white" }}>
-          <Check className="size-4" strokeWidth={3} />
+        <span className={cn(base, "text-accent-ink")} style={{ background: c }}>
+          <Check className="size-4" strokeWidth={2.8} />
           {d.swapped && <SwapMark />}
         </span>
       );
     case "unlogged":
       return (
-        <span className={cn(base, "border-[1.75px] border-dashed")} style={{ borderColor: c, color: c, background: softVar(d.color) }}>
+        <span className={cn(base, "border-[1.5px] border-dashed")} style={{ borderColor: c, color: c, background: softVar(d.color) }}>
           <Check className="size-4" strokeWidth={2.6} />
           {d.swapped && <SwapMark />}
         </span>
@@ -101,8 +101,8 @@ function DayDot({ day: d }: { day: TrainingDay }) {
       );
     case "skipped":
       return (
-        <span className={cn(base, "bg-bad-soft text-bad")}>
-          <X className="size-4" strokeWidth={2.6} />
+        <span className={cn(base, "border-[1.5px] border-line-strong text-ink-3")}>
+          <X className="size-3.5" strokeWidth={2.4} />
         </span>
       );
     case "rest":
@@ -116,7 +116,7 @@ function DayDot({ day: d }: { day: TrainingDay }) {
     default:
       return (
         <span
-          className={cn(base, "border-[1.75px]")}
+          className={cn(base, "border-[1.5px]")}
           style={{ borderColor: d.isToday ? c : `color-mix(in oklab, ${c} 45%, transparent)`, color: d.isToday ? c : "var(--ink-2)" }}
         >
           {dayOfMonth(d.date)}
@@ -138,31 +138,11 @@ type Macro = { key: string; label: string; unit: string; value: number; target: 
 
 function macros(totals: MacroTotals, target: MacroTotals | null): Macro[] {
   return [
-    { key: "kcal", label: "kcal", unit: "", value: totals.calories, target: target?.calories ?? null, color: "var(--c-amber)" },
-    { key: "p", label: "Protein", unit: "g", value: totals.proteinG, target: target?.proteinG ?? null, color: "var(--c-rose)" },
+    { key: "kcal", label: "kcal", unit: "", value: totals.calories, target: target?.calories ?? null, color: "var(--accent)" },
+    { key: "p", label: "Protein", unit: "g", value: totals.proteinG, target: target?.proteinG ?? null, color: "var(--c-teal)" },
     { key: "c", label: "Carbs", unit: "g", value: totals.carbsG, target: target?.carbsG ?? null, color: "var(--c-sky)" },
-    { key: "f", label: "Fat", unit: "g", value: totals.fatG, target: target?.fatG ?? null, color: "var(--c-teal)" },
+    { key: "f", label: "Fat", unit: "g", value: totals.fatG, target: target?.fatG ?? null, color: "var(--c-sand)" },
   ];
-}
-
-/** Four small rings: kcal, protein, carbs, fat. For the hub. */
-export function MacroRings({ totals, target }: { totals: MacroTotals; target: MacroTotals | null }) {
-  return (
-    <div className="grid grid-cols-4 gap-1">
-      {macros(totals, target).map((m, i) => {
-        const over = m.target != null && m.value > m.target * 1.05;
-        return (
-          <div key={m.key} className="flex min-w-0 flex-col items-center">
-            <Ring value={m.target ? m.value / m.target : 0} size={58} stroke={5} color={over ? "var(--warn)" : m.color} delay={i * 0.06}>
-              <span className="tnum text-[13.5px] font-semibold tracking-tight text-ink">{fmtCompact(m.value)}</span>
-            </Ring>
-            <div className="mt-1.5 text-[12px] font-medium text-ink-2">{m.label}</div>
-            <div className="tnum text-[11.5px] text-ink-3">{m.target != null ? `of ${fmtCompact(m.target)}${m.unit ? ` ${m.unit}` : ""}` : "no target"}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 /** Protein, carbs and fat as labelled meters with what is left. For the nutrition screen. */

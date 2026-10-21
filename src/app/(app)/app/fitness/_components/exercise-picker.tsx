@@ -74,7 +74,7 @@ export function ExercisePicker({
           <button
             type="button"
             onClick={() => setCreating(false)}
-            className="tap mb-3 -ml-1 inline-flex items-center gap-0.5 text-[14px] font-medium text-accent"
+            className="tap mb-3 -ml-1 inline-flex items-center gap-0.5 text-[14px] font-medium text-ink-2"
           >
             <ChevronLeft className="size-4" /> Library
           </button>
@@ -113,7 +113,7 @@ export function ExercisePicker({
               ]}
             />
           </Field>
-          <label className="mb-5 flex h-12 items-center justify-between rounded-2xl bg-surface-2 px-4 text-[15px] text-ink">
+          <label className="mb-5 flex h-12 items-center justify-between rounded-[12px] bg-surface-2 px-4 text-[15px] text-ink">
             One side at a time
             <input type="checkbox" name="unilateral" className="size-5 accent-[var(--accent)]" />
           </label>
@@ -133,9 +133,9 @@ export function ExercisePicker({
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="tap mb-2 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-dashed border-line-strong px-4 text-left"
+              className="tap mb-2 flex min-h-14 w-full items-center gap-3 rounded-[12px] border border-dashed border-line-strong px-4 text-left"
             >
-              <Plus className="size-4 text-accent" />
+              <Plus className="size-4 text-ink-2" />
               <span className="text-[15px] font-semibold text-ink">Create “{q.trim()}”</span>
             </button>
           )}
@@ -192,7 +192,7 @@ export function ExercisePicker({
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="tap mt-3 flex h-12 w-full items-center justify-center gap-1.5 rounded-2xl bg-sunken text-[14px] font-semibold text-ink-2"
+              className="tap mt-3 flex h-12 w-full items-center justify-center gap-1.5 rounded-[12px] bg-sunken text-[14px] font-medium text-ink-2"
             >
               <Plus className="size-4" /> Custom exercise
             </button>

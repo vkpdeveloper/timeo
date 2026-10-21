@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Play, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Play, Plus, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useOptimistic, useState, useTransition } from "react";
 import { Button, SubmitButton } from "@/components/ui/button";
@@ -83,21 +83,22 @@ export function RoutineEditor({
     <div className="pb-2" style={tint(routine.color)}>
       <header className="pt-5 pb-4 lg:pt-10 lg:pb-5">
         <button type="button" onClick={() => setDetails(true)} className="tap block w-full text-left">
-          <div className="eyebrow" style={{ color: colorVar(routine.color) }}>
+          <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
+            <span className="size-2 rounded-full" style={{ background: colorVar(routine.color) }} />
             {days.length ? days.join(" · ") : "Not scheduled"}
           </div>
-          <h1 className="display mt-1 text-[32px] lg:text-[40px] text-ink">{routine.name}</h1>
+          <h1 className="display mt-1.5 text-[28px] text-ink">{routine.name}</h1>
           {routine.focus && <p className="mt-1 text-[15px] text-ink-2">{routine.focus}</p>}
           <p className="tnum mt-2 text-[13px] text-ink-3">
             {list.length} exercises · {totalSets} sets · ~{routine.estimatedMin} min ·{" "}
-            <span className="font-semibold text-accent">Edit</span>
+            <span className="font-medium text-ink underline decoration-line-strong underline-offset-4">Edit</span>
           </p>
         </button>
         {routine.notes && <p className="mt-3 text-[14px] leading-relaxed whitespace-pre-line text-ink-2">{routine.notes}</p>}
         <Button
           variant="accent"
           size="lg"
-          className="mt-4 h-[52px] text-[16.5px]"
+          className="mt-5 h-[52px] text-[16.5px]"
           loading={starting}
           disabled={!list.length}
           onClick={() => startTransition(() => startWorkout(routine.id))}
@@ -108,13 +109,14 @@ export function RoutineEditor({
 
       <Section title="Exercises" count={list.length} hint="Tap one to change its sets, reps and rest." card>
         {list.map((it, i) => (
-          <motion.div key={it.id} layout transition={springs.smooth} className="flex items-center gap-1 pr-1.5">
-            <button type="button" onClick={() => setEditing(it)} className="tap min-w-0 flex-1 px-4 py-3 text-left">
+          <motion.div key={it.id} layout transition={springs.smooth} className="flex items-center">
+            <button type="button" onClick={() => setEditing(it)} className="tap-row flex min-h-[60px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left">
+              <span className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="tnum w-4 shrink-0 text-[12px] font-semibold text-ink-3">{i + 1}</span>
-                <span className="truncate text-[15.5px] font-semibold text-ink">{it.name}</span>
+                <span className="tnum w-4 shrink-0 text-[12.5px] font-medium text-ink-3">{i + 1}</span>
+                <span className="truncate text-[15.5px] font-medium text-ink">{it.name}</span>
                 {it.provisional && (
-                  <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-[10.5px] font-semibold text-warn">Provisional</span>
+                  <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-medium text-warn">Provisional</span>
                 )}
               </div>
               <div className="tnum mt-0.5 pl-6 text-[13px] text-ink-2">
@@ -122,33 +124,15 @@ export function RoutineEditor({
                 <span className="text-ink-3"> · rest {fmtRest(it.restSec)}</span>
               </div>
               {it.notes && <div className="mt-0.5 truncate pl-6 text-[12.5px] text-ink-3">{it.notes}</div>}
+              </span>
+              <ChevronRight className="size-4 shrink-0 text-ink-3" />
             </button>
-            <div className="flex flex-col">
-              <button
-                type="button"
-                aria-label="Move up"
-                disabled={i === 0}
-                onClick={() => run({ type: "move", id: it.id, dir: -1 }, () => moveRoutineExercise(it.id, -1))}
-                className="tap grid h-9 w-10 place-items-center rounded-lg text-ink-3 disabled:opacity-25"
-              >
-                <ChevronUp className="size-[18px]" />
-              </button>
-              <button
-                type="button"
-                aria-label="Move down"
-                disabled={i === list.length - 1}
-                onClick={() => run({ type: "move", id: it.id, dir: 1 }, () => moveRoutineExercise(it.id, 1))}
-                className="tap grid h-9 w-10 place-items-center rounded-lg text-ink-3 disabled:opacity-25"
-              >
-                <ChevronDown className="size-[18px]" />
-              </button>
-            </div>
           </motion.div>
         ))}
         <button
           type="button"
           onClick={() => setPicker(true)}
-          className="tap flex h-[52px] w-full items-center justify-center gap-1.5 text-[14.5px] font-semibold text-accent"
+          className="tap-row flex h-[52px] w-full items-center justify-center gap-1.5 text-[14.5px] font-medium text-ink-2"
         >
           <Plus className="size-4" /> Add exercise
         </button>
@@ -188,6 +172,9 @@ export function RoutineEditor({
         item={editing}
         onClose={() => setEditing(null)}
         onRemove={(id) => run({ type: "remove", id }, () => removeRoutineExercise(id))}
+        canUp={!!editing && list.findIndex((x) => x.id === editing.id) > 0}
+        canDown={!!editing && list.findIndex((x) => x.id === editing.id) < list.length - 1}
+        onMove={(id, dir) => run({ type: "move", id, dir }, () => moveRoutineExercise(id, dir))}
       />
     </div>
   );
@@ -239,7 +226,21 @@ function DetailsSheet({ open, onClose, routine }: { open: boolean; onClose: () =
 
 const RESTS = [45, 60, 75, 90, 120, 150, 180];
 
-function ItemSheet({ item, onClose, onRemove }: { item: Item | null; onClose: () => void; onRemove: (id: string) => void }) {
+function ItemSheet({
+  item,
+  onClose,
+  onRemove,
+  canUp,
+  canDown,
+  onMove,
+}: {
+  item: Item | null;
+  onClose: () => void;
+  onRemove: (id: string) => void;
+  canUp: boolean;
+  canDown: boolean;
+  onMove: (id: string, dir: -1 | 1) => void;
+}) {
   const { error, action } = useFormAction(updateRoutineExercise, onClose);
   const [sets, setSets] = useState(3);
   const [rest, setRest] = useState(90);
@@ -276,7 +277,7 @@ function ItemSheet({ item, onClose, onRemove }: { item: Item | null; onClose: ()
                   type="button"
                   onClick={() => setRest(r)}
                   className={cn(
-                    "tap tnum h-9 rounded-full px-3 text-[13.5px] font-medium",
+                    "tap tnum h-10 rounded-full px-3.5 text-[14px] font-medium",
                     rest === r ? "bg-ink text-bg" : "bg-sunken text-ink-2",
                   )}
                 >
@@ -288,7 +289,7 @@ function ItemSheet({ item, onClose, onRemove }: { item: Item | null; onClose: ()
           <Field label="Notes" hint="optional">
             <Input name="notes" defaultValue={item.notes ?? ""} placeholder="e.g. Or cable pushdown. Choose one." />
           </Field>
-          <label className="mb-5 flex h-12 items-center justify-between rounded-2xl bg-surface-2 px-4 text-[15px] text-ink">
+          <label className="mb-5 flex min-h-12 items-center justify-between gap-3 rounded-[12px] border border-line-strong px-4 py-2 text-[15px] text-ink">
             <span>
               Provisional <span className="text-[13px] text-ink-3">· still testing this prescription</span>
             </span>
@@ -300,7 +301,7 @@ function ItemSheet({ item, onClose, onRemove }: { item: Item | null; onClose: ()
               type="button"
               variant="danger"
               size="icon"
-              className="size-12 rounded-2xl"
+              className="size-12 rounded-[12px]"
               aria-label="Remove from routine"
               disabled={temp}
               onClick={() => {
@@ -309,6 +310,28 @@ function ItemSheet({ item, onClose, onRemove }: { item: Item | null; onClose: ()
               }}
             >
               <Trash2 className="size-[18px]" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-12 rounded-[12px]"
+              aria-label="Move up"
+              disabled={temp || !canUp}
+              onClick={() => onMove(item.id, -1)}
+            >
+              <ChevronUp className="size-[18px]" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-12 rounded-[12px]"
+              aria-label="Move down"
+              disabled={temp || !canDown}
+              onClick={() => onMove(item.id, 1)}
+            >
+              <ChevronDown className="size-[18px]" />
             </Button>
             <SubmitButton variant="accent" size="lg" className="flex-1" disabled={temp}>
               Save
@@ -328,7 +351,7 @@ function DeleteRoutine({ id }: { id: string }) {
       type="button"
       disabled={pending}
       onClick={() => (confirm ? start(() => deleteRoutine(id)) : setConfirm(true))}
-      className="tap mt-6 h-11 w-full rounded-2xl text-[14px] font-semibold text-bad"
+      className="tap mt-6 h-11 w-full rounded-[12px] text-[14px] font-medium text-ink-2 hover:text-ink"
     >
       {pending ? "Deleting…" : confirm ? "Tap again to delete. Past sessions are kept." : "Delete routine"}
     </button>

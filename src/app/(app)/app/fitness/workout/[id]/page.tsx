@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
+import { DEFAULT_COLOR } from "@/lib/colors";
 import { getExerciseHistory, ownWorkout } from "@/lib/fitness";
 import type { ExerciseOption } from "@/lib/fitness-math";
 import { Logger, type Prescription } from "./logger";
@@ -18,10 +19,11 @@ export default function WorkoutPage(props: PageProps<"/app/fitness/workout/[id]"
 
 function LoggerSkeleton() {
   return (
-    <div className="pt-16">
-      <Skeleton className="h-9 w-48" />
-      <Skeleton className="mt-6 h-56 rounded-[22px]" />
-      <Skeleton className="mt-4 h-56 rounded-[22px]" />
+    <div className="pt-20">
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="mt-2 h-8 w-48" />
+      <Skeleton className="mt-6 h-64 rounded-[16px]" />
+      <Skeleton className="mt-3 h-56 rounded-[16px]" />
     </div>
   );
 }
@@ -98,7 +100,7 @@ async function WorkoutContent({ params }: { params: PageProps<"/app/fitness/work
         feeling: log.feeling,
         notes: log.notes,
       }}
-      color={routine?.color ?? "coral"}
+      color={routine?.color ?? DEFAULT_COLOR}
       today={user.today}
       initialSets={sets}
       prescriptions={prescriptions}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useOptimistic, useState, useTransition } from "react";
 import { deleteBodyMetric } from "@/actions/health";
@@ -10,6 +10,7 @@ import { listItem } from "@/components/ui/motion";
 import type { BodyMetric } from "@/db/schema";
 import { formatMonthDay, formatWeekdayShort } from "@/lib/dates";
 import { fmtKg } from "@/lib/fitness-math";
+import { ConfirmDelete } from "../_components/confirm-delete";
 
 export function WeighInButton({ today, lastWeight }: { today: string; lastWeight?: number | null }) {
   const [open, setOpen] = useState(false);
@@ -48,19 +49,15 @@ export function BodyEntries({ entries }: { entries: BodyMetric[] }) {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            aria-label="Delete entry"
-            onClick={() =>
+          <ConfirmDelete
+            label="Delete entry"
+            onDelete={() =>
               start(async () => {
                 remove(e.id);
                 await deleteBodyMetric(e.id);
               })
             }
-            className="tap grid size-11 shrink-0 place-items-center rounded-full text-ink-3"
-          >
-            <Trash2 className="size-4" />
-          </button>
+          />
         </motion.div>
       ))}
       </AnimatePresence>

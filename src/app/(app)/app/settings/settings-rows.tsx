@@ -1,14 +1,16 @@
 "use client";
 
-import { CalendarClock, Globe, LocateFixed, Trash2, User } from "lucide-react";
+import { AlertCircle, CalendarClock, Globe, LocateFixed, Moon, Sun, Trash2, User } from "lucide-react";
 import { useId, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/controls";
+import { Field, Input, Segmented, Select } from "@/components/ui/controls";
 import { TimePicker } from "@/components/ui/pickers";
-import { Row, RowIcon } from "@/components/ui/primitives";
+import { Row } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
+import { useColorMode } from "@/components/shell/theme";
 import { formatMin, toTimeInput } from "@/lib/dates";
-import { deleteAccount, updateDayHours, updateName, updateTimezone, type Result } from "./actions";
+import { setMode, type ColorMode } from "@/lib/themes";
+import { deleteAccount, saveColorMode, updateDayHours, updateName, updateTimezone, type Result } from "./actions";
 
 /** Sheet open state plus a submit handler that keeps the form's values when saving fails. */
 function useSheetForm(action: (fd: FormData) => Promise<Result>) {
@@ -45,7 +47,12 @@ function useSheetForm(action: (fd: FormData) => Promise<Result>) {
 
 function ErrorNote({ error }: { error: string | null }) {
   if (!error) return null;
-  return <p role="alert" className="mb-3 animate-pop rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>;
+  return (
+    <p role="alert" className="mb-3 flex animate-pop items-start gap-2 px-1 text-[13.5px] leading-snug font-medium text-warn">
+      <AlertCircle className="mt-px size-4 shrink-0" />
+      {error}
+    </p>
+  );
 }
 
 /** The sheet's one action, submitting the form by id. */
@@ -61,7 +68,7 @@ export function NameRow({ name }: { name: string }) {
   const s = useSheetForm(updateName);
   return (
     <>
-      <Row onClick={s.show} icon={<User />} iconColor="slate" title="Name" value={name} />
+      <Row onClick={s.show} icon={<User />} title="Name" value={name} />
       <Sheet open={s.open} onClose={s.close} title="Your name" footer={<SaveButton formId={s.formId} pending={s.pending} />}>
         <form id={s.formId} onSubmit={s.onSubmit}>
           <Field>
@@ -100,7 +107,6 @@ export function TimezoneRow({ timezone, zones }: { timezone: string; zones: stri
           s.show();
         }}
         icon={<Globe />}
-        iconColor="sky"
         title="Timezone"
         value={label(timezone)}
       />
@@ -143,7 +149,6 @@ export function DayHoursRow({ startMin, endMin }: { startMin: number; endMin: nu
       <Row
         onClick={s.show}
         icon={<CalendarClock />}
-        iconColor="indigo"
         title="Planner day"
         value={`${formatMin(startMin)} – ${formatMin(endMin)}`}
       />
@@ -180,13 +185,8 @@ export function DeleteAccountRow() {
           setTyped("");
           s.show();
         }}
-        icon={
-          <RowIcon className="bg-bad-soft! text-bad!">
-            <Trash2 />
-          </RowIcon>
-        }
+        icon={<Trash2 />}
         title="Delete account"
-        tone="bad"
         chevron={false}
       />
       <Sheet
@@ -216,5 +216,34 @@ export function DeleteAccountRow() {
         </form>
       </Sheet>
     </>
+  );
+}
+
+/**
+ * Light | Dark, inline. Flips the page at once and saves to the account, so
+ * every device follows. `saved` is the account's mode (null = never picked).
+ */
+export function AppearanceRow({ saved }: { saved: ColorMode | null }) {
+  const mode = useColorMode(saved ?? "light");
+  const [, start] = useTransition();
+  const pick = (m: ColorMode) => {
+    setMode(m, true);
+    start(async () => {
+      await saveColorMode(m).catch(() => {});
+    });
+  };
+  return (
+    <Row icon={mode === "dark" ? <Moon /> : <Sun />} title="Appearance">
+      <Segmented<ColorMode>
+        size="sm"
+        className="ml-auto w-[152px] shrink-0"
+        value={mode}
+        onChange={pick}
+        options={[
+          { value: "light", label: "Light" },
+          { value: "dark", label: "Dark" },
+        ]}
+      />
+    </Row>
   );
 }

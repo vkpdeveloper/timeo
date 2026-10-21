@@ -10,7 +10,7 @@ import { ScheduleEditor } from "./editor";
 export default function SchedulePage() {
   return (
     <>
-      <SubHeader back="/app/fitness" backLabel="Fitness" />
+      <SubHeader back="/app/fitness" backLabel="Body" />
       <Suspense
         fallback={
           <div>
@@ -18,7 +18,7 @@ export default function SchedulePage() {
               <Skeleton className="h-9 w-40" />
             </div>
             <Skeleton className="h-12" />
-            <Skeleton className="mt-6 h-96 rounded-[20px]" />
+            <Skeleton className="mt-6 h-96 rounded-[16px]" />
           </div>
         }
       >

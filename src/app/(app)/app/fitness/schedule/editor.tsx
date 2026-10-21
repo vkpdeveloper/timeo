@@ -9,7 +9,7 @@ import { PageHeader, Row, RowIcon, Section, Stat, StatStrip } from "@/components
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
-import { formatDuration, formatMin, toTimeInput, WEEKDAY_NAMES } from "@/lib/dates";
+import { formatDuration, toTimeInput, WEEKDAY_NAMES } from "@/lib/dates";
 import type { ScheduleDay } from "@/lib/fitness";
 import { ErrorNote, type RoutineOption } from "../_components/day-actions";
 import { saveScheduleDay, saveTrainingNotes } from "./actions";
@@ -44,7 +44,7 @@ export function ScheduleEditor({
             onClick={() => setEditing(d)}
             icon={
               <RowIcon className="bg-transparent!">
-                <span className={cn("text-[13px] font-semibold", d.weekday === todayWeekday ? "text-accent" : "text-ink-3")}>
+                <span className={cn("text-[13px]", d.weekday === todayWeekday ? "font-semibold text-ink" : "font-medium text-ink-3")}>
                   {WEEKDAY_NAMES[d.weekday].slice(0, 3)}
                 </span>
               </RowIcon>
@@ -59,8 +59,12 @@ export function ScheduleEditor({
               </span>
             }
             subtitle={
-              [d.startMin != null ? formatMin(d.startMin) : null, d.routine?.focus, d.notes].filter(Boolean).join(" · ") ||
-              (d.routine ? `${d.routine.exerciseCount} exercises` : "Recovery")
+              <>
+                {d.startMin != null && <span className="mono">{toTimeInput(d.startMin)}</span>}
+                {d.startMin != null && (d.routine?.focus || d.notes) ? " · " : ""}
+                {[d.routine?.focus, d.notes].filter(Boolean).join(" · ") ||
+                  (d.startMin != null ? "" : d.routine ? `${d.routine.exerciseCount} exercises` : "Recovery")}
+              </>
             }
             value={d.routine ? `~${d.routine.estimatedMin}m` : undefined}
           />
@@ -71,7 +75,6 @@ export function ScheduleEditor({
         <Row
           href="/app/fitness/programs"
           icon={<LayoutGrid />}
-          iconColor="teal"
           title="Programs"
           subtitle="Switch to a preset or a saved split"
         />
@@ -110,7 +113,7 @@ function NotesCard({ notes }: { notes: string }) {
         />
         <div className="flex items-center justify-end gap-3 px-1 pt-2">
           {saved && <span className="text-[12.5px] text-ink-3">Saved</span>}
-          <SubmitButton size="sm" variant={dirty ? "primary" : "secondary"} disabled={!dirty}>
+          <SubmitButton size="sm" className="h-11 px-4" variant={dirty ? "primary" : "secondary"} disabled={!dirty}>
             Save notes
           </SubmitButton>
         </div>
@@ -167,8 +170,8 @@ function DaySheet({ day, routines, onClose }: { day: ScheduleDay | null; routine
                     type="button"
                     onClick={() => setTemplateId(r.id)}
                     className={cn(
-                      "tap flex h-12 items-center gap-3 rounded-2xl border px-3.5 text-left",
-                      templateId === r.id ? "border-ink bg-surface" : "border-line bg-surface-2",
+                      "tap flex h-12 items-center gap-3 rounded-[12px] border px-3.5 text-left",
+                      templateId === r.id ? "border-ink bg-surface" : "border-line-strong bg-surface",
                     )}
                   >
                     <span className="size-2.5 rounded-full" style={{ background: colorVar(r.color) }} />

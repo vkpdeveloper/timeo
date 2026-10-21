@@ -65,7 +65,7 @@ export function buildGpsTools(user: CurrentUser, actions: ActionSink) {
 
   function goalRows(seasonId: string, goals: z.infer<typeof GoalInput>[], used: string[], start = 0) {
     return goals.map((g, i) => {
-      const color = g.color ?? PALETTE.find((c) => !used.includes(c) && c !== "slate") ?? "coral";
+      const color = g.color ?? PALETTE.find((c) => !used.includes(c) && c !== "stone") ?? "sand";
       used.push(color);
       return {
         id: crypto.randomUUID(),

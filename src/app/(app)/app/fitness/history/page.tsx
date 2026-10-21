@@ -13,7 +13,7 @@ import { StatusChip } from "../_components/bits";
 export default function HistoryPage() {
   return (
     <>
-      <SubHeader back="/app/fitness" backLabel="Fitness" />
+      <SubHeader back="/app/fitness" backLabel="Body" />
       <Suspense fallback={<ListSkeleton />}>
         <HistoryList />
       </Suspense>
@@ -29,9 +29,9 @@ function ListSkeleton() {
       </div>
       <Skeleton className="h-12" />
       <Skeleton className="mt-6 h-4 w-24" />
-      <Skeleton className="mt-3 h-48 rounded-[20px]" />
+      <Skeleton className="mt-3 h-48 rounded-[16px]" />
       <Skeleton className="mt-6 h-4 w-24" />
-      <Skeleton className="mt-3 h-48 rounded-[20px]" />
+      <Skeleton className="mt-3 h-48 rounded-[16px]" />
     </div>
   );
 }
@@ -131,7 +131,7 @@ async function HistoryList() {
                   href={`/app/fitness/history/${l.id}`}
                   icon={
                     <RowIcon className="h-auto! flex-col bg-transparent! leading-none">
-                      <span className="text-[10.5px] font-semibold text-ink-3 uppercase">{formatWeekdayShort(l.date)}</span>
+                      <span className="text-[11px] font-medium text-ink-3">{formatWeekdayShort(l.date)}</span>
                       <span className="tnum mt-1 text-[17px] font-semibold text-ink">{Number(l.date.slice(8))}</span>
                     </RowIcon>
                   }
@@ -139,7 +139,7 @@ async function HistoryList() {
                     <span className="flex items-center gap-2">
                       <span
                         className="size-2 shrink-0 rounded-full"
-                        style={{ background: l.status === "skipped" ? "var(--line-strong)" : colorVar(l.color ?? "slate") }}
+                        style={{ background: l.status === "skipped" ? "var(--line-strong)" : colorVar(l.color ?? "stone") }}
                       />
                       <span className="truncate">{l.name}</span>
                       {swapped && <span className="shrink-0 text-[11.5px] font-medium text-ink-3">swap</span>}

@@ -6,7 +6,7 @@ import { Button, SubmitButton } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/controls";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
-import { colorVar, softVar } from "@/lib/colors";
+import { colorVar } from "@/lib/colors";
 import { WEEKDAY_LETTER } from "@/lib/dates";
 import { ErrorNote } from "../_components/day-actions";
 import { deleteProgram, loadProgram, renameProgram, saveCurrentProgram } from "./actions";
@@ -40,7 +40,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
             <p className="mt-0.5 text-[12.5px] font-medium text-ink-3">{p.meta}</p>
           </div>
           {p.current ? (
-            <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-ok-soft px-2.5 text-[11.5px] font-semibold text-ok">
+            <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-ok-soft px-2.5 text-[12px] font-medium text-ok">
               <Check className="size-3" strokeWidth={3} /> Current
             </span>
           ) : p.kind === "saved" ? (
@@ -48,7 +48,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
               type="button"
               onClick={() => setEdit(true)}
               aria-label="Rename program"
-              className="tap -mt-1.5 -mr-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3"
+              className="tap -mt-2 -mr-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-3 hover:text-ink"
             >
               <Pencil className="size-4" />
             </button>
@@ -56,20 +56,16 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
         </div>
         {p.description && <p className="mt-2 text-[13.5px] leading-snug text-ink-2">{p.description}</p>}
 
-        <div className="mt-3.5 grid grid-cols-7 gap-1">
+        <div className="mt-4 grid grid-cols-7 gap-1">
           {p.days.map((d, i) => (
-            <div key={i} className="flex min-w-0 flex-col items-center gap-1">
-              <span className="text-[10.5px] font-semibold text-ink-3">{WEEKDAY_LETTER[i]}</span>
+            <div key={i} className="flex min-w-0 flex-col items-center gap-1.5" title={d.name}>
+              <span className="text-[11px] font-medium text-ink-3">{WEEKDAY_LETTER[i]}</span>
               <span
-                className="flex h-9 w-full items-center justify-center rounded-lg px-0.5 text-center text-[9.5px] leading-[1.1] font-semibold"
-                style={
-                  d.color
-                    ? { background: softVar(d.color), color: colorVar(d.color) }
-                    : { background: "var(--sunken)", color: "var(--ink-3)" }
-                }
-                title={d.name}
-              >
-                <span className="line-clamp-2 break-words">{d.color ? d.name : "Rest"}</span>
+                className="h-1.5 w-full rounded-full"
+                style={{ background: d.color ? colorVar(d.color) : "var(--sunken)" }}
+              />
+              <span className={cn("line-clamp-2 text-center text-[11px] leading-tight", d.color ? "text-ink-2" : "text-ink-3")}>
+                {d.color ? d.name : "Rest"}
               </span>
             </div>
           ))}
@@ -82,7 +78,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
             <div key={r.name} className="py-2">
               <div className="flex items-center gap-2">
                 <span className="size-2 rounded-full" style={{ background: colorVar(r.color) }} />
-                <span className="text-[14.5px] font-semibold text-ink">{r.name}</span>
+                <span className="text-[14.5px] font-medium text-ink">{r.name}</span>
                 {r.focus && <span className="truncate text-[12.5px] text-ink-3">{r.focus}</span>}
               </div>
               <ul className="tnum mt-1 pl-4 text-[13px] leading-relaxed text-ink-2">
@@ -99,7 +95,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
         <button
           type="button"
           onClick={() => setExpanded((x) => !x)}
-          className="tap flex h-12 flex-1 items-center justify-center gap-1 text-[13.5px] font-semibold text-ink-2"
+          className="tap-row flex h-12 flex-1 items-center justify-center gap-1 text-[14px] font-medium text-ink-2"
         >
           {expanded ? "Hide routines" : `${p.routines.length} routines`}
           <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
@@ -107,7 +103,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
         <button
           type="button"
           onClick={() => setConfirm(true)}
-          className="tap flex h-12 flex-1 items-center justify-center border-l border-line text-[13.5px] font-semibold text-accent"
+          className="tap-row flex h-12 flex-1 items-center justify-center border-l border-line text-[14px] font-medium text-ink"
         >
           {p.current ? "Reload" : "Use this program"}
         </button>
@@ -175,7 +171,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
                 type="button"
                 variant="danger"
                 size={confirmDelete ? "lg" : "icon"}
-                className={confirmDelete ? "flex-1" : "size-[52px] rounded-2xl"}
+                className={confirmDelete ? "flex-1" : "size-12 rounded-[12px]"}
                 loading={deleting}
                 aria-label="Delete program"
                 onClick={() =>

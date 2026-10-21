@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, FileUp } from "lucide-react";
+import { Check, CircleAlert, FileUp } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/controls";
@@ -65,13 +65,13 @@ export function Importer() {
           }}
           placeholder="Paste JSON here"
           spellCheck={false}
-          className="border-0 bg-transparent px-1.5 font-mono !text-[13px] leading-relaxed focus:bg-transparent focus:shadow-none"
+          className="border-0 bg-transparent px-1.5 !text-[14px] leading-relaxed focus:bg-transparent focus:shadow-none"
         />
         <div className="flex items-center justify-between gap-2 border-t border-line px-1 pt-3">
           <button
             type="button"
             onClick={() => file.current?.click()}
-            className="tap inline-flex h-9 items-center gap-1.5 rounded-full bg-sunken px-3.5 text-[13px] font-semibold text-ink-2"
+            className="tap inline-flex h-11 items-center gap-1.5 rounded-[12px] bg-sunken px-3.5 text-[14px] font-medium text-ink-2"
           >
             <FileUp className="size-4" /> Choose file
           </button>
@@ -92,7 +92,12 @@ export function Importer() {
         </div>
       </div>
 
-      {error && <p className="mt-3 rounded-2xl bg-bad-soft px-4 py-3 text-[14px] font-medium text-bad">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-3 flex items-start gap-2 text-[14px] leading-snug font-medium text-bad">
+          <CircleAlert className="mt-0.5 size-4 shrink-0" />
+          {error}
+        </p>
+      )}
 
       {!applied && (
         <div className="mt-4 flex gap-2.5">
@@ -127,14 +132,14 @@ export function Importer() {
 
       {!json && (
         <details className="mt-8 px-1">
-          <summary className="cursor-pointer text-[14px] font-semibold text-ink-2">Format</summary>
+          <summary className="cursor-pointer text-[14px] font-medium text-ink-2">Format</summary>
           <p className="mt-2 text-[13.5px] leading-relaxed text-ink-3">
-            Weekdays under <code>schedule</code> become your split; days with exercises become routines (matched by
-            name). In <code>log.days</code>, <code>completed</code> days are imported with their sets (or as done
-            without sets when <code>exercises</code> is null), <code>skipped</code> days keep their reason, and
-            unreported or future days are left out. A <code>null</code> weight stays unknown.
+            Weekdays under <code className="font-sans font-medium text-ink">schedule</code> become your split; days with exercises become routines (matched by
+            name). In <code className="font-sans font-medium text-ink">log.days</code>, <code className="font-sans font-medium text-ink">completed</code> days are imported with their sets (or as done
+            without sets when <code className="font-sans font-medium text-ink">exercises</code> is null), <code className="font-sans font-medium text-ink">skipped</code> days keep their reason, and
+            unreported or future days are left out. A <code className="font-sans font-medium text-ink">null</code> weight stays unknown.
           </p>
-          <pre className="mt-3 overflow-x-auto rounded-2xl bg-sunken p-3 text-[11.5px] leading-relaxed text-ink-2">{EXAMPLE}</pre>
+          <pre className="mt-3 overflow-x-auto font-sans rounded-[12px] bg-sunken p-3 text-[11.5px] leading-relaxed text-ink-2">{EXAMPLE}</pre>
         </details>
       )}
     </div>
@@ -146,7 +151,7 @@ function Report({ report, applied }: { report: ImportReport; applied: boolean })
     <div className="mt-6 flex flex-col gap-6">
       <div
         className={cn(
-          "flex items-center gap-2.5 rounded-2xl px-4 py-3 text-[14px] font-medium",
+          "flex items-center gap-2.5 rounded-[12px] px-4 py-3 text-[14px] font-medium",
           applied ? "bg-ok-soft text-ok" : "bg-sunken text-ink-2",
         )}
       >

@@ -1,40 +1,24 @@
 "use client";
 
-import { useEffect, useLayoutEffect } from "react";
-import { fetchAppearance } from "@/app/(app)/app/settings/appearance/actions";
-import {
-  LOCAL_CHANGE_KEY,
-  applyAppearance,
-  readStoredAppearance,
-  setAppearance,
-  STORAGE_KEYS,
-  THEME_BGS,
-} from "@/lib/themes";
+import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
+import { fetchColorMode } from "@/app/(app)/app/settings/actions";
+import { LOCAL_CHANGE_KEY, MODE_BG, MODE_KEY, SYNCED_KEY, applyMode, readMode, setMode, type ColorMode } from "@/lib/themes";
 
-function applyStored() {
-  const { theme, mode, custom } = readStoredAppearance();
-  applyAppearance(theme, mode, THEME_BGS, custom);
-}
+const applyStored = () => applyMode(readMode(), MODE_BG);
 
 /**
- * Root-level companion to the inline boot script. Re-applies the stored
- * appearance after hydration (React's dev remount clears <html> attributes)
- * and keeps other tabs and the OS light/dark switch in step.
+ * Root-level companion to the inline boot script. Re-applies the stored mode
+ * after hydration (React's dev remount clears <html> attributes) and keeps
+ * other tabs in step.
  */
 export function ThemeBoot() {
   useLayoutEffect(applyStored, []);
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key && (Object.values(STORAGE_KEYS) as string[]).includes(e.key)) applyStored();
+      if (e.key === MODE_KEY) applyStored();
     };
-    // In "system" mode the browser bar colour follows the OS
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
     window.addEventListener("storage", onStorage);
-    mq.addEventListener("change", applyStored);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      mq.removeEventListener("change", applyStored);
-    };
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
   return null;
 }
@@ -42,28 +26,42 @@ export function ThemeBoot() {
 let synced = false;
 
 /**
- * Brings this device in line with the account's saved appearance (e.g. after
- * changing it on another device). It asks the server once per app session,
- * instead of trusting values baked into the page (pages can be served from the
- * offline snapshot), and never overrides a change made here in the last 15 s.
+ * Brings this device in line with the account's saved mode (e.g. after
+ * changing it on another device). Asks the server once per app session
+ * (pages can be served from the offline snapshot) and never overrides a
+ * change made here in the last 15 s.
  */
 export function ThemeSync() {
   useEffect(() => {
     if (synced) return;
     synced = true;
     try {
-      if (sessionStorage.getItem("timeo.appearance.synced")) return;
-      sessionStorage.setItem("timeo.appearance.synced", "1");
+      if (sessionStorage.getItem(SYNCED_KEY)) return;
+      sessionStorage.setItem(SYNCED_KEY, "1");
     } catch {}
-    fetchAppearance()
-      .then(({ theme, mode, custom }) => {
+    fetchColorMode()
+      .then((mode) => {
+        if (!mode) return;
         const changedAt = Number(localStorage.getItem(LOCAL_CHANGE_KEY) || 0);
         if (Date.now() - changedAt < 15_000) return;
-        const stored = readStoredAppearance();
-        const same = stored.theme === theme && stored.mode === mode && JSON.stringify(stored.custom) === JSON.stringify(custom);
-        if (!same) setAppearance(theme, mode, custom);
+        if (readMode() !== mode) setMode(mode);
       })
       .catch(() => {});
   }, []);
   return null;
+}
+
+function subscribeMode(cb: () => void) {
+  const mo = new MutationObserver(cb);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-mode"] });
+  return () => mo.disconnect();
+}
+
+/** The mode painted right now. `fallback` is used while server rendering. */
+export function useColorMode(fallback: ColorMode = "light"): ColorMode {
+  return useSyncExternalStore(
+    subscribeMode,
+    () => (document.documentElement.getAttribute("data-mode") === "dark" ? "dark" : "light"),
+    () => fallback,
+  );
 }

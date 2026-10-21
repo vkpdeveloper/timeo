@@ -25,7 +25,7 @@ export function WaterCard({ ml, targetMl, day, card = false }: { ml: number; tar
   return (
     <div className={cn("px-4 py-3", card && "card")}>
       <div className="flex items-center gap-3">
-        <RowIcon color="sky">
+        <RowIcon>
           <Droplet />
         </RowIcon>
         <div className="min-w-0 flex-1">
@@ -47,14 +47,14 @@ export function WaterCard({ ml, targetMl, day, card = false }: { ml: number; tar
         <button
           type="button"
           onClick={() => bump(250)}
-          className="tap tnum h-11 shrink-0 rounded-full bg-sunken px-3.5 text-[14px] font-semibold text-ink"
+          className="tap tnum h-11 shrink-0 rounded-[12px] bg-sunken px-3.5 text-[14px] font-medium text-ink"
         >
           +250
         </button>
         <button
           type="button"
           onClick={() => bump(500)}
-          className="tap tnum h-11 shrink-0 rounded-full bg-sunken px-3.5 text-[14px] font-semibold text-ink"
+          className="tap tnum h-11 shrink-0 rounded-[12px] bg-sunken px-3.5 text-[14px] font-medium text-ink"
         >
           +500
         </button>

@@ -1,6 +1,4 @@
 import { and, desc, eq } from "drizzle-orm";
-import { Settings } from "lucide-react";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ButtonLink } from "@/components/ui/button";
@@ -16,6 +14,7 @@ import {
   Skeleton,
   Stat,
   StatStrip,
+  SubHeader,
 } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { GUIDE } from "@/lib/ai/guide";
@@ -41,22 +40,17 @@ export default function ReviewPage() {
 
 function ReviewSkeleton() {
   return (
-    <div className="pt-5 lg:pt-10">
-      <Skeleton className="h-3 w-28" />
-      <Skeleton className="mt-2 h-9 w-40" />
-      <Skeleton className="mt-2 h-4 w-64" />
-      <Skeleton className="mt-5 h-12" />
-      <Skeleton className="mt-6 h-[300px] rounded-[20px]" />
-      <Skeleton className="mt-6 h-[220px] rounded-[20px]" />
-    </div>
-  );
-}
-
-function SettingsLink() {
-  return (
-    <Link href="/app/settings" aria-label="Settings" className="tap grid size-11 place-items-center rounded-full bg-sunken text-ink-2">
-      <Settings className="size-[19px]" strokeWidth={1.9} />
-    </Link>
+    <>
+      <SubHeader back="/app/goals" backLabel="Season" />
+      <div className="pt-4">
+        <Skeleton className="h-3 w-28" />
+        <Skeleton className="mt-2 h-8 w-40" />
+        <Skeleton className="mt-2 h-4 w-64" />
+        <Skeleton className="mt-5 h-12" />
+        <Skeleton className="mt-6 h-[300px] rounded-[16px]" />
+        <Skeleton className="mt-6 h-[220px] rounded-[16px]" />
+      </div>
+    </>
   );
 }
 
@@ -154,12 +148,13 @@ async function ReviewContent() {
   );
 
   return (
-    <>
+    <div className="page-enter">
+      <SubHeader back="/app/goals" backLabel="Season" />
       <PageHeader
+        className="pt-3 lg:pt-6"
         eyebrow={season ? `${weekTitle} · ${range}` : range}
         title="Review"
         subtitle={weekSummary(week, health, daysLeftInWeek === 0)}
-        action={<SettingsLink />}
       />
 
       <StatStrip>
@@ -242,8 +237,8 @@ async function ReviewContent() {
             )}
             {lastWeekly && (
               <div className={cn("grid gap-2 sm:grid-cols-2", energy.sessions > 0 && "mt-5 border-t border-line pt-4")}>
-                {lastWeekly.energisers && <EnergyNote label="Gave energy" text={lastWeekly.energisers} color="var(--c-teal)" />}
-                {lastWeekly.drainers && <EnergyNote label="Drained" text={lastWeekly.drainers} color="var(--c-rose)" />}
+                {lastWeekly.energisers && <EnergyNote label="Gave energy" text={lastWeekly.energisers} color="var(--accent)" />}
+                {lastWeekly.drainers && <EnergyNote label="Drained" text={lastWeekly.drainers} color="var(--warn)" />}
               </div>
             )}
           </Card>
@@ -266,7 +261,7 @@ async function ReviewContent() {
           ))
         )}
       </Section>
-    </>
+    </div>
   );
 }
 
@@ -305,7 +300,7 @@ function ProgressRow({
 
 function EnergyNote({ label, text, color }: { label: string; text: string; color: string }) {
   return (
-    <div className="rounded-2xl bg-surface-2 px-3.5 py-2.5">
+    <div className="rounded-[12px] bg-surface-2 px-3.5 py-2.5">
       <div className="flex items-center gap-1.5 text-[12px] font-medium text-ink-3">
         <span className="size-2 rounded-full" style={{ background: color }} />
         {label}

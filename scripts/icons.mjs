@@ -1,37 +1,57 @@
-// Renders the app icons from an inline SVG. Run: node scripts/icons.mjs
+// Renders the app icons and logo from inline SVG. Run: node scripts/icons.mjs
+// The glyph is LogoMark (src/components/ui/primitives.tsx) drawn light on a flat Pine tile:
+// a ring three quarters closed from 12 o'clock, a faint track, and a centre dot. No gradients.
 import sharp from "sharp";
 import { writeFile } from "node:fs/promises";
 
-const mark = (size, pad) => {
-  const c = size / 2;
-  const r = (size - pad * 2) * 0.3;
-  const sw = r * 0.34;
-  const circ = 2 * Math.PI * r;
+const PINE = "#1F6B50";
+const LIGHT = "#FFFFFF";
+
+// LogoMark geometry, in its own 32 x 32 box
+const R = 11;
+const STROKE = 4;
+const DOT = 2.2;
+const CIRC = 2 * Math.PI * R;
+
+/** The mark in a 32-unit box, scaled so the box spans `scale` of the icon. */
+const mark = (size, scale, { color = LIGHT, track = 0.24 } = {}) => {
+  const box = size * scale;
+  const k = box / 32;
+  const o = (size - box) / 2;
   return `
-  <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="${sw}"/>
-  <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#ff7a52" stroke-width="${sw}" stroke-linecap="round"
-    stroke-dasharray="${circ * 0.72} ${circ}" transform="rotate(-90 ${c} ${c})"/>
-  <circle cx="${c}" cy="${c}" r="${sw * 0.42}" fill="#f3f2ee"/>`;
+  <g transform="translate(${o} ${o}) scale(${k})">
+    ${track ? `<circle cx="16" cy="16" r="${R}" fill="none" stroke="${color}" stroke-opacity="${track}" stroke-width="${STROKE}"/>` : ""}
+    <circle cx="16" cy="16" r="${R}" fill="none" stroke="${color}" stroke-width="${STROKE}" stroke-linecap="round"
+      stroke-dasharray="${CIRC * 0.72} ${CIRC}" transform="rotate(-90 16 16)"/>
+    <circle cx="16" cy="16" r="${DOT}" fill="${color}"/>
+  </g>`;
 };
 
-const svg = (size, { rounded = true, pad = 0 } = {}) => `
-<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#232226"/><stop offset="1" stop-color="#121214"/>
-    </linearGradient>
-  </defs>
-  <rect width="${size}" height="${size}" rx="${rounded ? size * 0.225 : 0}" fill="url(#g)"/>
-  ${mark(size, pad)}
-</svg>`;
+/**
+ * A Pine tile with the mark.
+ * scale: how much of the tile the 32-unit LogoMark box covers. The ring's outer edge is 26/32 of that box,
+ * so 0.62 gives a glyph about half the tile wide.
+ */
+const tile = (size, { rounded = false, scale = 0.62 } = {}) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  <rect width="${size}" height="${size}" rx="${rounded ? size * 0.225 : 0}" fill="${PINE}"/>${mark(size, scale)}
+</svg>
+`;
 
-const out = async (file, size, opts) =>
-  writeFile(file, await sharp(Buffer.from(svg(size, opts))).png().toBuffer());
+/** Monochrome notification badge: white glyph on transparent, no track (Android uses the alpha only). */
+const badge = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${mark(size, 0.9, { track: 0 })}
+</svg>
+`;
 
-await out("public/icon-192.png", 192, { rounded: false });
-await out("public/icon-512.png", 512, { rounded: false });
-await out("public/icon-maskable.png", 512, { rounded: false, pad: 70 });
-await out("src/app/apple-icon.png", 180, { rounded: false });
-await out("src/app/icon.png", 64, { rounded: true });
-await writeFile("public/logo.svg", svg(128));
+const png = async (file, svg) => writeFile(file, await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer());
+
+// Full-bleed squares: launchers and iOS apply their own mask; offline.html rounds the corners itself.
+await png("public/icon-192.png", tile(192));
+await png("public/icon-512.png", tile(512));
+// Maskable: the glyph's outer edge sits at 22% radius, well inside the 40% safe-zone circle.
+await png("public/icon-maskable.png", tile(512, { scale: 0.54 }));
+await png("src/app/apple-icon.png", tile(180));
+// Favicon: rounded tile, glyph a little larger so it reads at 16px.
+await png("src/app/icon.png", tile(64, { rounded: true, scale: 0.72 }));
+await png("public/badge.png", badge(96));
+await writeFile("public/logo.svg", tile(128, { rounded: true }));
 console.log("icons written");

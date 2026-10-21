@@ -3,10 +3,11 @@ import { ChevronRight } from "lucide-react";
 import { isValidElement, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { colorVar, softVar } from "@/lib/colors";
-import { formatDuration } from "@/lib/dates";
+import { formatDuration, toTimeInput } from "@/lib/dates";
 import { AskTimi } from "./ask-timi";
+import { Countdown, LinearProgress } from "./live";
 
-export { AskTimi };
+export { AskTimi, Countdown, LinearProgress };
 
 export function Card({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("card", className)} {...props} />;
@@ -87,7 +88,7 @@ export function SectionLink({ href, children }: { href: string; children: ReactN
   );
 }
 
-/** Compact, iOS-style large title. One per top-level page. */
+/** Compact page title (26px mobile, 28px desktop). One per top-level page. */
 export function PageHeader({
   eyebrow,
   title,
@@ -108,10 +109,10 @@ export function PageHeader({
     <header className={cn("flex items-end justify-between gap-4 pt-5 pb-4 lg:pt-10 lg:pb-5", className)}>
       <div className="min-w-0">
         {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-        <h1 className="display text-[32px] text-balance text-ink lg:text-[40px]">{title}</h1>
+        <h1 className="display text-[26px] text-balance text-ink lg:text-[28px]">{title}</h1>
         {subtitle && <p className="mt-1 text-[14.5px] leading-snug text-ink-2">{subtitle}</p>}
       </div>
-      {action && <div className="flex shrink-0 items-center gap-2 pb-0.5">{action}</div>}
+      {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
     </header>
   );
 }
@@ -129,11 +130,11 @@ export function SubHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="sticky top-0 z-30 -mx-4 glass px-4 pt-safe sm:-mx-6 sm:px-6">
+    <div className="sticky top-0 z-30 -mx-4 bg-bg px-4 pt-safe sm:-mx-6 sm:px-6">
       <div className="grid h-12 grid-cols-[1fr_auto_1fr] items-center gap-3">
         <Link
           href={back}
-          className="tap -ml-1.5 inline-flex h-11 items-center gap-0.5 justify-self-start rounded-full px-1.5 text-[15px] font-medium text-accent"
+          className="tap -ml-1.5 inline-flex h-11 items-center gap-0.5 justify-self-start rounded-full px-1.5 text-[15px] font-medium text-ink-2 hover:text-ink"
         >
           <ChevronRight className="size-5 rotate-180" strokeWidth={2.2} />
           <span className="truncate">{backLabel}</span>
@@ -172,7 +173,7 @@ export function EmptyState({
   return (
     <div className={cn("rise flex flex-col items-center px-6 py-8 text-center", !bare && "card", className)}>
       {icon && (
-        <div className="mb-3 grid size-10 place-items-center rounded-[14px] bg-sunken text-ink-2 [&_svg]:size-[18px]">{icon}</div>
+        <div className="mb-3 grid size-10 place-items-center rounded-[12px] bg-sunken text-ink-2 [&_svg]:size-[18px]">{icon}</div>
       )}
       <div className="text-[15px] font-semibold tracking-tight text-ink">{title}</div>
       {body && <p className="mt-1 max-w-[32ch] text-[13.5px] leading-relaxed text-ink-3">{body}</p>}
@@ -251,10 +252,11 @@ export function ProgressBar({
   );
 }
 
+// No red: off track is amber text on a soft amber fill.
 const STATUS = {
-  on_track: { label: "On track", cls: "bg-ok-soft text-ok", dot: "bg-ok" },
-  adjust: { label: "Adjust", cls: "bg-warn-soft text-warn", dot: "bg-warn" },
-  off_track: { label: "Off track", cls: "bg-bad-soft text-bad", dot: "bg-bad" },
+  on_track: { label: "On track", cls: "bg-accent-soft text-accent", dot: "bg-accent" },
+  adjust: { label: "Adjust", cls: "bg-sunken text-ink-2", dot: "bg-warn" },
+  off_track: { label: "Off track", cls: "bg-warn-soft text-warn", dot: "bg-warn" },
 } as const;
 
 export type Status = keyof typeof STATUS;
@@ -262,7 +264,7 @@ export type Status = keyof typeof STATUS;
 export function StatusPill({ status, className }: { status: Status; className?: string }) {
   const s = STATUS[status];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold", s.cls, className)}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium", s.cls, className)}>
       <span className={cn("size-1.5 rounded-full", s.dot)} />
       {s.label}
     </span>
@@ -297,7 +299,7 @@ export function RowIcon({ children, color, className }: { children: ReactNode; c
   return (
     <span
       className={cn(
-        "grid size-8 shrink-0 place-items-center rounded-[10px] [&_svg]:size-[17px]",
+        "grid size-8 shrink-0 place-items-center rounded-[10px] [&_svg]:size-[17px] [&_svg]:stroke-[1.8]",
         !color && "bg-sunken text-ink-2",
         className,
       )}
@@ -549,4 +551,146 @@ export function TimeMeter({
 
 export function Dot({ color, className }: { color: string; className?: string }) {
   return <span className={cn("inline-block size-2.5 shrink-0 rounded-full", className)} style={{ background: color }} />;
+}
+
+/** Initial in a circle, linking to Settings. Top-right of Now; 44px hit area. */
+export function AvatarLink({ name, href = "/app/settings", className }: { name: string; href?: string; className?: string }) {
+  const initial = name.trim().charAt(0).toUpperCase() || "?";
+  return (
+    <Link
+      href={href}
+      aria-label="Settings"
+      className={cn("tap -m-1 grid size-11 shrink-0 place-items-center rounded-full", className)}
+    >
+      <span className="grid size-9 place-items-center rounded-full border border-line bg-surface text-[14px] font-semibold text-ink-2">
+        {initial}
+      </span>
+    </Link>
+  );
+}
+
+export type DaySegment = {
+  /** Minutes from midnight. */
+  start: number;
+  end: number;
+  /** CSS colour, usually colorVar(goal.color). Defaults to the accent. */
+  color?: string;
+  /** done = solid, now = solid up to nowMin then soft, upcoming = soft with an outline, skipped = dashed outline. */
+  state?: "done" | "upcoming" | "now" | "skipped";
+  /** Accessible name, e.g. the block title. */
+  label?: string;
+};
+
+/**
+ * The day as one horizontal bar from dayStart to dayEnd: a segment per block,
+ * a now marker, start / end times under it (Geist Mono) and an optional
+ * summary line. Segments reveal left to right on mount.
+ */
+export function DayLine({
+  segments,
+  dayStart,
+  dayEnd,
+  nowMin,
+  labels = true,
+  marks,
+  summary,
+  height = 10,
+  className,
+}: {
+  segments: DaySegment[];
+  dayStart: number;
+  dayEnd: number;
+  /** Minutes from midnight; draws the now marker when inside the day. */
+  nowMin?: number;
+  /** Start and end times under the bar. Pass nodes to replace them. */
+  labels?: boolean | { start?: ReactNode; end?: ReactNode };
+  /** Extra hour marks (minutes) labelled under the bar, e.g. [720, 1080]. */
+  marks?: number[];
+  /** One line under the bar: "3h 40m free · 2 blocks left · 3 tasks". */
+  summary?: ReactNode;
+  /** Bar height in px. */
+  height?: number;
+  className?: string;
+}) {
+  const span = Math.max(1, dayEnd - dayStart);
+  const pos = (m: number) => (Math.max(0, Math.min(span, m - dayStart)) / span) * 100;
+  const showNow = nowMin != null && nowMin >= dayStart && nowMin <= dayEnd;
+  const startLabel = typeof labels === "object" && labels.start != null ? labels.start : toTimeInput(dayStart);
+  const endLabel = typeof labels === "object" && labels.end != null ? labels.end : toTimeInput(dayEnd % 1440);
+  return (
+    <div className={className}>
+      <div className="relative" style={{ paddingBlock: 4 }}>
+        <div className="relative w-full overflow-hidden rounded-full bg-sunken" style={{ height }} role="img" aria-label="Your day">
+          <div className="reveal-x absolute inset-0">
+            {segments.map((s, i) => {
+              if (s.end <= dayStart || s.start >= dayEnd) return null;
+              const left = pos(s.start);
+              const width = Math.max(pos(s.end) - left, 0.8);
+              const c = s.color ?? "var(--accent)";
+              const state = s.state ?? "upcoming";
+              const soft = `color-mix(in oklab, ${c} 24%, var(--surface))`;
+              const fill = state === "now" && nowMin != null ? Math.max(0, Math.min(1, (nowMin - s.start) / Math.max(1, s.end - s.start))) : 0;
+              return (
+                <span
+                  key={i}
+                  title={s.label}
+                  className={cn("absolute inset-y-0 overflow-hidden rounded-[3px]", state === "skipped" && "border border-dashed border-line-strong")}
+                  style={{
+                    left: `calc(${left}% + 1px)`,
+                    width: `calc(${width}% - 2px)`,
+                    background: state === "done" ? c : state === "skipped" ? "transparent" : soft,
+                    boxShadow: state === "upcoming" ? `inset 0 0 0 1px color-mix(in oklab, ${c} 60%, transparent)` : undefined,
+                  }}
+                >
+                  {state === "now" && <span className="absolute inset-y-0 left-0" style={{ width: `${fill * 100}%`, background: c }} />}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+        {showNow && (
+          <span
+            aria-hidden
+            className="rise absolute inset-y-0 w-[2px] -translate-x-1/2 rounded-full bg-ink"
+            style={{ left: `${pos(nowMin!)}%`, ["--delay" as string]: "450ms" }}
+          />
+        )}
+      </div>
+      {labels !== false && (
+        <div className="mono relative mt-1.5 h-4 text-[11.5px] leading-4 text-ink-3">
+          <span className="absolute left-0">{startLabel}</span>
+          {marks
+            ?.filter((m) => pos(m) > 10 && pos(m) < 90)
+            .map((m) => (
+              <span key={m} className="absolute -translate-x-1/2" style={{ left: `${pos(m)}%` }}>
+                {toTimeInput(m % 1440)}
+              </span>
+            ))}
+          <span className="absolute right-0">{endLabel}</span>
+        </div>
+      )}
+      {summary && <p className="tnum mt-2.5 text-[13.5px] text-ink-2">{summary}</p>}
+    </div>
+  );
+}
+
+/** The Timeo mark, flat: a ring three quarters closed and a dot. Follows the accent. */
+export function LogoMark({ size = 28, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className={cn("shrink-0", className)}>
+      <circle cx="16" cy="16" r="11" fill="none" stroke="var(--line-strong)" strokeWidth="4" />
+      <circle
+        cx="16"
+        cy="16"
+        r="11"
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeDasharray={`${2 * Math.PI * 11 * 0.72} ${2 * Math.PI * 11}`}
+        transform="rotate(-90 16 16)"
+      />
+      <circle cx="16" cy="16" r="2.2" fill="var(--ink)" />
+    </svg>
+  );
 }

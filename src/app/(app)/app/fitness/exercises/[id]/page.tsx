@@ -22,8 +22,8 @@ export default function ExercisePage(props: PageProps<"/app/fitness/exercises/[i
         fallback={
           <div className="pt-6">
             <Skeleton className="h-10 w-56" />
-            <Skeleton className="mt-6 h-24 rounded-[22px]" />
-            <Skeleton className="mt-4 h-56 rounded-[22px]" />
+            <Skeleton className="mt-6 h-24 rounded-[16px]" />
+            <Skeleton className="mt-4 h-56 rounded-[16px]" />
           </div>
         }
       >
@@ -95,7 +95,7 @@ async function Exercise({ params }: { params: PageProps<"/app/fitness/exercises/
       <header className="flex items-start justify-between gap-3 pt-5 pb-4 lg:pt-10 lg:pb-5">
         <div className="min-w-0">
           <div className="eyebrow">{[muscleLabel(ex.muscle), ex.equipment].filter(Boolean).join(" · ")}</div>
-          <h1 className="display mt-1 text-[32px] lg:text-[40px] text-ink">{ex.name}</h1>
+          <h1 className="display mt-1 text-[28px] text-ink">{ex.name}</h1>
           {basis && <p className="mt-1 text-[14px] text-ink-2">Weight logged {basis.replace("kg ", "")}</p>}
           {ex.cues && <p className="mt-2 text-[14px] leading-relaxed text-ink-2">{ex.cues}</p>}
         </div>
@@ -124,7 +124,7 @@ async function Exercise({ params }: { params: PageProps<"/app/fitness/exercises/
           {trend.length >= 2 && (
             <Section title="Estimated 1RM" hint="Best working set per session (Epley).">
               <Card className="px-2 pt-3 pb-2">
-                <LineChart points={trend} unit=" kg" color="var(--c-violet)" label={`Estimated one-rep max trend for ${ex.name}`} />
+                <LineChart points={trend} unit=" kg" color="var(--accent)" label={`Estimated one-rep max trend for ${ex.name}`} />
               </Card>
             </Section>
           )}
@@ -142,7 +142,7 @@ async function Exercise({ params }: { params: PageProps<"/app/fitness/exercises/
                     className="tap-row block px-4 py-3"
                   >
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[13px] font-semibold text-ink-2">
+                      <span className="text-[13px] font-medium text-ink-2">
                         {formatWeekdayShort(s.date)}, {formatMonthDay(s.date)}
                       </span>
                       <span className="truncate text-[12px] text-ink-3">{s.name}</span>

@@ -1,29 +1,23 @@
-import { Certainty } from "./certainty";
-import { FinalCta, Footer } from "./closing";
 import { Cta } from "./cta";
 import { Hero } from "./hero";
-import { LandingMotion } from "./motion";
 import { LandingNav } from "./nav";
-import { Pwa } from "./pwa";
-import { Showcase } from "./showcase";
-import { Steps } from "./steps";
-import { Timi } from "./timi";
+import { LandingMotion } from "./reveal";
+import { Features, FinalCta, Footer, HowItWorks, WhyFocus } from "./sections";
+import "./landing.css";
 
 /** The public landing page. The route file only wraps this, so it can move between paths. */
 export function Landing() {
   return (
     <LandingMotion>
-      <div className="relative min-h-dvh overflow-x-clip">
+      <div className="min-h-dvh overflow-x-clip bg-bg">
         <LandingNav>
           <Cta variant="nav" />
         </LandingNav>
         <main>
-          <Hero cta={<Cta variant="hero" className="justify-center lg:justify-start" />} />
-          <Certainty />
-          <Steps />
-          <Showcase />
-          <Timi />
-          <Pwa />
+          <Hero />
+          <WhyFocus />
+          <Features />
+          <HowItWorks />
           <FinalCta />
         </main>
         <Footer />

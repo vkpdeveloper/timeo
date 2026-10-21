@@ -17,7 +17,7 @@ export function EditExerciseButton({ exercise: ex }: { exercise: Exercise }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="tap mt-5 h-9 shrink-0 rounded-full bg-sunken px-3.5 text-[13px] font-semibold text-ink-2"
+        className="tap mt-4 h-11 shrink-0 rounded-[12px] bg-sunken px-4 text-[14px] font-medium text-ink-2"
       >
         Edit
       </button>
@@ -65,7 +65,7 @@ export function EditExerciseButton({ exercise: ex }: { exercise: Exercise }) {
               ]}
             />
           </Field>
-          <label className="mb-4 flex h-12 items-center justify-between rounded-2xl bg-surface-2 px-4 text-[15px] text-ink">
+          <label className="mb-4 flex h-12 items-center justify-between rounded-[12px] bg-surface-2 px-4 text-[15px] text-ink">
             One side at a time
             <input type="checkbox" name="unilateral" defaultChecked={ex.unilateral} className="size-5 accent-[var(--accent)]" />
           </label>

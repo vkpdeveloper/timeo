@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarCheck, CalendarPlus, Check, Ellipsis, Flag, ListPlus, Pencil, Plus, ShieldCheck, Trash2, Undo2 } from "lucide-react";
+import { CalendarCheck, CalendarPlus, Check, CircleAlert, Ellipsis, Flag, ListPlus, Pencil, Plus, ShieldCheck, Trash2, Undo2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 import { protectTime } from "@/actions/blocks";
@@ -26,6 +26,7 @@ import {
   setMilestoneDone,
   updateMilestone,
 } from "../actions";
+import { ConfidenceSlider } from "../_components/confidence-slider";
 import { ErrorNote, GoalSheet, useSubmit } from "../_components/goal-sheets";
 
 type Ctx = { goals: GoalOption[]; today: string };
@@ -40,7 +41,7 @@ export function GoalMenu({ goal, endDateLabel }: { goal: Goal; endDateLabel: str
 
   return (
     <>
-      <button type="button" onClick={() => setMode("menu")} aria-label="Goal options" className="tap -mr-1.5 grid size-10 place-items-center rounded-full text-accent">
+      <button type="button" onClick={() => setMode("menu")} aria-label="Goal options" className="tap -mr-1.5 grid size-11 place-items-center rounded-full text-ink-2 hover:text-ink">
         <Ellipsis className="size-[22px]" strokeWidth={2.2} />
       </button>
       <Sheet open={mode === "menu"} onClose={close} title={goal.title}>
@@ -83,7 +84,8 @@ function MenuItem({ icon, children, onClick, danger }: { icon: ReactNode; childr
       onClick={onClick}
       className={cn(
         "tap flex w-full items-center gap-3 px-4 py-3.5 text-left text-[15px] font-medium active:bg-sunken [&_svg]:size-[18px] [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line",
-        danger ? "text-bad" : "text-ink [&_svg]:text-ink-3",
+        "text-ink [&_svg]:text-ink-3",
+        danger && "[&_svg]:text-ink-2",
       )}
     >
       {icon}
@@ -139,7 +141,7 @@ export function CoachAction({
         transition={springs.snappy}
         className={cn(
           "flex items-center gap-2 font-medium text-ok",
-          compact ? "min-h-9 text-[13px]" : "rounded-2xl bg-ok-soft px-4 py-3 text-[14px]",
+          compact ? "min-h-9 text-[13px]" : "rounded-[12px] bg-ok-soft px-4 py-3 text-[14px]",
         )}
       >
         <CalendarCheck className={cn(iconCls, "shrink-0")} />
@@ -153,7 +155,12 @@ export function CoachAction({
         {icon}
         {rec.label}
       </Button>
-      {result && !result.ok && <p className="mt-2 px-1 text-[13px] text-bad">{result.text}</p>}
+      {result && !result.ok && (
+        <p role="alert" className="mt-2 flex items-start gap-1.5 px-1 text-[13px] font-medium text-warn">
+          <CircleAlert className="mt-px size-3.5 shrink-0" />
+          {result.text}
+        </p>
+      )}
       <TaskSheet open={sheet === "step"} onClose={() => setSheet(null)} goals={ctx.goals} today={ctx.today} defaults={{ goalId: rec.goalId, weekly: true }} />
       <MilestoneSheet open={sheet === "milestone"} onClose={() => setSheet(null)} goalId={rec.goalId} description={goalTitle} />
     </>
@@ -187,7 +194,7 @@ function TaskRow({ task, today, onOpen }: { task: Task; today: string; onOpen: (
           {task.title}
         </span>
         {task.dueDate && (
-          <span className={cn("tnum shrink-0 text-[12.5px]", overdue ? "font-medium text-bad" : "text-ink-3")}>
+          <span className={cn("tnum shrink-0 text-[12.5px]", overdue ? "font-medium text-warn" : "text-ink-3")}>
             {relativeDay(task.dueDate, today)}
           </span>
         )}
@@ -201,7 +208,7 @@ function AddRow({ onClick, children }: { onClick: () => void; children: ReactNod
     <button
       type="button"
       onClick={onClick}
-      className="tap-row flex min-h-[52px] w-full items-center gap-3 px-4 text-[14.5px] font-medium text-accent"
+      className="tap-row flex min-h-[52px] w-full items-center gap-3 px-4 text-[14.5px] font-medium text-ink-2 hover:text-ink"
     >
       <span className="grid size-6 place-items-center">
         <Plus className="size-[18px]" strokeWidth={2.4} />
@@ -276,7 +283,7 @@ function MilestoneSheet({
               type="button"
               variant="danger"
               size="icon"
-              className="size-12 rounded-2xl"
+              className="size-12 rounded-[12px]"
               loading={pending}
               aria-label="Delete milestone"
               onClick={() =>
@@ -358,8 +365,8 @@ function MilestoneNode({
         >
           {m.title}
         </span>
-        <span className={cn("tnum mt-0.5 text-[12.5px]", overdue ? "font-medium text-bad" : "text-ink-3")}>
-          {next && !overdue && <span className="font-semibold text-tint">Next · </span>}
+        <span className={cn("tnum mt-0.5 text-[12.5px]", overdue ? "font-medium text-warn" : "text-ink-3")}>
+          {next && !overdue && <span className="font-medium text-ink-2">Next · </span>}
           {milestoneWhen(m, done, today)}
         </span>
       </button>
@@ -414,7 +421,7 @@ export function CheckInButton({ goalId, suggested }: { goalId: string; suggested
   const { error, action } = useSubmit(addGoalUpdate, () => setOpen(false));
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="tap -my-2 inline-flex h-10 items-center gap-1 px-1 text-[13px] font-semibold text-accent">
+      <button type="button" onClick={() => setOpen(true)} className="tap -my-2 inline-flex h-11 items-center gap-1 px-1 text-[13px] font-medium text-ink-2 hover:text-ink">
         <Plus className="size-3.5" strokeWidth={2.6} /> Check in
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Check in" description="An honest read on this goal today.">
@@ -424,18 +431,9 @@ export function CheckInButton({ goalId, suggested }: { goalId: string; suggested
             <Segmented name="status" defaultValue={suggested} options={STATUS_OPTIONS.map((o) => ({ ...o }))} />
           </Field>
           <Field label="Confidence" hint="that you hit it this season">
-            <div className="flex items-center gap-4 rounded-2xl bg-sunken px-4 py-3">
-              <input
-                type="range"
-                name="confidence"
-                min={0}
-                max={100}
-                step={5}
-                value={confidence}
-                onChange={(e) => setConfidence(Number(e.target.value))}
-                className="h-2 flex-1 accent-[var(--tint)]"
-              />
-              <span className="tnum w-11 text-right text-[17px] font-semibold text-ink">{confidence}%</span>
+            <div className="flex items-center gap-4">
+              <ConfidenceSlider name="confidence" value={confidence} onChange={setConfidence} className="flex-1" />
+              <span className="tnum w-12 text-right text-[17px] font-semibold text-ink">{confidence}%</span>
             </div>
           </Field>
           <Field label="Note" hint="optional">
