@@ -13,6 +13,7 @@ import weekDark from "../../../public/landing/shots/week-dark.webp";
 import weekLight from "../../../public/landing/shots/week-light.webp";
 import { Cta } from "./cta";
 import { Reveal } from "./reveal";
+import { Timeline, TimelineStep } from "./timeline";
 import { Wordmark } from "./wordmark";
 
 const h2 = "text-[32px] leading-[1.08] font-semibold tracking-[-0.03em] text-balance text-ink sm:text-[44px]";
@@ -106,22 +107,21 @@ export function Week() {
       <Reveal className="max-w-[44rem]">
         <h2 className={h2}>A week with Timeo.</h2>
       </Reveal>
-      <ol className="mt-10 sm:mt-16">
+      <Timeline>
         {week.map((m) => (
-          <Reveal
-            as="li"
+          <TimelineStep
             key={m.day + m.time}
-            className="grid gap-5 border-t border-line py-8 sm:py-12 md:grid-cols-[8.5rem_minmax(0,1fr)_minmax(0,1.15fr)] md:gap-10"
-          >
-            <p className="flex items-baseline gap-2 md:flex-col md:gap-1">
-              <span className="text-[15px] font-medium text-ink">{m.day}</span>
-              <span className="font-mono text-[15px] text-ink-3 tabular-nums">{m.time}</span>
-            </p>
-            <p className="max-w-[30rem] text-[17px] leading-[1.6] text-pretty text-ink-2 md:text-[18px]">{m.text}</p>
-            <ShotPanel shot={m.shot} alt={m.alt} align={m.align} />
-          </Reveal>
+            when={
+              <p className="flex items-baseline gap-2 md:flex-col md:gap-1">
+                <span className="text-[15px] font-medium text-ink">{m.day}</span>
+                <span className="font-mono text-[15px] text-ink-3 tabular-nums">{m.time}</span>
+              </p>
+            }
+            text={<p className="max-w-[30rem] text-[17px] leading-[1.6] text-pretty text-ink-2 md:text-[18px]">{m.text}</p>}
+            panel={<ShotPanel shot={m.shot} alt={m.alt} align={m.align} />}
+          />
         ))}
-      </ol>
+      </Timeline>
     </section>
   );
 }
