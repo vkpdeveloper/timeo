@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "New password", referrer: "no-referre
 export default function ResetPasswordPage(props: PageProps<"/reset-password/[token]">) {
   return (
     <>
-      <h1 className="display text-[44px] text-ink">Choose a new password</h1>
-      <p className="mt-3 mb-8 text-[15px] leading-relaxed text-ink-2">At least 8 characters. You&apos;ll be signed in right after.</p>
+      <h1 className="display text-[34px] leading-[1.04] text-balance text-ink sm:text-[38px]">Choose a new password</h1>
+      <p className="mt-2.5 mb-7 text-[15px] leading-relaxed text-ink-2">At least 8 characters. You’ll be signed in right after.</p>
       <Suspense fallback={<Skeleton className="h-[52px] w-full" />}>
         <ResetContent params={props.params} />
       </Suspense>

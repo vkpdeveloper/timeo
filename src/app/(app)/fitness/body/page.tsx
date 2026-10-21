@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { Scale } from "lucide-react";
 import { Suspense } from "react";
-import { EmptyState, Skeleton, SubHeader } from "@/components/ui/primitives";
+import { Card, EmptyState, PageHeader, Section, Skeleton, Stat, StatStrip, SubHeader } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { addDays } from "@/lib/dates";
@@ -13,12 +13,15 @@ import { BodyEntries, WeighInButton } from "./client";
 export default function BodyPage() {
   return (
     <>
-      <SubHeader back="/fitness" backLabel="Fitness" title="Body" />
+      <SubHeader back="/fitness" backLabel="Fitness" />
       <Suspense
         fallback={
-          <div className="pt-6">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="mt-6 h-56 rounded-[22px]" />
+          <div>
+            <div className="pt-5 pb-4">
+              <Skeleton className="h-9 w-40" />
+            </div>
+            <Skeleton className="h-12" />
+            <Skeleton className="mt-6 h-56 rounded-[20px]" />
           </div>
         }
       >
@@ -47,45 +50,47 @@ async function Body() {
   const change = monthAgo >= 0 && points.length > 1 ? latestAvg - avg[monthAgo] : null;
   const r1 = (n: number) => Math.round(n * 10) / 10;
 
+  const sign = (n: number) => (n > 0 ? "+" : n < 0 ? "−" : "");
+
   return (
-    <div className="fade-up pb-8">
-      <header className="flex items-end justify-between gap-3 pt-5 pb-5">
-        <div>
-          <h1 className="display text-[38px] text-ink">Body</h1>
-          <p className="mt-1 text-[15px] text-ink-2">Weigh in at the same time each day. Watch the average.</p>
-        </div>
-      </header>
+    <div>
+      <PageHeader
+        title="Body"
+        subtitle={latest ? "Weigh in at the same time each day. Watch the average." : "A few weigh-ins a week is enough to see the trend."}
+      />
 
       {!latest ? (
-        <EmptyState
-          icon={<Scale />}
-          title="No weigh-ins yet"
-          body="A few weigh-ins a week is enough to see the trend."
-          action={<WeighInButton today={user.today} />}
-        />
+        <EmptyState icon={<Scale />} title="No weigh-ins yet" body="Log one now to start the trend." action={<WeighInButton today={user.today} />} />
       ) : (
         <>
-          <div className="card grid grid-cols-3 divide-x divide-line">
-            <Stat label="Latest" value={fmtKg(latest.value)} unit="kg" />
-            <Stat label="7-day avg" value={fmtKg(r1(latestAvg))} unit="kg" />
+          <StatStrip>
+            <Stat value={fmtKg(latest.value)} unit="kg" label="latest" />
+            <Stat value={fmtKg(r1(latestAvg))} unit="kg" label="7-day average" />
             <Stat
-              label="30 days"
-              value={change == null ? "—" : `${change > 0 ? "+" : change < 0 ? "−" : ""}${fmtKg(Math.abs(r1(change)))}`}
+              value={change == null ? "—" : `${sign(r1(change))}${fmtKg(Math.abs(r1(change)))}`}
               unit={change == null ? undefined : "kg"}
+              label="in 30 days"
             />
-          </div>
+          </StatStrip>
           {points.length >= 2 && (
-            <div className="card mt-3 px-2 pt-3 pb-2">
-              <div className="flex items-center gap-4 px-2 pb-1 text-[12px] text-ink-3">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-0.5 w-4 rounded-full bg-[var(--c-teal)]" /> 7-day average
+            <Section
+              title="Trend"
+              count={`${points.length} weigh-ins`}
+              action={
+                <span className="flex items-center gap-3 text-[12px] font-normal">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-0.5 w-3.5 rounded-full bg-[var(--c-teal)]" /> Average
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-1.5 rounded-full bg-[var(--c-teal)] opacity-40" /> Daily
+                  </span>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-[var(--c-teal)] opacity-40" /> Daily
-                </span>
-              </div>
-              <LineChart points={points} avg={avg} unit=" kg" color="var(--c-teal)" height={200} label="Body weight with 7-day average" />
-            </div>
+              }
+            >
+              <Card className="rise px-2 pt-2 pb-2">
+                <LineChart points={points} avg={avg} unit=" kg" color="var(--c-teal)" height={200} label="Body weight with 7-day average" />
+              </Card>
+            </Section>
           )}
           <div className="mt-4">
             <WeighInButton today={user.today} lastWeight={latest.value} />
@@ -94,23 +99,10 @@ async function Body() {
       )}
 
       {entries.length > 0 && (
-        <section className="mt-8">
-          <h2 className="mb-2.5 px-1 text-[15px] font-semibold tracking-tight text-ink">Recent entries</h2>
+        <Section title="Recent entries" count={entries.length}>
           <BodyEntries entries={entries} />
-        </section>
+        </Section>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
-  return (
-    <div className="min-w-0 px-4 py-3.5">
-      <div className="text-[12px] font-medium text-ink-3">{label}</div>
-      <div className="mt-0.5 flex items-baseline gap-1">
-        <span className="tnum text-[22px] font-semibold tracking-tight text-ink">{value}</span>
-        {unit && <span className="text-[12px] text-ink-3">{unit}</span>}
-      </div>
     </div>
   );
 }

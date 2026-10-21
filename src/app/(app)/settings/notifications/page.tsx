@@ -16,9 +16,9 @@ export default function NotificationsPage() {
       <SubHeader back="/settings" backLabel="Settings" title="Notifications" />
       <Suspense
         fallback={
-          <div className="space-y-3 pt-6">
-            <Skeleton className="h-36" />
-            <Skeleton className="h-72" />
+          <div className="space-y-6 pt-4">
+            <Skeleton className="h-[132px] rounded-[20px]!" />
+            <Skeleton className="h-[360px] rounded-[20px]!" />
           </div>
         }
       >

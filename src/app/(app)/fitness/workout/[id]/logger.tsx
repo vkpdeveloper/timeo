@@ -1,17 +1,21 @@
 "use client";
 
-import { ChevronLeft, Ellipsis, MessageSquare, Pause, Play, Plus } from "lucide-react";
+import { Check, ChevronLeft, Ellipsis, History as HistoryIcon, MessageSquare, Pause, Play, Plus } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle } from "@/components/ui/controls";
+import { springs } from "@/components/ui/motion";
 import { cn } from "@/lib/cn";
 import { colorVar, tint } from "@/lib/colors";
-import { formatLongDate } from "@/lib/dates";
+import { formatLongDate, formatMonthDay } from "@/lib/dates";
 import { repsLabel } from "@/lib/fitness-library";
 import type { ExerciseHistory, PrevSet } from "@/lib/fitness";
 import {
   basisLabel,
+  bestSet,
   epley,
+  fmtKg,
   fmtRest,
   fmtSet,
   fmtVolume,
@@ -433,29 +437,35 @@ export function Logger({
   }, [blocks, history, exById]);
 
   const tintStyle = tint(color);
+  const progress = summary.total ? summary.done / summary.total : 0;
+
+  // The first unticked set, in order: highlighted in the list and named on the rest bar.
+  const upNext = findUpNext(blocks);
+  const nextLabel = upNextLabel(upNext, blocks, history, exById);
+  const exercisesLeft = blocks.filter((b) => b.sets.some((s) => !s.done)).length;
 
   return (
-    <div style={tintStyle} className="pb-40">
+    <div style={tintStyle} className="pb-44">
       {/* Header */}
       <div className="sticky top-0 z-30 -mx-4 glass px-4 pt-safe sm:-mx-6 sm:px-6">
-        <div className="flex h-14 items-center justify-between gap-3">
+        <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-3">
           <Link
             href={editing ? `/fitness/history/${log.id}` : "/fitness"}
-            className="tap -ml-2 grid size-11 place-items-center rounded-full text-ink-2"
+            className="tap -ml-2 grid size-11 place-items-center justify-self-start rounded-full text-ink-2"
             aria-label={editing ? "Back to session" : "Leave logger (workout keeps running)"}
           >
             <ChevronLeft className="size-6" strokeWidth={2.2} />
           </Link>
           <div className="flex min-w-0 flex-col items-center">
             {editing ? (
-              <div className="text-[17px] font-semibold tracking-tight text-ink">Edit session</div>
+              <div className="text-[16px] font-semibold tracking-tight text-ink">Edit session</div>
             ) : (
               <button
                 type="button"
                 onClick={togglePause}
                 disabled={clock.capped}
                 aria-label={clock.paused ? "Resume timer" : "Pause timer"}
-                className="tap inline-flex h-9 items-center gap-1.5 rounded-full px-3 hover:bg-sunken disabled:hover:bg-transparent"
+                className="tap inline-flex h-10 items-center gap-1.5 rounded-full px-3 hover:bg-sunken disabled:hover:bg-transparent"
               >
                 {!clock.capped &&
                   (clock.paused ? (
@@ -463,19 +473,19 @@ export function Logger({
                   ) : (
                     <Pause className="size-3.5 fill-current text-ink-3" />
                   ))}
-                <span suppressHydrationWarning className={cn("tnum-live text-[17px] font-semibold tracking-tight", clock.paused ? "text-ink-3" : "text-ink")}>
+                <span suppressHydrationWarning className={cn("tnum-live text-[18px] font-semibold tracking-tight", clock.paused ? "text-ink-3" : "text-ink")}>
                   {clock.label}
                 </span>
               </button>
             )}
             {saveError ? (
-              <button type="button" onClick={() => flushAll().catch(() => {})} className="-mt-0.5 text-[11.5px] font-semibold text-bad">
+              <button type="button" onClick={() => flushAll().catch(() => {})} className="-mt-1 text-[11.5px] font-semibold text-bad">
                 Not saved · Retry
               </button>
             ) : (
               !editing &&
               (clock.paused || clock.capped) && (
-                <span className="-mt-0.5 text-[11.5px] font-medium text-ink-3">{clock.paused ? "Paused" : "Time's up"}</span>
+                <span className="-mt-1 text-[11.5px] font-medium text-ink-3">{clock.paused ? "Paused" : "Time's up"}</span>
               )
             )}
           </div>
@@ -485,15 +495,24 @@ export function Logger({
               setFinishing(true);
               flushAll().catch(() => {});
             }}
-            className="tap h-10 rounded-full bg-tint px-5 text-[15px] font-semibold text-tint-ink"
+            className="tap h-10 justify-self-end rounded-full bg-accent px-4 text-[15px] font-semibold text-accent-ink"
           >
             {editing ? "Save" : "Finish"}
           </button>
         </div>
+        {/* sets done / total, along the bottom edge of the bar */}
+        <div className="-mx-4 h-[3px] bg-transparent sm:-mx-6" aria-hidden>
+          <motion.div
+            className="h-full bg-tint"
+            initial={false}
+            animate={{ width: `${progress * 100}%` }}
+            transition={springs.smooth}
+          />
+        </div>
       </div>
 
       {/* Title */}
-      <div className="pt-4 pb-5">
+      <div className="pt-4 pb-4">
         <div className="eyebrow" style={{ color: colorVar(color) }}>
           {editing ? formatLongDate(log.date) : "Workout"}
         </div>
@@ -502,21 +521,27 @@ export function Logger({
           onChange={(e) => setName(e.target.value)}
           onBlur={() => name.trim() && name !== log.name && renameWorkout(log.id, name).catch(() => {})}
           aria-label="Workout name"
-          className="display -ml-0.5 mt-1 w-full bg-transparent !text-[36px] text-ink outline-none"
+          className="display -ml-0.5 mt-0.5 w-full bg-transparent !text-[32px] text-ink outline-none"
         />
-        <div className="tnum mt-1 text-[13.5px] text-ink-3">
-          {summary.done} of {summary.total} sets
-          {summary.volume > 0 && ` · ${fmtVolume(summary.volume)}`}
+        <div className="tnum mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[14px] text-ink-3">
+          <span>
+            <b className="font-semibold text-ink">{summary.done}</b> of {summary.total} sets
+          </span>
+          {!editing && blocks.length > 0 && (
+            <span>· {exercisesLeft ? `${exercisesLeft} ${exercisesLeft === 1 ? "exercise" : "exercises"} left` : "all done"}</span>
+          )}
+          {summary.volume > 0 && <span>· {fmtVolume(summary.volume)}</span>}
         </div>
       </div>
 
       {/* Exercises */}
-      <div className="flex flex-col gap-4">
+      <div className="stagger flex flex-col gap-3">
         {blocks.map((b, bi) => (
           <ExerciseCard
             key={b.key}
             index={bi}
             block={b}
+            upNext={!editing && upNext?.bi === bi ? upNext.si : null}
             exercise={exById.get(b.exerciseId)}
             prescription={prescriptions[b.exerciseId]}
             history={history[b.exerciseId]}
@@ -530,19 +555,22 @@ export function Logger({
         ))}
       </div>
 
+      {blocks.length === 0 && (
+        <div className="card px-6 py-8 text-center">
+          <div className="text-[15px] font-semibold text-ink">No exercises yet</div>
+          <p className="mt-1 text-[13.5px] text-ink-3">Add one to start logging sets.</p>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setPicker({ mode: "add" })}
-        className="tap mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[22px] border border-dashed border-line-strong text-[15px] font-semibold text-ink-2"
+        className="tap mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-[20px] border border-dashed border-line-strong text-[15px] font-semibold text-ink-2"
       >
         <Plus className="size-[18px]" /> Add exercise
       </button>
 
-      {blocks.length === 0 && (
-        <p className="mt-6 text-center text-[14px] text-ink-3">Add an exercise to start logging.</p>
-      )}
-
-      <RestBar rest={rest} />
+      <RestBar rest={rest} next={nextLabel} />
 
       <ExercisePicker
         open={picker != null}
@@ -607,9 +635,36 @@ export function Logger({
   );
 }
 
+function findUpNext(blocks: Block[]) {
+  for (let bi = 0; bi < blocks.length; bi++) {
+    const si = blocks[bi].sets.findIndex((s) => !s.done);
+    if (si >= 0) return { bi, si };
+  }
+  return null;
+}
+
+/** "Lat pulldown, set 2 · 57.5 × 12" for the rest bar. */
+function upNextLabel(
+  upNext: { bi: number; si: number } | null,
+  blocks: Block[],
+  history: Record<string, ExerciseHistory>,
+  exById: Map<string, ExerciseOption>,
+) {
+  if (!upNext) return "Last set done";
+  const b = blocks[upNext.bi];
+  const s = b.sets[upNext.si];
+  const n = s.warmup ? "warm-up" : `set ${b.sets.slice(0, upNext.si + 1).filter((x) => !x.warmup).length}`;
+  const prev = prevFor(b, upNext.si, history[b.exerciseId]?.last?.sets);
+  const target = prev && (prev.weightKg != null || prev.reps != null) ? ` · ${fmtSet(prev)}` : "";
+  return `${exById.get(b.exerciseId)?.name ?? "Exercise"}, ${n}${target}`;
+}
+
+const ROW = "grid grid-cols-[34px_58px_1fr_1fr_48px] items-center gap-1.5";
+
 function ExerciseCard({
   index,
   block,
+  upNext,
   exercise,
   prescription: p,
   history,
@@ -622,6 +677,8 @@ function ExerciseCard({
 }: {
   index: number;
   block: Block;
+  /** Index of the set to do next, when it is in this exercise. */
+  upNext: number | null;
   exercise?: ExerciseOption;
   prescription?: Prescription;
   history?: ExerciseHistory;
@@ -635,18 +692,31 @@ function ExerciseCard({
   const basis = exercise ? basisLabel(exercise.weightBasis, exercise.unilateral) : null;
   const last = history?.last;
   const lastWorking = last?.sets.filter((s) => !s.warmup) ?? [];
-  const allDone = block.sets.length > 0 && block.sets.every((s) => s.done);
+  const top = bestSet(lastWorking);
+  const doneCount = block.sets.filter((s) => s.done).length;
+  const allDone = block.sets.length > 0 && doneCount === block.sets.length;
   const isBodyweight = exercise?.type === "bodyweight";
   let working = 0;
 
   return (
     <section id={`block-${index}`} className="card scroll-mt-20 overflow-hidden">
-      <div className="flex items-start gap-2 px-4 pt-4">
+      <div className="flex items-start gap-3 pt-3.5 pr-2 pl-4">
+        <motion.span
+          className={cn(
+            "tnum mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-semibold",
+            allDone ? "bg-ok text-white" : "bg-sunken text-ink-2",
+          )}
+          initial={false}
+          animate={{ scale: allDone ? [1, 1.18, 1] : 1 }}
+          transition={{ duration: 0.32 }}
+        >
+          {allDone ? <Check className="size-4" strokeWidth={3} /> : index + 1}
+        </motion.span>
         <div className="min-w-0 flex-1">
-          <h3 className={cn("text-[17px] font-semibold leading-snug tracking-tight", allDone ? "text-ink-3" : "text-ink")}>
+          <h3 className={cn("text-[17px] leading-snug font-semibold tracking-tight transition-colors", allDone ? "text-ink-3" : "text-ink")}>
             {exercise?.name ?? "Exercise"}
           </h3>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-3">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-3">
             {p && (
               <span className="tnum font-medium text-ink-2">
                 {p.sets} × {repsLabel(p.repsMin, p.repsMax, p.reps)}
@@ -658,25 +728,33 @@ function ExerciseCard({
             )}
             {basis && <span>{basis}</span>}
           </div>
-          {p?.notes && <p className="mt-1.5 text-[13px] leading-snug text-ink-2">{p.notes}</p>}
-          {lastWorking.length > 0 && (
-            <p className="tnum mt-1.5 text-[13px] leading-snug text-ink-3">
-              Last: <span className="text-ink-2">{lastWorking.map(fmtSet).join(", ")}</span>
+          {p?.notes && <p className="mt-1 text-[13px] leading-snug text-ink-2">{p.notes}</p>}
+          {top && last && (
+            <p className="tnum mt-1 flex items-center gap-1.5 text-[13px] text-ink-3">
+              <HistoryIcon className="size-3 shrink-0" />
+              <span className="truncate">
+                {formatMonthDay(last.date)} · best <span className="font-medium text-ink-2">{fmtSet(top)}</span>
+                {lastWorking.length > 1 && ` · ${lastWorking.length} sets`}
+              </span>
             </p>
           )}
         </div>
+        <span className="tnum mt-1 shrink-0 text-[13px] font-medium text-ink-3">
+          {doneCount}/{block.sets.length}
+        </span>
         <button
           type="button"
           onClick={onMenu}
           aria-label="Exercise options"
-          className="tap -mr-2 -mt-1.5 grid size-11 shrink-0 place-items-center rounded-full text-ink-3"
+          className="tap -mt-1.5 grid size-11 shrink-0 place-items-center rounded-full text-ink-3"
         >
           <Ellipsis className="size-5" />
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-[40px_1fr_1fr_48px] items-center gap-2 px-3 pb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">
+      <div className={cn(ROW, "mt-3 px-3 pb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase")}>
         <span className="text-center">Set</span>
+        <span className="text-center">Prev</span>
         <span className="text-center">{isBodyweight ? "+kg" : "kg"}</span>
         <span className="text-center">Reps</span>
         <span />
@@ -686,12 +764,20 @@ function ExerciseCard({
         {block.sets.map((s, si) => {
           if (!s.warmup) working++;
           const prev = prevFor(block, si, last?.sets);
+          const hasPrev = prev && (prev.weightKg != null || prev.reps != null);
+          const next = upNext === si;
           return (
             <div key={s.id}>
-              <div
+              <motion.div
+                initial={false}
+                animate={{ scale: s.done ? [1, 1.018, 1] : 1 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
-                  "grid grid-cols-[40px_1fr_1fr_48px] items-center gap-2 rounded-2xl px-1 py-1 transition-colors",
-                  s.done && "bg-[color-mix(in_oklab,var(--ok)_9%,transparent)]",
+                  ROW,
+                  "rounded-2xl px-1 py-1 transition-[background-color,box-shadow] duration-300",
+                  s.done
+                    ? "bg-[color-mix(in_oklab,var(--ok)_12%,transparent)]"
+                    : next && "shadow-[inset_0_0_0_1.5px_color-mix(in_oklab,var(--tint)_55%,transparent)]",
                 )}
               >
                 <button
@@ -699,11 +785,26 @@ function ExerciseCard({
                   onClick={() => onSetMenu(si)}
                   aria-label={`Set ${si + 1} options`}
                   className={cn(
-                    "tap tnum grid h-11 place-items-center rounded-xl text-[15px] font-semibold",
-                    s.warmup ? "text-warn" : "text-ink-2",
+                    "tap tnum grid h-12 place-items-center rounded-xl text-[15px] font-semibold",
+                    s.warmup ? "text-warn" : s.done ? "text-ok" : "text-ink-2",
                   )}
                 >
                   {s.warmup ? "W" : working}
+                </button>
+                <button
+                  type="button"
+                  disabled={!hasPrev || s.done}
+                  onClick={() =>
+                    prev &&
+                    onChange(s.id, {
+                      weight: prev.weightKg != null ? String(prev.weightKg) : s.weight,
+                      reps: prev.reps != null ? String(prev.reps) : s.reps,
+                    })
+                  }
+                  aria-label={hasPrev ? `Use last time: ${fmtSet(prev)}` : "No previous set"}
+                  className="tap tnum h-12 truncate rounded-xl px-0.5 text-center text-[12.5px] font-medium text-ink-3 disabled:active:scale-100"
+                >
+                  {hasPrev ? `${fmtKg(prev.weightKg)}×${prev.reps ?? "?"}` : "—"}
                 </button>
                 <NumInput
                   id={`w-${s.id}`}
@@ -725,9 +826,9 @@ function ExerciseCard({
                   label="Reps"
                 />
                 <div className="grid place-items-center">
-                  <CheckCircle checked={s.done} onToggle={() => onToggle(si)} color="var(--ok)" size={32} label={s.done ? "Undo set" : "Complete set"} />
+                  <CheckCircle checked={s.done} onToggle={() => onToggle(si)} color="var(--ok)" size={36} label={s.done ? "Undo set" : "Complete set"} />
                 </div>
-              </div>
+              </motion.div>
               {s.note && (
                 <button
                   type="button"
@@ -792,7 +893,7 @@ function NumInput({
       onBlur={onBlur}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       className={cn(
-        "tnum h-12 w-full min-w-0 rounded-xl text-center text-[19px] font-semibold text-ink outline-none transition-colors placeholder:font-medium placeholder:text-ink-3/70",
+        "tnum h-12 w-full min-w-0 rounded-xl text-center text-[20px] font-semibold text-ink outline-none transition-colors placeholder:font-medium placeholder:text-ink-3/60",
         done ? "bg-transparent" : "bg-sunken focus:bg-surface focus:ring-[1.5px] focus:ring-inset focus:ring-[color-mix(in_oklab,var(--tint)_70%,transparent)]",
       )}
     />

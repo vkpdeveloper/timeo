@@ -1,8 +1,6 @@
 import { asc, eq, sql } from "drizzle-orm";
-import { ChevronRight } from "lucide-react";
-import Link from "next/link";
 import { Suspense } from "react";
-import { Skeleton, SubHeader } from "@/components/ui/primitives";
+import { PageHeader, Row, RowIcon, Section, Skeleton, SubHeader } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { MUSCLES, muscleLabel } from "@/lib/fitness-math";
@@ -11,8 +9,18 @@ import { ExerciseThumb } from "../_components/exercise-photo";
 export default function ExercisesPage() {
   return (
     <>
-      <SubHeader back="/fitness" backLabel="Fitness" title="Exercises" />
-      <Suspense fallback={<Skeleton className="mt-6 h-96 rounded-[22px]" />}>
+      <SubHeader back="/fitness" backLabel="Fitness" />
+      <Suspense
+        fallback={
+          <div>
+            <div className="pt-5 pb-4">
+              <Skeleton className="h-9 w-40" />
+            </div>
+            <Skeleton className="h-[52px] rounded-[20px]" />
+            <Skeleton className="mt-6 h-96 rounded-[20px]" />
+          </div>
+        }
+      >
         <ExerciseList />
       </Suspense>
     </>
@@ -37,49 +45,51 @@ async function ExerciseList() {
 
   const groups = MUSCLES.map((m) => ({ ...m, items: rows.filter((r) => r.muscle === m.value) })).filter((g) => g.items.length);
 
+  const thumb = (catalogId: string | null) => (
+    <RowIcon className="size-auto! bg-transparent!">
+      <ExerciseThumb catalogId={catalogId} size={40} />
+    </RowIcon>
+  );
+
   return (
-    <div className="fade-up pb-8">
-      <h1 className="display px-1 pt-5 pb-4 text-[38px] text-ink">Exercises</h1>
-      <Link href="/fitness/exercises/library" className="tap card mb-8 flex items-center gap-3 px-4 py-3.5 active:bg-sunken">
-        <span className="flex -space-x-3">
-          {["barbell-squat", "dumbbell-bicep-curl", "wide-grip-lat-pulldown"].map((id) => (
-            <ExerciseThumb key={id} catalogId={id} size={36} className="rounded-full ring-2 ring-surface" />
+    <div>
+      <PageHeader
+        title="Exercises"
+        subtitle={`${rows.length} ${rows.length === 1 ? "exercise" : "exercises"} across ${groups.length} muscle ${groups.length === 1 ? "group" : "groups"}`}
+      />
+      <Section card>
+        <Row
+          href="/fitness/exercises/library"
+          icon={
+            <RowIcon className="size-auto! bg-transparent!">
+              <span className="flex -space-x-3">
+                {["barbell-squat", "dumbbell-bicep-curl", "wide-grip-lat-pulldown"].map((id) => (
+                  <ExerciseThumb key={id} catalogId={id} size={34} className="rounded-full ring-2 ring-surface" />
+                ))}
+              </span>
+            </RowIcon>
+          }
+          title="Library"
+          subtitle="870+ exercises with photos and steps"
+        />
+      </Section>
+      {groups.map((g, gi) => (
+        <Section key={g.value} title={g.label} count={g.items.length} card stagger={gi < 2}>
+          {g.items.map((e) => (
+            <Row
+              key={e.id}
+              href={`/fitness/exercises/${e.id}`}
+              icon={thumb(e.catalogId)}
+              title={e.name}
+              subtitle={
+                [e.equipment ?? muscleLabel(e.muscle), e.weightBasis === "per_hand" ? "per hand" : e.weightBasis === "per_arm" ? "per arm" : null]
+                  .filter(Boolean)
+                  .join(" · ") || undefined
+              }
+              value={Number(e.sessions) > 0 ? `${Number(e.sessions)}×` : undefined}
+            />
           ))}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold text-ink">Library</span>
-          <span className="block text-[12.5px] text-ink-3">870+ exercises with photos</span>
-        </span>
-        <ChevronRight className="size-4 text-ink-3" />
-      </Link>
-      {groups.map((g) => (
-        <section key={g.value} className="mt-6 first:mt-0">
-          <h2 className="eyebrow mb-2 px-1">{g.label}</h2>
-          <div className="card overflow-hidden">
-            {g.items.map((e) => (
-              <Link
-                key={e.id}
-                href={`/fitness/exercises/${e.id}`}
-                className="tap flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-0 active:bg-sunken"
-              >
-                <ExerciseThumb catalogId={e.catalogId} />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[15px] font-medium text-ink">{e.name}</div>
-                  <div className="truncate text-[12.5px] text-ink-3">
-                    {[e.equipment ?? muscleLabel(e.muscle), e.weightBasis === "per_hand" ? "per hand" : e.weightBasis === "per_arm" ? "per arm" : null]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </div>
-                </div>
-                {Number(e.sessions) > 0 && (
-                  <span className="tnum shrink-0 text-[12.5px] text-ink-3">
-                    {Number(e.sessions)} {Number(e.sessions) === 1 ? "session" : "sessions"}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
-        </section>
+        </Section>
       ))}
     </div>
   );

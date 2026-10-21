@@ -1,13 +1,13 @@
 import { asc, eq, inArray } from "drizzle-orm";
-import { MessageSquare, Pencil } from "lucide-react";
+import { ChevronRight, MessageSquare, Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ButtonLink } from "@/components/ui/button";
-import { Skeleton, SubHeader } from "@/components/ui/primitives";
+import { Card, PageHeader, Section, Skeleton, Stat, StatStrip, SubHeader } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
-import { colorVar } from "@/lib/colors";
+import { colorVar, tint } from "@/lib/colors";
 import { formatDuration, formatLongDate } from "@/lib/dates";
 import { ownWorkout } from "@/lib/fitness";
 import { basisLabel, fmtKg, fmtVolume, volumeOf, workingSetCount } from "@/lib/fitness-math";
@@ -22,10 +22,13 @@ export default function SessionPage(props: PageProps<"/fitness/history/[id]">) {
       <SubHeader back="/fitness/history" backLabel="History" />
       <Suspense
         fallback={
-          <div className="pt-6">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="mt-6 h-20 rounded-[22px]" />
-            <Skeleton className="mt-4 h-60 rounded-[22px]" />
+          <div>
+            <div className="pt-5 pb-4">
+              <Skeleton className="mb-2 h-3 w-32" />
+              <Skeleton className="h-9 w-40" />
+            </div>
+            <Skeleton className="h-12" />
+            <Skeleton className="mt-6 h-60 rounded-[20px]" />
           </div>
         }
       >
@@ -70,7 +73,7 @@ async function Session({ params }: { params: PageProps<"/fitness/history/[id]">[
   ]);
   const template = templates.find((x) => x.id === log.templateId);
   const planned = templates.find((x) => x.id === log.plannedTemplateId);
-  const swapped = log.status !== "skipped" && !!log.templateId && log.templateId !== log.plannedTemplateId;
+  const swapped = log.status !== "skipped" && !!log.templateId && !!log.plannedTemplateId && log.templateId !== log.plannedTemplateId;
   const color = template?.color ?? "slate";
 
   const blocks: { key: string; exerciseId: string; name: string; basis: string | null; sets: typeof sets }[] = [];
@@ -93,90 +96,98 @@ async function Session({ params }: { params: PageProps<"/fitness/history/[id]">[
   const unknownLoads = sets.filter((s) => !s.warmup && s.done && s.weightKg == null).length;
 
   return (
-    <div className="fade-up pb-6">
-      <header className="pt-5 pb-5">
-        <div className="eyebrow" style={{ color: colorVar(color) }}>{formatLongDate(log.date)}</div>
-        <h1 className="display mt-1.5 text-[38px] text-ink">{log.name}</h1>
-        <div className="mt-2.5 flex flex-wrap items-center gap-2">
-          <StatusChip status={log.status} />
-          {swapped && (
-            <span className="text-[13px] text-ink-3">Planned: {planned?.name ?? "Rest day"}</span>
-          )}
-        </div>
-        {log.status === "skipped" && (
-          <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{log.skipReason ?? "No reason given."}</p>
-        )}
-      </header>
+    <div style={tint(color)}>
+      <PageHeader
+        eyebrow={<span style={{ color: colorVar(color) }}>{formatLongDate(log.date)}</span>}
+        title={log.name}
+        action={<StatusChip status={log.status} />}
+        subtitle={
+          log.status === "skipped"
+            ? (log.skipReason ?? "No reason given.")
+            : swapped
+              ? `Planned: ${planned?.name ?? "Rest day"}`
+              : undefined
+        }
+      />
 
       {log.status !== "skipped" && (
-        <div className="card grid grid-cols-3 divide-x divide-line">
-          <Stat label="Working sets" value={log.status === "unlogged" ? "?" : String(working)} />
-          <Stat label="Volume" value={volume ? fmtVolume(volume) : "—"} sub={unknownLoads ? `+${unknownLoads} unknown` : undefined} />
+        <StatStrip>
+          <Stat label="working sets" value={log.status === "unlogged" ? "?" : working} />
+          <Stat
+            label={unknownLoads ? `volume, +${unknownLoads} unknown` : "volume"}
+            value={volume ? fmtVolume(volume) : "—"}
+          />
           {log.feeling || hasDuration ? (
             <Stat
-              label={log.feeling ? "Felt" : "Duration"}
+              label={log.feeling ? (hasDuration ? `felt, ${formatDuration(duration!)}` : "felt") : "time"}
               value={log.feeling ? FEEL[log.feeling] : formatDuration(duration!)}
-              sub={log.feeling && hasDuration ? formatDuration(duration!) : undefined}
             />
           ) : (
-            <Stat label="Exercises" value={log.status === "unlogged" ? "?" : String(blocks.length)} />
+            <Stat label="exercises" value={log.status === "unlogged" ? "?" : blocks.length} />
           )}
-        </div>
+        </StatStrip>
       )}
 
       {log.notes && (
-        <div className="card mt-4 px-4 py-3.5">
-          <div className="mb-1 text-[12px] font-medium text-ink-3">Notes</div>
-          <p className="text-[14.5px] leading-relaxed whitespace-pre-line text-ink-2">{log.notes}</p>
-        </div>
+        <Section title="Notes">
+          <Card className="px-4 py-3.5">
+            <p className="text-[14.5px] leading-relaxed whitespace-pre-line text-ink-2">{log.notes}</p>
+          </Card>
+        </Section>
       )}
 
       {log.status === "unlogged" && (
-        <div className="card mt-4 px-4 py-4 text-[14px] leading-relaxed text-ink-2">
-          Reported as done. Sets, reps and weights are unknown.
-        </div>
+        <Card className="mt-5 px-4 py-4 text-[14px] leading-relaxed text-ink-2">Reported as done. Sets, reps and weights are unknown.</Card>
       )}
 
-      <div className="mt-4 flex flex-col gap-3">
-        {blocks.map((b) => {
-          let n = 0;
-          return (
-            <section key={b.key + b.exerciseId} className="card overflow-hidden">
-              <Link href={`/fitness/exercises/${b.exerciseId}`} className="tap flex items-baseline justify-between gap-3 px-4 pt-3.5 pb-2">
-                <h2 className="text-[16px] font-semibold tracking-tight text-ink">{b.name}</h2>
-                {b.basis && <span className="shrink-0 text-[12px] text-ink-3">{b.basis}</span>}
-              </Link>
-              <div className="px-4 pb-3">
-                {b.sets.map((s) => {
-                  if (!s.warmup) n++;
-                  return (
-                    <div key={s.id} className="border-t border-line py-2 first:border-0">
-                      <div className="flex items-center gap-3">
-                        <span className={`tnum w-6 text-[13px] font-semibold ${s.warmup ? "text-warn" : "text-ink-3"}`}>
-                          {s.warmup ? "W" : n}
-                        </span>
-                        <span className={`tnum flex-1 text-[15px] ${s.warmup ? "text-ink-3" : "text-ink"}`}>
-                          <span className={s.weightKg == null ? "font-semibold text-warn" : "font-semibold"}>{fmtKg(s.weightKg)}</span>
-                          <span className="text-ink-3"> kg × </span>
-                          <span className="font-semibold">{s.reps ?? "?"}</span>
-                        </span>
-                        {s.warmup && <span className="text-[11.5px] font-medium text-ink-3">warm-up</span>}
-                        {!s.done && <span className="text-[11.5px] font-medium text-ink-3">not done</span>}
+      {blocks.length > 0 && (
+        <Section title="Exercises" count={blocks.length} bodyClassName="stagger flex flex-col gap-3">
+          {blocks.map((b) => {
+            let n = 0;
+            return (
+              <div key={b.key + b.exerciseId} className="card overflow-hidden">
+                <Link
+                  href={`/fitness/exercises/${b.exerciseId}`}
+                  className="tap-row flex min-h-12 items-center justify-between gap-3 px-4 pt-3 pb-1.5"
+                >
+                  <h3 className="truncate text-[16px] font-semibold tracking-tight text-ink">{b.name}</h3>
+                  <span className="flex shrink-0 items-center gap-1 text-[12px] text-ink-3">
+                    {b.basis}
+                    <ChevronRight className="size-4" />
+                  </span>
+                </Link>
+                <div className="px-4 pb-2.5">
+                  {b.sets.map((s) => {
+                    if (!s.warmup) n++;
+                    return (
+                      <div key={s.id} className="border-t border-line py-2 first:border-0">
+                        <div className="flex items-center gap-3">
+                          <span className={`tnum w-6 text-[13px] font-semibold ${s.warmup ? "text-warn" : "text-ink-3"}`}>
+                            {s.warmup ? "W" : n}
+                          </span>
+                          <span className={`tnum flex-1 text-[15px] ${s.warmup ? "text-ink-3" : "text-ink"}`}>
+                            <span className={s.weightKg == null ? "font-semibold text-warn" : "font-semibold"}>{fmtKg(s.weightKg)}</span>
+                            <span className="text-ink-3"> kg × </span>
+                            <span className="font-semibold">{s.reps ?? "?"}</span>
+                          </span>
+                          {s.warmup && <span className="text-[11.5px] font-medium text-ink-3">warm-up</span>}
+                          {!s.done && <span className="text-[11.5px] font-medium text-ink-3">not done</span>}
+                        </div>
+                        {s.note && (
+                          <p className="mt-1 ml-9 flex gap-1.5 text-[12.5px] leading-snug text-ink-3">
+                            <MessageSquare className="mt-0.5 size-3 shrink-0" />
+                            {s.note}
+                          </p>
+                        )}
                       </div>
-                      {s.note && (
-                        <p className="mt-1 ml-9 flex gap-1.5 text-[12.5px] leading-snug text-ink-3">
-                          <MessageSquare className="mt-0.5 size-3 shrink-0" />
-                          {s.note}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </section>
-          );
-        })}
-      </div>
+            );
+          })}
+        </Section>
+      )}
 
       <div className="mt-6 flex gap-2.5">
         {log.status !== "skipped" && (
@@ -186,16 +197,6 @@ async function Session({ params }: { params: PageProps<"/fitness/history/[id]">[
         )}
         <DeleteWorkoutButton id={log.id} />
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="min-w-0 px-4 py-3.5">
-      <div className="text-[12px] font-medium text-ink-3">{label}</div>
-      <div className="tnum mt-0.5 truncate text-[20px] font-semibold tracking-tight text-ink">{value}</div>
-      {sub && <div className="tnum truncate text-[11.5px] text-ink-3">{sub}</div>}
     </div>
   );
 }

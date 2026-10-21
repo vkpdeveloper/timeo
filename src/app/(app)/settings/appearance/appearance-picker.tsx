@@ -1,9 +1,11 @@
 "use client";
 
 import { Check, Pencil, Plus, X } from "lucide-react";
+import { motion } from "motion/react";
 import { useState, useTransition, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Segmented } from "@/components/ui/controls";
+import { springs } from "@/components/ui/motion";
 import { Section } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
@@ -108,15 +110,15 @@ export function AppearancePicker({
   };
 
   return (
-    <div className="fade-up">
+    <div>
       <LivePreview />
 
-      <Section title="Mode" className="mt-7">
-        <Segmented options={MODES} value={mode} onChange={(m) => choose(theme, m)} className="[&>button]:h-11" />
+      <Section title="Mode">
+        <Segmented options={MODES} value={mode} onChange={(m) => choose(theme, m)} className="[&>button]:h-10" />
       </Section>
 
-      <Section title="Theme">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <Section title="Theme" count={THEMES.length}>
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
           {THEMES.map((t) => (
             <Swatch
               key={t.id}
@@ -129,8 +131,8 @@ export function AppearancePicker({
         </div>
       </Section>
 
-      <Section title="Your themes">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <Section title="Your themes" hint="Pick your own colours. They follow light and dark.">
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
           {customThemes.map((c) => (
             <Swatch
               key={c.id}
@@ -144,17 +146,17 @@ export function AppearancePicker({
           <button
             type="button"
             onClick={() => openEditor(null)}
-            className="tap flex min-h-[132px] flex-col items-center justify-center gap-2 rounded-[18px] border border-dashed border-line-strong text-ink-2 active:bg-sunken"
+            className="tap flex min-h-[104px] flex-col items-center justify-center gap-1.5 rounded-[16px] border border-dashed border-line-strong text-ink-2 hover:bg-sunken"
           >
-            <span className="grid size-9 place-items-center rounded-full bg-sunken">
-              <Plus className="size-[18px]" />
+            <span className="grid size-8 place-items-center rounded-full bg-sunken">
+              <Plus className="size-4" />
             </span>
-            <span className="text-[14px] font-medium">Create theme</span>
+            <span className="text-[13px] font-medium">Create</span>
           </button>
         </div>
       </Section>
 
-      {error && <p className="mt-4 px-1 text-[13.5px] font-medium text-bad">{error}</p>}
+      {error && <p role="alert" className="mt-4 px-1 text-[13.5px] font-medium text-bad">{error}</p>}
 
       <ThemeEditor
         key={editorKey}
@@ -181,39 +183,47 @@ export function AppearancePicker({
   );
 }
 
-/** A fake goal card and buttons drawn with whatever tokens are in scope. */
+/** A small Today card drawn with whatever tokens are in scope; colours ease when the theme changes. */
 function LivePreview({ style, compact }: { style?: CSSProperties; compact?: boolean }) {
   return (
     <div
       style={style}
       className={cn(
-        "rounded-[22px] border border-line bg-bg text-ink transition-colors duration-300",
-        compact ? "p-3" : "p-4",
+        "rounded-[22px] border border-line bg-bg text-ink transition-colors duration-300 [&_*]:transition-[background-color,color,border-color] [&_*]:duration-300",
+        compact ? "p-3" : "p-3.5",
       )}
       aria-hidden
     >
       <div className="card p-4">
-        <div className="flex items-start gap-3">
-          <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-accent" />
-          <div className="min-w-0 flex-1">
-            <div className="eyebrow">Goal · Week 6 of 12</div>
-            <div className="mt-1 text-[16px] font-semibold tracking-tight text-ink">Run a half marathon</div>
-            <div className="mt-0.5 text-[13.5px] text-ink-2">Three runs a week, one long</div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="eyebrow">Wed · Week 6 of 12</div>
+            <div className="display mt-0.5 text-[24px] leading-tight text-ink">Today</div>
           </div>
-          <span className="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 text-[12px] font-semibold text-accent">On track</span>
+          <span className="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 text-[12px] font-semibold text-accent">On pace</span>
         </div>
-        <div className="mt-4 flex items-center gap-3">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-sunken">
-            <div className="h-full w-[58%] rounded-full bg-accent" />
-          </div>
-          <span className="tnum text-[12.5px] font-medium text-ink-3">58%</span>
+        <div className="mt-3 grid grid-cols-3 border-y border-line py-2.5">
+          {[
+            ["3h 40m", "free"],
+            ["2", "blocks left"],
+            ["4", "tasks"],
+          ].map(([v, l], i) => (
+            <div key={l} className={cn("min-w-0 px-2", i > 0 && "border-l border-line", i === 0 && "pl-0")}>
+              <div className="tnum text-[16px] font-semibold text-ink">{v}</div>
+              <div className="truncate text-[11.5px] text-ink-3">{l}</div>
+            </div>
+          ))}
         </div>
-        <div className="mt-4 flex gap-2 border-t border-line pt-4">
-          <span className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-accent text-[14px] font-semibold text-accent-ink">
+        <div className="mt-3 flex h-1.5 gap-[2px] overflow-hidden rounded-full bg-sunken">
+          <div className="h-full w-[34%] bg-accent" />
+          <div className="h-full w-[22%] bg-accent-soft" />
+        </div>
+        <div className="mt-3.5 flex gap-2">
+          <span className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-accent text-[13.5px] font-semibold text-accent-ink">
             Start focus
           </span>
-          <span className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-sunken text-[14px] font-semibold text-ink">
-            Plan week
+          <span className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-sunken text-[13.5px] font-semibold text-ink">
+            Plan day
           </span>
         </div>
       </div>
@@ -236,36 +246,40 @@ function Swatch({
 }) {
   const c = swatchColors(colors);
   return (
-    <div
-      className={cn(
-        "relative rounded-[18px] border bg-surface p-1.5 transition-[border-color,box-shadow] duration-200",
-        selected ? "border-accent shadow-[inset_0_0_0_1px_var(--accent)]" : "border-line",
-      )}
-    >
+    <div className="relative">
       <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={name} className="tap block w-full text-left">
-        <span
-          className="relative block h-[78px] overflow-hidden rounded-[13px]"
-          style={{ background: c.bg, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${c.ink} 8%, transparent)` }}
-        >
-          <span
-            className="absolute inset-x-2.5 top-2.5 block rounded-[9px] px-2.5 py-2"
-            style={{ background: c.surface, boxShadow: `0 0 0 1px color-mix(in srgb, ${c.ink} 7%, transparent)` }}
-          >
-            <span className="flex items-center gap-1.5">
-              <span className="size-2 shrink-0 rounded-full" style={{ background: c.accent }} />
-              <span className="block h-[5px] w-3/5 rounded-full" style={{ background: c.ink }} />
-            </span>
-            <span className="mt-1.5 block h-1 w-2/5 rounded-full opacity-70" style={{ background: c.ink2 }} />
-          </span>
-          <span className="absolute bottom-2.5 left-2.5 block h-[14px] w-10 rounded-full" style={{ background: c.accent }} />
-        </span>
-        <span className="flex h-9 items-center gap-1.5 px-1.5">
-          <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-ink">{name}</span>
+        <span className="relative block rounded-[16px] p-[3px]">
           {selected && (
-            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent text-accent-ink">
-              <Check className="size-3" strokeWidth={3} />
-            </span>
+            <motion.span
+              layoutId="theme-selected"
+              className="absolute inset-0 rounded-[16px] border-2 border-accent"
+              transition={springs.smooth}
+            />
           )}
+          <span
+            className="relative block h-[68px] overflow-hidden rounded-[13px]"
+            style={{
+              background: c.bg,
+              boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${c.ink} 9%, transparent)`,
+              transition: "background-color 300ms ease",
+            }}
+          >
+            <span
+              className="absolute inset-x-2 top-2 block rounded-[8px] px-2 py-1.5"
+              style={{ background: c.surface, boxShadow: `0 0 0 1px color-mix(in srgb, ${c.ink} 7%, transparent)` }}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="size-1.5 shrink-0 rounded-full" style={{ background: c.accent }} />
+                <span className="block h-1 w-3/5 rounded-full" style={{ background: c.ink }} />
+              </span>
+              <span className="mt-1 block h-[3px] w-2/5 rounded-full opacity-70" style={{ background: c.ink2 }} />
+            </span>
+            <span className="absolute bottom-2 left-2 block h-3 w-8 rounded-full" style={{ background: c.accent }} />
+          </span>
+        </span>
+        <span className="flex h-8 items-center gap-1 px-1">
+          <span className={cn("min-w-0 flex-1 truncate text-[13px] font-medium", selected ? "text-ink" : "text-ink-2")}>{name}</span>
+          {selected && <Check className="size-3.5 shrink-0 text-accent" strokeWidth={3} />}
         </span>
       </button>
       {onEdit && (
@@ -273,10 +287,10 @@ function Swatch({
           type="button"
           onClick={onEdit}
           aria-label={`Edit ${name}`}
-          className="tap absolute top-3 right-3 grid size-11 place-items-center rounded-full"
+          className="tap absolute top-0 right-0 grid size-11 place-items-center rounded-full"
         >
-          <span className="grid size-8 place-items-center rounded-full bg-surface/90 text-ink-2 shadow-soft backdrop-blur">
-            <Pencil className="size-3.5" />
+          <span className="grid size-7 place-items-center rounded-full bg-surface/90 text-ink-2 shadow-soft backdrop-blur">
+            <Pencil className="size-3" />
           </span>
         </button>
       )}
@@ -385,11 +399,11 @@ function ThemeEditor({
       footer={
         <div className="flex gap-2">
           {theme && (
-            <Button variant="danger" onClick={remove} disabled={pending} className="h-[52px] shrink-0 rounded-2xl px-5">
+            <Button variant="danger" onClick={remove} disabled={pending} className="h-12 shrink-0 rounded-2xl px-5">
               {confirmDelete ? "Delete?" : "Delete"}
             </Button>
           )}
-          <Button size="lg" onClick={save} loading={pending}>
+          <Button variant="accent" size="lg" onClick={save} loading={pending}>
             {theme ? "Save" : "Save and use"}
           </Button>
         </div>

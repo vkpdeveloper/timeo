@@ -4,7 +4,7 @@ import { ArrowRight, Ellipsis, Pencil, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ProgressRing } from "@/components/ui/primitives";
+import { ProgressRing, Stat } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import type { Season } from "@/db/schema";
 import { SeasonSheet } from "./goal-sheets";
@@ -14,21 +14,22 @@ type Strength = { score: number; label: string; tips: string[] };
 const strengthColor = (score: number) =>
   score >= 65 ? "var(--ok)" : score >= 40 ? "var(--warn)" : "var(--bad)";
 
-export function PlanStrengthChip({ strength }: { strength: Strength }) {
+/** The plan strength as a Stat for the certainty strip; tap for what would make it stronger. */
+export function PlanStrengthStat({ strength }: { strength: Strength }) {
   const [open, setOpen] = useState(false);
   const color = strengthColor(strength.score);
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="tap -my-1 -mr-1.5 inline-flex h-9 items-center gap-2 rounded-full bg-sunken py-1 pr-3 pl-1.5"
-      >
-        <ProgressRing value={strength.score / 100} size={24} stroke={3.5} color={color} track="var(--line-strong)" />
-        <span className="text-[12.5px] font-semibold text-ink">
-          <span className="font-medium text-ink-3">Plan </span>
-          {strength.label}
-        </span>
+      <button type="button" onClick={() => setOpen(true)} className="tap min-w-0 text-left" aria-label={`Plan strength ${strength.score} of 100, ${strength.label}. Show tips`}>
+        <Stat
+          value={
+            <span className="inline-flex items-center gap-1.5">
+              <ProgressRing value={strength.score / 100} size={16} stroke={3} color={color} track="var(--line-strong)" />
+              {strength.score}
+            </span>
+          }
+          label={`${strength.label} plan`}
+        />
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Plan strength" description="How realistic this season looks.">
         <div className="flex items-center gap-4 pt-1 pb-5">
@@ -43,9 +44,9 @@ export function PlanStrengthChip({ strength }: { strength: Strength }) {
         {strength.tips.length > 0 ? (
           <>
             <div className="eyebrow mb-2 px-1">To make it stronger</div>
-            <ul className="card overflow-hidden">
+            <ul className="card card-list overflow-hidden">
               {strength.tips.map((tip) => (
-                <li key={tip} className="flex items-center gap-3 px-4 py-3.5 text-[15px] text-ink [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+                <li key={tip} className="flex min-h-[52px] items-center gap-3 px-4 py-2.5 text-[15px] text-ink">
                   <ArrowRight className="size-4 shrink-0 text-ink-3" />
                   {tip}
                 </li>

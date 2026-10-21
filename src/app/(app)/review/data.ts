@@ -12,12 +12,20 @@ export type WeekStats = {
   focusMin: number;
   sessions: number;
   avgQuality: number | null;
-  blocks: { planned: number; done: number; skipped: number };
+  blocks: {
+    planned: number;
+    done: number;
+    skipped: number;
+    /** minutes of blocks dated up to `asOf`, skipped ones included */
+    dueMin: number;
+    /** minutes of blocks marked done */
+    doneMin: number;
+  };
   workouts: { done: number; scheduled: number };
 };
 
-/** Focus, blocks and workouts for the week starting on `weekStart` (a Monday). */
-export async function getWeekStats(userId: string, weekStart: string): Promise<WeekStats> {
+/** Focus, blocks and workouts for the week starting on `weekStart` (a Monday). `asOf` caps "due" time (defaults to the week's end). */
+export async function getWeekStats(userId: string, weekStart: string, asOf?: string): Promise<WeekStats> {
   const end = addDays(weekStart, 6);
   const [sessions, blocks, workouts, schedule] = await Promise.all([
     db
@@ -25,7 +33,14 @@ export async function getWeekStats(userId: string, weekStart: string): Promise<W
       .from(t.focusSessions)
       .where(and(eq(t.focusSessions.userId, userId), gte(t.focusSessions.date, weekStart), lte(t.focusSessions.date, end))),
     db
-      .select({ kind: t.blocks.kind, doneAt: t.blocks.doneAt, skippedAt: t.blocks.skippedAt })
+      .select({
+        kind: t.blocks.kind,
+        date: t.blocks.date,
+        startMin: t.blocks.startMin,
+        endMin: t.blocks.endMin,
+        doneAt: t.blocks.doneAt,
+        skippedAt: t.blocks.skippedAt,
+      })
       .from(t.blocks)
       .where(and(eq(t.blocks.userId, userId), gte(t.blocks.date, weekStart), lte(t.blocks.date, end))),
     db
@@ -50,6 +65,8 @@ export async function getWeekStats(userId: string, weekStart: string): Promise<W
   const qualities = sessions.map((s) => s.quality).filter((q): q is number => q != null);
   // meals are routine, not plan: leave them out of the block count
   const planned = blocks.filter((b) => b.kind !== "meal");
+  const len = (b: (typeof planned)[number]) => Math.max(0, b.endMin - b.startMin);
+  const cutoff = asOf && asOf < end ? asOf : end;
 
   return {
     days: weekDays(weekStart).map((date) => ({ date, focusMin: perDay.get(date) ?? 0 })),
@@ -60,6 +77,8 @@ export async function getWeekStats(userId: string, weekStart: string): Promise<W
       planned: planned.length,
       done: planned.filter((b) => b.doneAt != null).length,
       skipped: planned.filter((b) => b.skippedAt != null && b.doneAt == null).length,
+      dueMin: planned.filter((b) => b.date <= cutoff).reduce((n, b) => n + len(b), 0),
+      doneMin: planned.filter((b) => b.doneAt != null).reduce((n, b) => n + len(b), 0),
     },
     workouts: { done: workouts.length, scheduled: schedule.length },
   };

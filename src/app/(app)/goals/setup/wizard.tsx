@@ -1,10 +1,11 @@
 "use client";
 
 import { AlertTriangle, Check, ChevronLeft, Flag, Plus, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { springs } from "@/components/ui/motion";
 import { Field, Input, Label, PillPicker, Segmented, Stepper, Textarea } from "@/components/ui/controls";
 import { DatePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
@@ -27,7 +28,7 @@ type DraftGoal = {
   milestones: DraftMilestone[];
 };
 
-const STEPS = ["season", "dump", "goals", "details", "capacity", "milestones"] as const;
+const STEPS = ["season", "time", "dump", "goals", "details", "capacity", "milestones"] as const;
 type Step = (typeof STEPS)[number];
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -43,6 +44,7 @@ function dumpIdeas(dump: string) {
 }
 
 export function SeasonWizard({ today, currentSeason }: { today: string; currentSeason: string | null }) {
+  const reduce = useReducedMotion();
   const [step, setStep] = useState<Step>("season");
   const [dir, setDir] = useState(1);
   const [goalIdx, setGoalIdx] = useState(0);
@@ -174,75 +176,81 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
               <ChevronLeft className="size-5" strokeWidth={2.2} />
             </button>
           )}
-          <div className="flex flex-1 gap-1.5" aria-label={`Step ${stepIndex + 1} of ${STEPS.length}`}>
+          <div
+            className="flex flex-1 items-center justify-center gap-1.5"
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={STEPS.length}
+            aria-valuenow={stepIndex + 1}
+            aria-label={`Step ${stepIndex + 1} of ${STEPS.length}`}
+          >
             {STEPS.map((s, i) => (
-              <div key={s} className="h-1.5 flex-1 overflow-hidden rounded-full bg-sunken">
-                <motion.div
-                  className="h-full rounded-full bg-accent"
-                  initial={false}
-                  animate={{ width: i < stepIndex ? "100%" : i === stepIndex ? (step === "details" && goals.length > 1 ? `${((goalIdx + 1) / goals.length) * 100}%` : "100%") : "0%" }}
-                  transition={{ type: "spring", damping: 30, stiffness: 260 }}
-                />
-              </div>
+              <motion.span
+                key={s}
+                className={cn("h-2 rounded-full", i <= stepIndex ? "bg-accent" : "bg-line-strong")}
+                initial={false}
+                animate={{ width: i === stepIndex ? 22 : 8, opacity: i < stepIndex ? 0.45 : 1 }}
+                transition={springs.smooth}
+              />
             ))}
           </div>
           <div className="tnum w-10 shrink-0 text-right text-[13px] font-medium text-ink-3">
-            {stepIndex + 1}/{STEPS.length}
+            {stepIndex + 1} of {STEPS.length}
           </div>
         </div>
       </div>
 
-      <div className="pt-[calc(var(--safe-top)+88px)] pb-40">
+      <div className="pt-[calc(var(--safe-top)+80px)] pb-40">
         <AnimatePresence mode="wait" initial={false} custom={dir}>
           <motion.div
             key={viewKey}
             custom={dir}
-            initial={{ opacity: 0, x: dir * 28 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: dir * -28 }}
-            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, x: dir * 32 }}
+            animate={{ opacity: 1, x: 0, transition: springs.smooth }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, x: dir * -32, transition: { duration: 0.14, ease: [0.4, 0, 1, 1] } }}
           >
             {step === "season" && (
               <>
-                <StepTitle title="Name your season" body="Twelve weeks to move what matters." />
+                <StepTitle title="Name your season" body="Twelve weeks to move what matters. A name makes it real." />
                 <Field label="Season name">
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Autumn build" maxLength={80} className="!py-3.5 !text-[18px] font-medium" />
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Autumn build" maxLength={80} autoFocus className="!py-3.5 !text-[18px] font-medium" />
                 </Field>
-                <Field label="Intention" hint="one sentence">
+                <Field label="Intention" hint="optional, one sentence">
                   <Textarea value={intention} onChange={(e) => setIntention(e.target.value)} rows={2} placeholder="e.g. Ship the thing, get strong, stay calm" />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Starts">
-                    <DatePicker value={startDate} onChange={(v) => v && setStartDate(v)} aria-label="Season start" />
-                  </Field>
-                  <Field label="Ends">
-                    <div className="field tnum text-ink-2">{formatMonthDay(endDate)}</div>
-                  </Field>
-                </div>
-                <Field label="Weekly capacity" hint="honest hours for goals">
-                  <Stepper value={capacity} onChange={setCapacity} min={1} max={80} format={(v) => `${v}h`} />
-                </Field>
-                <p className="px-1 text-[13px] leading-relaxed text-ink-3">
-                  Count only the time left after work, sleep and life. Most people have 10 to 20 hours.
-                </p>
                 {currentSeason && (
-                  <p className="mt-5 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+                  <p className="mt-2 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
                     {currentSeason} will be archived when you finish.
                   </p>
                 )}
               </>
             )}
 
+            {step === "time" && (
+              <>
+                <StepTitle title="How much time a week?" body="Only the hours left after work, sleep and life. Most people have 10 to 20." />
+                <div className="card mb-5 px-5 pt-5 pb-4 text-center">
+                  <div className="display tnum text-[56px] leading-none text-ink">{capacity}h</div>
+                  <p className="mt-1.5 text-[13.5px] text-ink-3">a week for goals · {capacity * 12}h this season</p>
+                  <Stepper className="mt-4" value={capacity} onChange={setCapacity} min={1} max={80} format={(v) => `${v} hours`} />
+                </div>
+                <Field label="Starts">
+                  <DatePicker value={startDate} onChange={(v) => v && setStartDate(v)} aria-label="Season start" />
+                </Field>
+                <p className="tnum -mt-1 px-1 text-[13px] text-ink-3">Ends {formatMonthDay(endDate)}, twelve weeks later.</p>
+              </>
+            )}
+
             {step === "dump" && (
               <>
-                <StepTitle title="Brain dump" body="Everything you want to achieve in the next 90 days. One per line. No filtering yet." />
+                <StepTitle title="What do you want?" body="Everything for the next 12 weeks, one per line. No filtering yet." />
                 <Textarea
                   value={dump}
                   onChange={(e) => setDump(e.target.value)}
                   rows={12}
                   autoFocus
                   placeholder={"Launch the new site\nRun a 10k\nRead 6 books\nSave for the trip\n…"}
-                  className="min-h-[46dvh] !text-[17px] !leading-[1.7]"
+                  className="min-h-[40dvh] !text-[17px] !leading-[1.7]"
                 />
                 <p className="mt-2 px-1 text-[13px] text-ink-3">{dumpIdeas(dump).length || "No"} ideas so far</p>
               </>
@@ -275,7 +283,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
         <div className="pointer-events-auto bg-bg pb-[max(16px,var(--safe-bottom))]">
           <div className="mx-auto w-full max-w-[640px] px-4 sm:px-6 lg:max-w-[760px]">
             {error && <p className="mb-2 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
-            <Button size="lg" variant={canNext ? "primary" : "secondary"} className="disabled:opacity-100 disabled:text-ink-3" onClick={next} disabled={!canNext} loading={pending}>
+            <Button size="lg" variant={canNext ? "accent" : "secondary"} className="disabled:text-ink-3 disabled:opacity-100" onClick={next} disabled={!canNext} loading={pending}>
               {primaryLabel}
             </Button>
           </div>
@@ -287,10 +295,10 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
 
 function StepTitle({ title, body, eyebrow }: { title: ReactNode; body?: ReactNode; eyebrow?: ReactNode }) {
   return (
-    <div className="mb-7">
-      {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
-      <h1 className="display text-[38px] text-ink">{title}</h1>
-      {body && <p className="mt-2 max-w-[38ch] text-[15.5px] leading-relaxed text-ink-2">{body}</p>}
+    <div className="mb-6">
+      {eyebrow && <div className="eyebrow mb-1.5">{eyebrow}</div>}
+      <h1 className="display text-[30px] text-balance text-ink lg:text-[36px]">{title}</h1>
+      {body && <p className="mt-1.5 max-w-[38ch] text-[15px] leading-snug text-ink-2">{body}</p>}
     </div>
   );
 }
@@ -314,7 +322,7 @@ function GoalsStep({
 
   return (
     <>
-      <StepTitle title="Pick your goals" body="Tap an idea to make it a goal, or write one. Three to five is plenty." />
+      <StepTitle title="Pick your goals" body="Tap an idea to make it a goal, or write one. Three is plenty." />
 
       <form
         className="mb-6 flex gap-2"
@@ -339,7 +347,7 @@ function GoalsStep({
                 key={idea}
                 type="button"
                 onClick={() => onAdd(idea)}
-                className="tap inline-flex min-h-10 items-center gap-1.5 rounded-full border border-dashed border-line-strong bg-surface-2 px-3.5 py-2 text-left text-[14px] font-medium text-ink-2"
+                className="tap inline-flex min-h-11 items-center gap-1.5 rounded-full border border-dashed border-line-strong bg-surface-2 px-4 py-2 text-left text-[14.5px] font-medium text-ink-2"
               >
                 <Plus className="size-3.5 shrink-0 text-ink-3" strokeWidth={2.4} />
                 {idea}
@@ -389,7 +397,7 @@ function GoalsStep({
 
 function ColorRow({ value, onChange }: { value: string; onChange: (c: string) => void }) {
   return (
-    <div className="flex flex-wrap gap-2.5">
+    <div className="grid grid-cols-9">
       {PALETTE.map((c) => (
         <button
           key={c}
@@ -397,10 +405,14 @@ function ColorRow({ value, onChange }: { value: string; onChange: (c: string) =>
           aria-label={c}
           aria-pressed={value === c}
           onClick={() => onChange(c)}
-          className="tap grid size-9 place-items-center rounded-full"
-          style={{ background: colorVar(c) }}
+          className="tap grid h-11 place-items-center"
         >
-          {value === c && <Check className="size-4 text-white" strokeWidth={3} />}
+          <span
+            className={cn("grid size-8 place-items-center rounded-full transition-shadow", value === c && "ring-2 ring-ink ring-offset-2 ring-offset-bg")}
+            style={{ background: colorVar(c) }}
+          >
+            {value === c && <Check className="size-4 text-white" strokeWidth={3} />}
+          </span>
         </button>
       ))}
     </div>
@@ -422,12 +434,12 @@ function DetailsStep({
 }) {
   return (
     <>
-      <div className="mb-7">
-        <div className="eyebrow mb-2 flex items-center gap-2">
+      <div className="mb-6">
+        <div className="eyebrow mb-1.5 flex items-center gap-2">
           <span className="size-2 rounded-full" style={{ background: colorVar(goal.color) }} />
           Goal {index + 1} of {count}
         </div>
-        <h1 className="display text-[34px] text-ink">{goal.title}</h1>
+        <h1 className="display text-[30px] text-balance text-ink lg:text-[36px]">{goal.title}</h1>
       </div>
 
       <Field label={`What should have happened by ${endLabel}?`}>
@@ -438,17 +450,6 @@ function DetailsStep({
           placeholder="e.g. v2 live with 100 paying users"
           className="!text-[17px]"
         />
-      </Field>
-      <Field label="Tier">
-        <Segmented<Tier>
-          value={goal.tier}
-          onChange={(tier) => onChange({ tier, weeklyHours: goal.weeklyHours || HOURS_BY_TIER[tier] })}
-          options={TIERS.map((t) => ({ value: t.value, label: t.label }))}
-        />
-        <p className="mt-1.5 px-1 text-[12.5px] text-ink-3">{TIERS.find((t) => t.value === goal.tier)?.hint}</p>
-      </Field>
-      <Field label="Hours per week">
-        <Stepper value={goal.weeklyHours} onChange={(weeklyHours) => onChange({ weeklyHours })} step={0.5} min={0} max={40} format={fmtHours} />
       </Field>
       <Field label="System" hint="when and where">
         <Input value={goal.system} onChange={(e) => onChange({ system: e.target.value })} placeholder="e.g. Mon/Wed/Fri 7am, after coffee" />
@@ -481,12 +482,12 @@ function CapacityStep({
 
   return (
     <>
-      <StepTitle title="Capacity check" body="Your plan has to fit the time you really have." />
+      <StepTitle title="Does it fit?" body="The plan has to fit the time you really have." />
 
       <div className="card mb-4 px-5 pt-5 pb-4">
         <div className="flex items-baseline justify-between">
           <div className="flex items-baseline gap-1.5">
-            <span className={cn("display tnum text-[52px]", over > 0 ? "text-bad" : "text-ink")}>{fmtHours(total)}</span>
+            <span className={cn("display tnum text-[48px] leading-none", over > 0 ? "text-bad" : "text-ink")}>{fmtHours(total)}</span>
             <span className="text-[15px] text-ink-3">of {capacity}h a week</span>
           </div>
         </div>
@@ -566,7 +567,7 @@ function MilestonesStep({
 
   return (
     <>
-      <StepTitle title="Milestones" body="Dated checkpoints on the way. Optional, but they keep you honest." />
+      <StepTitle title="Add checkpoints" body="A dated milestone or two per goal keeps you honest. Optional." />
       <div className="flex flex-col gap-3">
         {goals.map((g) => (
           <div key={g.key} className="card overflow-hidden">
@@ -674,7 +675,7 @@ function MilestoneDraftSheet({
           <Button type="button" variant="secondary" size="lg" className="flex-1" disabled={!title.trim()} onClick={() => submit(true)}>
             Add another
           </Button>
-          <Button type="submit" size="lg" className="flex-1" disabled={!title.trim()}>
+          <Button type="submit" variant="accent" size="lg" className="flex-1" disabled={!title.trim()}>
             Add
           </Button>
         </div>

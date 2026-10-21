@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "timeo_session";
-const PUBLIC = ["/login", "/signup", "/forgot-password", "/reset-password"];
+const PUBLIC = ["/welcome", "/login", "/signup", "/forgot-password", "/reset-password"];
 
 // Optimistic check only: real authorisation happens in requireUser().
 export function proxy(request: NextRequest) {
@@ -10,7 +10,8 @@ export function proxy(request: NextRequest) {
   const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   if (!hasSession && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Signed-out visitors of the home page see the landing page; deep links go to sign in
+    return NextResponse.redirect(new URL(pathname === "/" ? "/welcome" : "/login", request.url));
   }
   return NextResponse.next();
 }

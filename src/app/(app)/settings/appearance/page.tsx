@@ -11,7 +11,7 @@ export default function AppearancePage() {
   return (
     <>
       <SubHeader back="/settings" backLabel="Settings" title="Appearance" />
-      <div className="pt-5">
+      <div className="pt-4">
         <Suspense fallback={<AppearanceSkeleton />}>
           <AppearanceContent />
         </Suspense>
@@ -28,12 +28,12 @@ async function AppearanceContent() {
 
 function AppearanceSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-44 rounded-[22px]" />
-      <Skeleton className="h-11" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div>
+      <Skeleton className="h-[214px] rounded-[22px]" />
+      <Skeleton className="mt-6 h-12" />
+      <div className="mt-6 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
         {Array.from({ length: 6 }, (_, i) => (
-          <Skeleton key={i} className="h-32 rounded-[18px]" />
+          <Skeleton key={i} className="h-[104px] rounded-[16px]" />
         ))}
       </div>
     </div>

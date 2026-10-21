@@ -4,16 +4,30 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ButtonLink } from "@/components/ui/button";
-import { Card, EmptyState, PageHeader, Row, Section, Skeleton, Stat } from "@/components/ui/primitives";
+import { CountUp } from "@/components/ui/motion";
+import {
+  AskTimi,
+  Card,
+  EmptyState,
+  Meter,
+  PageHeader,
+  Row,
+  Section,
+  Skeleton,
+  Stat,
+  StatStrip,
+} from "@/components/ui/primitives";
 import { db, t } from "@/db";
+import { GUIDE } from "@/lib/ai/guide";
 import { requireUser } from "@/lib/auth";
+import { getGoalHealth, type GoalHealth } from "@/lib/coach";
 import { cn } from "@/lib/cn";
-import { addDays, formatDuration, formatMonthDay, startOfWeek, weekday } from "@/lib/dates";
+import { addDays, formatMonthDay, startOfWeek, weekday } from "@/lib/dates";
 import { getActiveSeason } from "@/lib/queries";
 import { EnergyBars, EnergyLegend, FocusWeekChart } from "./charts";
 import { DailyReflection } from "./daily-reflection";
-import { getEnergyReport, getPastReviews, getReflectionStreak, getWeekStats } from "./data";
-import { seasonWeek, StatusDots, weekLabel } from "./shared";
+import { getEnergyReport, getPastReviews, getReflectionStreak, getWeekStats, type WeekStats } from "./data";
+import { roundedTime, seasonWeek, StatusDots, weekLabel } from "./shared";
 
 export const metadata: Metadata = { title: "Review" };
 
@@ -27,28 +41,42 @@ export default function ReviewPage() {
 
 function ReviewSkeleton() {
   return (
-    <div>
-      <div className="pt-6 pb-5 lg:pt-10">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="mt-3 h-10 w-40" />
-      </div>
-      <Skeleton className="h-64 rounded-[22px]" />
-      <Skeleton className="mt-4 h-20 rounded-[22px]" />
-      <Skeleton className="mt-8 h-56 rounded-[22px]" />
+    <div className="pt-5 lg:pt-10">
+      <Skeleton className="h-3 w-28" />
+      <Skeleton className="mt-2 h-9 w-40" />
+      <Skeleton className="mt-2 h-4 w-64" />
+      <Skeleton className="mt-5 h-12" />
+      <Skeleton className="mt-6 h-[300px] rounded-[20px]" />
+      <Skeleton className="mt-6 h-[220px] rounded-[20px]" />
     </div>
   );
 }
 
 function SettingsLink() {
   return (
-    <Link
-      href="/settings"
-      aria-label="Settings"
-      className="tap grid size-11 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-soft"
-    >
+    <Link href="/settings" aria-label="Settings" className="tap grid size-11 place-items-center rounded-full bg-sunken text-ink-2">
       <Settings className="size-[19px]" strokeWidth={1.9} />
     </Link>
   );
+}
+
+const h = roundedTime;
+
+/** One or two plain sentences: time protected so far, then which goal slipped. */
+function weekSummary(week: WeekStats, health: GoalHealth[], isOver: boolean) {
+  const { dueMin, doneMin } = week.blocks;
+  let first: string;
+  if (dueMin > 0) first = `You protected ${h(doneMin)} of ${h(dueMin)} planned${isOver ? "" : " so far"}.`;
+  else if (week.focusMin > 0) first = `${h(week.focusMin)} of focus so far.`;
+  else first = "Nothing planned yet this week.";
+
+  const rank = { off_track: 0, adjust: 1, on_track: 2 } as const;
+  const slipping = health.filter((g) => g.autoStatus !== "on_track").sort((a, b) => rank[a.autoStatus] - rank[b.autoStatus]);
+  let second = "";
+  if (slipping.length === 1) second = ` ${slipping[0].goal.title} slipped.`;
+  else if (slipping.length > 1) second = ` ${slipping[0].goal.title} and ${slipping.length - 1} more slipped.`;
+  else if (health.length > 0) second = " Every goal is on track.";
+  return first + second;
 }
 
 async function ReviewContent() {
@@ -58,13 +86,13 @@ async function ReviewContent() {
   const season = await getActiveSeason(user.id);
   const energyFrom = addDays(today, -27);
 
-  const [daily, week, energy, streak, past, thisWeekly, lastWeekly] = await Promise.all([
+  const [daily, week, energy, streak, past, thisWeekly, lastWeekly, health] = await Promise.all([
     db
       .select()
       .from(t.reflections)
       .where(and(eq(t.reflections.userId, user.id), eq(t.reflections.kind, "daily"), eq(t.reflections.date, today)))
       .get(),
-    getWeekStats(user.id, weekStart),
+    getWeekStats(user.id, weekStart, today),
     getEnergyReport(user.id, energyFrom, today),
     getReflectionStreak(user.id, today),
     getPastReviews(user.id),
@@ -80,104 +108,140 @@ async function ReviewContent() {
       .orderBy(desc(t.reflections.date))
       .limit(8)
       .then((rows) => rows.find((r) => r.energisers || r.drainers)),
+    getGoalHealth(user.id, today),
   ]);
 
   const weekNo = seasonWeek(weekStart, season);
-  const weekTitle = weekNo ? `Week ${weekNo}` : `Week of ${formatMonthDay(weekStart)}`;
+  const weekTitle = weekNo ? `Week ${weekNo}` : "This week";
+  const range = `${formatMonthDay(weekStart)} – ${formatMonthDay(addDays(weekStart, 6))}`;
   const daysLeftInWeek = 6 - weekday(today);
+  // From Friday on (or once started) the weekly review leads; before that, tonight's check-in does.
+  const weeklyLeads = !thisWeekly && daysLeftInWeek <= 2;
+  const workoutsTotal = Math.max(week.workouts.scheduled, week.workouts.done);
+
+  const weekCard = (
+    <Card className="p-4">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[15px] font-semibold tracking-tight text-ink">
+            {weekTitle} review <span className="font-normal text-ink-3">· 5 min</span>
+          </div>
+          <p className="mt-0.5 text-[13px] text-ink-3">
+            {thisWeekly
+              ? "Done. You can still change it."
+              : weeklyLeads
+                ? "Each goal, one honest check."
+                : `Best at the weekend · ${daysLeftInWeek} ${daysLeftInWeek === 1 ? "day" : "days"} left`}
+          </p>
+        </div>
+        <ButtonLink href="/review/week" variant={weeklyLeads ? "accent" : "outline"} size="sm" className="px-4">
+          {thisWeekly ? "Open" : "Start"}
+        </ButtonLink>
+      </div>
+      {weeklyLeads && (
+        <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+          <span className="text-[13px] text-ink-3">Short on time?</span>
+          <AskTimi prompt={GUIDE.reviewWeek} label="Ask Timi for a read" className="ml-auto" />
+        </div>
+      )}
+    </Card>
+  );
+
+  const tonight = (
+    <Section title="Tonight" count={daily ? undefined : "two taps, three lines"}>
+      <DailyReflection key={daily?.id ?? "new"} today={today} saved={daily ?? null} primary={!weeklyLeads} />
+    </Section>
+  );
 
   return (
-    <div className="fade-up">
+    <>
       <PageHeader
-        eyebrow={season ? `${weekTitle} · ${season.name}` : formatMonthDay(today)}
+        eyebrow={season ? `${weekTitle} · ${range}` : range}
         title="Review"
+        subtitle={weekSummary(week, health, daysLeftInWeek === 0)}
         action={<SettingsLink />}
       />
 
-      <DailyReflection key={daily?.id ?? "new"} today={today} saved={daily ?? null} />
+      <StatStrip>
+        <Stat value={<CountUp value={week.focusMin} format="duration" />} label="focus this week" />
+        <Stat
+          value={`${week.blocks.done}`}
+          unit={`of ${week.blocks.planned}`}
+          label="blocks done"
+        />
+        <Stat value={streak.streak} unit={streak.streak === 1 ? "day" : "days"} label="check-in streak" />
+      </StatStrip>
 
-      <Card className="mt-4 flex items-center gap-4 p-4 pl-5">
-        <div className="min-w-0 flex-1">
-          <div className="text-[16px] font-semibold tracking-tight text-ink">
-            {weekTitle} review <span className="font-normal text-ink-3">· 5 min</span>
+      {weeklyLeads ? (
+        <>
+          <div className="mt-5">{weekCard}</div>
+          {tonight}
+        </>
+      ) : (
+        <>
+          <div className="mt-5">{tonight}</div>
+          <div className="mt-3">{weekCard}</div>
+        </>
+      )}
+
+      <Section title="This week" count={range} card>
+        <div className="px-4 pt-4 pb-3">
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <span className="text-[13px] font-medium text-ink-2">Focus by day</span>
+            <span className="tnum text-[12.5px] text-ink-3">
+              {week.sessions} {week.sessions === 1 ? "session" : "sessions"}
+              {week.avgQuality != null && ` · quality ${week.avgQuality}`}
+            </span>
           </div>
-          <p className="mt-0.5 text-[13.5px] text-ink-3">
-            {thisWeekly
-              ? "Done. You can still change it."
-              : daysLeftInWeek <= 2
-                ? "Each goal, one honest check."
-                : `Best on the weekend · ${daysLeftInWeek} days left`}
-          </p>
+          <FocusWeekChart days={week.days} today={today} />
         </div>
-        <ButtonLink href="/review/week" variant={thisWeekly ? "secondary" : "primary"} size="sm" className="px-4">
-          {thisWeekly ? "Open" : "Start"}
-        </ButtonLink>
-      </Card>
-
-      <Section title="This week" action={`${formatMonthDay(weekStart)} – ${formatMonthDay(addDays(weekStart, 6))}`}>
-        <Card className="p-5">
-          <div className="grid grid-cols-3 gap-3">
-            <Stat label="Focus" value={formatDuration(week.focusMin)} />
-            <Stat label="Sessions" value={week.sessions} />
-            <Stat label="Quality" value={week.avgQuality ?? "–"} unit={week.avgQuality != null ? "/100" : undefined} />
-          </div>
-          <div className="mt-5">
-            <FocusWeekChart days={week.days} today={today} />
-          </div>
-        </Card>
-        <Card className="mt-3">
-          <Row>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[15px] font-medium text-ink">Blocks</span>
-                <span className="tnum text-[13.5px] text-ink-3">
-                  <span className="font-semibold text-ink">{week.blocks.done}</span> of {week.blocks.planned} done
-                  {week.blocks.skipped > 0 && ` · ${week.blocks.skipped} skipped`}
-                </span>
-              </div>
-              <SplitBar total={week.blocks.planned} done={week.blocks.done} skipped={week.blocks.skipped} />
-            </div>
-          </Row>
-          <Row>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[15px] font-medium text-ink">Workouts</span>
-                <span className="tnum text-[13.5px] text-ink-3">
-                  <span className="font-semibold text-ink">{week.workouts.done}</span> of {week.workouts.scheduled}{" "}
-                  scheduled
-                </span>
-              </div>
-              <SplitBar total={Math.max(week.workouts.scheduled, week.workouts.done)} done={week.workouts.done} skipped={0} />
-            </div>
-          </Row>
-        </Card>
+        <ProgressRow
+          label="Blocks"
+          value={
+            <>
+              <span className="font-semibold text-ink">{week.blocks.done}</span> of {week.blocks.planned} done
+              {week.blocks.skipped > 0 && ` · ${week.blocks.skipped} skipped`}
+            </>
+          }
+          total={week.blocks.planned}
+          done={week.blocks.done}
+          missed={week.blocks.skipped}
+        />
+        <ProgressRow
+          label="Workouts"
+          value={
+            <>
+              <span className="font-semibold text-ink">{week.workouts.done}</span> of {week.workouts.scheduled} scheduled
+            </>
+          }
+          total={workoutsTotal}
+          done={week.workouts.done}
+          missed={0}
+        />
       </Section>
 
-      <Section title="Energy" action="Last 4 weeks">
+      <Section title="Energy" count="last 4 weeks">
         {energy.sessions === 0 && !lastWeekly ? (
-          <EmptyState
-            title="No energy data yet"
-            body="After a focus session, rate how you feel. Patterns show up here."
-          />
+          <EmptyState title="No energy data yet" body="After a focus session, rate how you feel. Patterns show up here." />
         ) : (
-          <Card className="p-5">
+          <Card className="p-4">
             {energy.sessions > 0 && (
               <>
                 <EnergyLegend />
-                <div className="mt-4">
-                  <div className="eyebrow mb-3">By goal</div>
+                <div className="mt-3">
+                  <div className="eyebrow mb-2.5">By goal</div>
                   <EnergyBars rows={energy.byGoal} />
                 </div>
                 {energy.byKind.length > 0 && (
-                  <div className="mt-6">
-                    <div className="eyebrow mb-3">By kind of work</div>
+                  <div className="mt-5">
+                    <div className="eyebrow mb-2.5">By kind of work</div>
                     <EnergyBars rows={energy.byKind} />
                   </div>
                 )}
               </>
             )}
             {lastWeekly && (
-              <div className={cn("grid gap-3 sm:grid-cols-2", energy.sessions > 0 && "mt-6 border-t border-line pt-5")}>
+              <div className={cn("grid gap-2 sm:grid-cols-2", energy.sessions > 0 && "mt-5 border-t border-line pt-4")}>
                 {lastWeekly.energisers && <EnergyNote label="Gave energy" text={lastWeekly.energisers} color="var(--c-teal)" />}
                 {lastWeekly.drainers && <EnergyNote label="Drained" text={lastWeekly.drainers} color="var(--c-rose)" />}
               </div>
@@ -186,67 +250,67 @@ async function ReviewContent() {
         )}
       </Section>
 
-      <Section title="Check-in streak" action="Last 14 days">
-        <Card className="flex items-center gap-5 px-5 py-4">
-          <div className="flex shrink-0 items-baseline gap-1">
-            <span className="display tnum text-[40px] text-ink">{streak.streak}</span>
-            <span className="text-[13px] font-medium text-ink-3">{streak.streak === 1 ? "day" : "days"}</span>
-          </div>
-          <div className="flex min-w-0 flex-1 items-center justify-between gap-1">
-            {streak.last14.map((d) => (
-              <span
-                key={d.date}
-                title={d.date}
-                className={cn(
-                  "size-2.5 shrink-0 rounded-full",
-                  d.done ? "bg-accent" : "bg-sunken",
-                  d.date === today && !d.done && "ring-1 ring-line-strong ring-inset",
-                )}
-              />
-            ))}
-          </div>
-        </Card>
-      </Section>
-
-      <Section title="Past reviews">
+      <Section title="Past reviews" count={past.length || undefined} card={past.length > 0}>
         {past.length === 0 ? (
-          <EmptyState title="No weekly reviews yet" body="Your first one builds each goal's trajectory." />
+          <EmptyState title="No weekly reviews yet" body="Your first one starts each goal's trend." />
         ) : (
-          <Card>
-            {past.map((r) => (
-              <Row key={r.id} href={`/review/week?week=${r.date}`}>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[15px] font-medium text-ink">{weekLabel(r.date, season)}</div>
-                  {r.wins && <div className="mt-0.5 truncate text-[13px] text-ink-3">{r.wins}</div>}
-                </div>
-                <StatusDots updates={r.updates} />
-              </Row>
-            ))}
-          </Card>
+          past.map((r) => (
+            <Row
+              key={r.id}
+              href={`/review/week?week=${r.date}`}
+              title={weekLabel(r.date, season)}
+              subtitle={r.wins ?? undefined}
+            >
+              <StatusDots updates={r.updates} className="ml-auto" />
+            </Row>
+          ))
         )}
       </Section>
-    </div>
+    </>
   );
 }
 
-function SplitBar({ total, done, skipped }: { total: number; done: number; skipped: number }) {
-  if (total === 0) return <div className="mt-2.5 h-1.5 rounded-full bg-sunken" />;
+function ProgressRow({
+  label,
+  value,
+  total,
+  done,
+  missed,
+}: {
+  label: string;
+  value: React.ReactNode;
+  total: number;
+  done: number;
+  missed: number;
+}) {
   return (
-    <div className="mt-2.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-sunken">
-      {done > 0 && <span className="h-full rounded-full bg-ink-2" style={{ width: `${(done / total) * 100}%` }} />}
-      {skipped > 0 && <span className="h-full rounded-full bg-ink-3/40" style={{ width: `${(skipped / total) * 100}%` }} />}
+    <div className="px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[14.5px] font-medium text-ink">{label}</span>
+        <span className="tnum text-[13px] text-ink-3">{value}</span>
+      </div>
+      <Meter
+        className="mt-2"
+        height={6}
+        legend={false}
+        total={Math.max(total, 1)}
+        segments={[
+          { value: done, color: "var(--ink-2)" },
+          { value: missed, color: "color-mix(in oklab, var(--bad) 55%, var(--surface))" },
+        ]}
+      />
     </div>
   );
 }
 
 function EnergyNote({ label, text, color }: { label: string; text: string; color: string }) {
   return (
-    <div className="rounded-2xl bg-surface-2 px-4 py-3">
+    <div className="rounded-2xl bg-surface-2 px-3.5 py-2.5">
       <div className="flex items-center gap-1.5 text-[12px] font-medium text-ink-3">
         <span className="size-2 rounded-full" style={{ background: color }} />
         {label}
       </div>
-      <p className="mt-1 text-[14.5px] leading-snug text-ink">{text}</p>
+      <p className="mt-0.5 text-[14.5px] leading-snug text-ink">{text}</p>
     </div>
   );
 }

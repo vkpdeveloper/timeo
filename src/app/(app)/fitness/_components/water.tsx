@@ -1,13 +1,19 @@
 "use client";
 
-import { Droplet } from "lucide-react";
+import { Droplet, Minus } from "lucide-react";
 import { useOptimistic, useTransition } from "react";
 import { addWater } from "@/actions/health";
-import { ProgressBar } from "@/components/ui/primitives";
+import { RowIcon } from "@/components/ui/primitives";
+import { cn } from "@/lib/cn";
+import { Bar } from "./charts";
 
-const fmtL = (ml: number) => String(Math.round(ml / 10) / 100);
+const fmtL = (ml: number) => String(Math.round(ml / 100) / 10);
 
-export function WaterCard({ ml, targetMl, day }: { ml: number; targetMl: number; day: string }) {
+/**
+ * Water for the day with one-tap +250 / +500. Renders as a row, so it sits in
+ * a Section card next to other rows; `card` wraps it in its own card.
+ */
+export function WaterCard({ ml, targetMl, day, card = false }: { ml: number; targetMl: number; day: string; card?: boolean }) {
   const [value, add] = useOptimistic(ml, (v, d: number) => Math.max(0, v + d));
   const [, start] = useTransition();
   const bump = (d: number) =>
@@ -15,46 +21,45 @@ export function WaterCard({ ml, targetMl, day }: { ml: number; targetMl: number;
       add(d);
       await addWater(d, day);
     });
+  const left = Math.max(0, targetMl - value);
   return (
-    <div className="card p-4">
+    <div className={cn("px-4 py-3", card && "card")}>
       <div className="flex items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--c-sky-soft)] text-[var(--c-sky)]">
-          <Droplet className="size-[18px]" />
-        </span>
+        <RowIcon color="sky">
+          <Droplet />
+        </RowIcon>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-medium text-ink-3">Water</div>
-          <div className="tnum text-[17px] font-semibold tracking-tight text-ink">
-            {fmtL(value)}
-            <span className="text-[13px] font-medium text-ink-3"> / {fmtL(targetMl)} L</span>
+          <div className="tnum text-[15px] font-medium text-ink">
+            {fmtL(value)} <span className="text-ink-3">of {fmtL(targetMl)} L</span>
           </div>
+          <div className="tnum truncate text-[13px] text-ink-3">{left > 0 ? `${fmtL(left)} L to go` : "Done for today"}</div>
         </div>
-        <div className="flex gap-2">
+        {value > 0 && (
           <button
             type="button"
-            onClick={() => bump(250)}
-            className="tap h-11 rounded-full bg-sunken px-4 text-[14px] font-semibold text-ink"
+            onClick={() => bump(-250)}
+            aria-label="Remove 250 ml"
+            className="tap -mr-1 grid size-11 shrink-0 place-items-center rounded-full text-ink-3"
           >
-            +250
+            <Minus className="size-4" />
           </button>
-          <button
-            type="button"
-            onClick={() => bump(500)}
-            className="tap h-11 rounded-full bg-sunken px-4 text-[14px] font-semibold text-ink"
-          >
-            +500
-          </button>
-        </div>
-      </div>
-      <ProgressBar value={value / Math.max(1, targetMl)} color="var(--c-sky)" className="mt-3.5" />
-      {value > 0 && (
+        )}
         <button
           type="button"
-          onClick={() => bump(-250)}
-          className="tap mt-2 text-[12px] font-medium text-ink-3"
+          onClick={() => bump(250)}
+          className="tap tnum h-11 shrink-0 rounded-full bg-sunken px-3.5 text-[14px] font-semibold text-ink"
         >
-          Undo 250 ml
+          +250
         </button>
-      )}
+        <button
+          type="button"
+          onClick={() => bump(500)}
+          className="tap tnum h-11 shrink-0 rounded-full bg-sunken px-3.5 text-[14px] font-semibold text-ink"
+        >
+          +500
+        </button>
+      </div>
+      <Bar value={value / Math.max(1, targetMl)} color="var(--c-sky)" height={4} className="mt-2.5" delay={0.15} />
     </div>
   );
 }

@@ -16,13 +16,11 @@ import {
   Moon,
   Plus,
   Scale,
-  Settings2,
   ShieldCheck,
   Target,
   Undo2,
   UtensilsCrossed,
 } from "lucide-react";
-import Link from "next/link";
 import { animate } from "motion/react";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
@@ -31,22 +29,16 @@ import { undoTell } from "@/actions/ai";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/shadcn/collapsible";
+import { CardList } from "@/components/ui/primitives";
+import { springs } from "@/components/ui/motion";
 import { Sheet } from "@/components/ui/sheet";
 import type { AiPart } from "@/db/schema";
+import { GUIDE_SUGGESTIONS } from "@/lib/ai/guide";
 import { onRunFinished, startRun, useRuns } from "@/lib/ai/runs-client";
-import type { AssistantRun, Effort, SavedItem } from "@/lib/ai/shared";
+import type { AssistantRun, SavedItem } from "@/lib/ai/shared";
 import { cn } from "@/lib/cn";
 import { Timi } from "./timi";
-import { Composer, type ModelChoice, type SendOrigin } from "./composer";
-
-const SUGGESTIONS = [
-  "Plan my week",
-  "How are my goals doing?",
-  "Log Push A: incline 20×10, 22.5×8",
-  "2 rotis, dal and paneer for lunch",
-  "Protein left today?",
-  "What's my day like?",
-];
+import { Composer, type SendOrigin } from "./composer";
 
 const ICONS: Record<string, typeof Check> = {
   dumbbell: Dumbbell,
@@ -63,35 +55,36 @@ const ICONS: Record<string, typeof Check> = {
   shield: ShieldCheck,
 };
 
-// What each tool did, in plain words (running, done).
-const TOOL_LABEL: Record<string, [string, string]> = {
-  log_workout: ["Logging workout", "Logged workout"],
-  log_meal: ["Logging meal", "Logged meal"],
-  add_water: ["Adding water", "Added water"],
-  log_body: ["Saving measurement", "Saved measurement"],
-  log_day: ["Saving", "Saved"],
-  add_task: ["Adding task", "Added task"],
-  complete_task: ["Completing task", "Completed task"],
-  get_day: ["Reading your day", "Read your day"],
-  get_training: ["Reading training", "Read training"],
-  get_nutrition: ["Reading nutrition", "Read nutrition"],
-  get_body: ["Reading body stats", "Read body stats"],
-  get_focus: ["Reading focus", "Read focus sessions"],
-  get_plan: ["Reading your plan", "Read your plan"],
-  get_week: ["Reading your week", "Read your week"],
-  create_season: ["Creating season", "Created season"],
-  add_goals: ["Adding goals", "Added goals"],
-  update_goal: ["Updating goal", "Updated goal"],
-  add_milestones: ["Adding milestones", "Added milestones"],
-  complete_milestone: ["Completing milestone", "Completed milestone"],
-  add_weekly_steps: ["Adding weekly steps", "Added weekly steps"],
-  add_blocks: ["Blocking time", "Blocked time"],
-  move_block: ["Moving block", "Moved block"],
-  protect_time: ["Protecting time", "Protected time"],
-  set_gym_day: ["Updating gym split", "Updated gym split"],
-  log_reflection: ["Saving reflection", "Saved reflection"],
+// What each tool did, in plain words.
+const TOOL_LABEL: Record<string, string> = {
+  log_workout: "Logged workout",
+  log_meal: "Logged meal",
+  add_water: "Added water",
+  log_body: "Saved measurement",
+  log_day: "Saved",
+  add_task: "Added task",
+  complete_task: "Completed task",
+  get_day: "Read your day",
+  get_training: "Read training",
+  get_nutrition: "Read nutrition",
+  get_body: "Read body stats",
+  get_focus: "Read focus sessions",
+  get_plan: "Read your plan",
+  get_capacity: "Checked your free time",
+  get_week: "Read your week",
+  create_season: "Created season",
+  add_goals: "Added goals",
+  update_goal: "Updated goal",
+  add_milestones: "Added milestones",
+  complete_milestone: "Completed milestone",
+  add_weekly_steps: "Added weekly steps",
+  add_blocks: "Blocked time",
+  move_block: "Moved block",
+  protect_time: "Protected time",
+  set_gym_day: "Updated gym split",
+  log_reflection: "Saved reflection",
 };
-const toolLabel = (name: string, done = true) => TOOL_LABEL[name]?.[done ? 1 : 0] ?? name.replace(/_/g, " ");
+const toolLabel = (name: string) => TOOL_LABEL[name] ?? name.replace(/_/g, " ");
 
 /**
  * With the Today panel showing (xl), keep the 760px chat column centred on the screen,
@@ -122,9 +115,6 @@ function useNow(active: boolean) {
 type Props = {
   initialRuns: AssistantRun[];
   timezone: string;
-  models: ModelChoice[];
-  modelId: string;
-  effort: Effort;
   /** Today's plan and tasks: a floating panel on wide screens, a sheet on phones */
   today: ReactNode;
 };
@@ -134,7 +124,7 @@ type Props = {
  * you can leave (or close the app) and come back to the result. A run opened
  * from a notification (/assistant#<id>) is scrolled into view.
  */
-export function Assistant({ initialRuns, timezone, models, modelId, effort, today }: Props) {
+export function Assistant({ initialRuns, timezone, today }: Props) {
   const router = useRouter();
   const [runs, setRuns] = useState<Record<string, AssistantRun>>(() => Object.fromEntries(initialRuns.map((r) => [r.id, r])));
   // the message just sent: it flies up from the composer (or rises in, if sent from a suggestion)
@@ -219,7 +209,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
   return (
     <div className="min-h-dvh bg-bg" style={{ "--composer-h": `${composerH || 140}px` } as CSSProperties}>
       <header className={cn("glass fixed inset-x-0 top-0 z-30 border-b border-line px-3 pt-safe", BESIDE_PANEL)}>
-        <div className="mx-auto grid h-13 max-w-[760px] grid-cols-[1fr_auto_1fr] items-center gap-3 py-2">
+        <div className="mx-auto grid h-12 max-w-[760px] grid-cols-[1fr_auto_1fr] items-center gap-3">
           <button
             type="button"
             onClick={() => (history.length > 1 ? router.back() : router.push("/"))}
@@ -241,9 +231,6 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
             >
               <ListChecks className="size-[18px]" />
             </button>
-            <Link href="/settings/ai" aria-label="AI settings" className="tap grid size-9 place-items-center rounded-full text-ink-2 hover:bg-sunken">
-              <Settings2 className="size-[18px]" />
-            </Link>
           </div>
         </div>
       </header>
@@ -251,7 +238,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
       <div
         ref={contentRef}
         role="log"
-        className={cn("px-4 pt-[calc(var(--safe-top)+68px)] pb-[calc(var(--composer-h)+20px)] sm:px-6", BESIDE_PANEL)}
+        className={cn("px-4 pt-[calc(var(--safe-top)+56px)] pb-[calc(var(--composer-h)+16px)] sm:px-6", BESIDE_PANEL)}
       >
         <div className="mx-auto w-full max-w-[760px]">
           {list.length === 0 && <EmptyState onPick={send} />}
@@ -260,7 +247,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
             return (
               <div key={run.id}>
                 {newDay && (
-                  <div className="my-6 flex items-center gap-3 text-[11.5px] font-medium tracking-wide text-ink-3 uppercase">
+                  <div className="my-4 flex items-center gap-3 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">
                     <span className="h-px flex-1 bg-line" />
                     {day.format(run.createdAt)}
                     <span className="h-px flex-1 bg-line" />
@@ -278,8 +265,8 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
         </div>
       </div>
 
-      <aside className="fixed top-[calc(var(--safe-top)+68px)] right-4 z-20 hidden w-[300px] xl:block">
-        <div className="no-scrollbar max-h-[calc(100dvh-var(--safe-top)-84px)] overflow-y-auto overscroll-contain rounded-[18px] border border-line bg-surface/80 p-1.5 shadow-float backdrop-blur-xl">
+      <aside className="fixed top-[calc(var(--safe-top)+60px)] right-4 z-20 hidden w-[300px] xl:block">
+        <div className="no-scrollbar max-h-[calc(100dvh-var(--safe-top)-76px)] overflow-y-auto overscroll-contain rounded-[18px] border border-line bg-surface/80 p-1.5 shadow-float backdrop-blur-xl">
           {today}
         </div>
       </aside>
@@ -308,7 +295,7 @@ export function Assistant({ initialRuns, timezone, models, modelId, effort, toda
               <ArrowDown className="size-4" />
             </button>
           )}
-          <Composer models={models} modelId={modelId} effort={effort} onSend={send} autoFocus={list.length === 0} />
+          <Composer onSend={send} autoFocus={list.length === 0} />
           <p className="mt-2 hidden text-center text-[11.5px] text-ink-3 sm:block">Runs in the background. You can close Timeo; you&apos;ll get a notification.</p>
         </div>
       </div>
@@ -383,21 +370,22 @@ function UserBubble({ text, sentFrom }: { text: string; sentFrom?: SendOrigin | 
     // once per send (Strict Mode re-runs effects, and a second measure would include the transform)
     if (!el || sentFrom === undefined || played.current === sentFrom) return;
     played.current = sentFrom;
-    const spring = { type: "spring", stiffness: 420, damping: 36, mass: 0.9 } as const;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const spring = springs.smooth;
     if (!sentFrom) {
       animate(el, { y: [28, 0], opacity: [0, 1], scale: [0.96, 1] }, spring);
       return;
     }
-    // px-4 / py-2.5 on the bubble: line its text up with the composer's, then let it go
+    // px-3.5 / py-2 on the bubble: line its text up with the composer's, then let it go
     const box = el.getBoundingClientRect();
-    animate(el, { x: [sentFrom.x - (box.left + 16), 0], y: [sentFrom.y - (box.top + 10), 0], opacity: [0.5, 1] }, spring);
+    animate(el, { x: [sentFrom.x - (box.left + 14), 0], y: [sentFrom.y - (box.top + 8), 0], opacity: [0.5, 1] }, spring);
   }, [sentFrom]);
 
   return (
     <div className="flex justify-end">
       <div
         ref={ref}
-        className="max-w-[85%] rounded-[20px] rounded-br-md bg-surface px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap text-ink shadow-soft ring-1 ring-line will-change-transform"
+        className="max-w-[85%] rounded-[20px] rounded-br-md bg-surface px-3.5 py-2 text-[15px] leading-[1.5] whitespace-pre-wrap text-ink shadow-soft ring-1 ring-line will-change-transform"
       >
         {text}
       </div>
@@ -422,106 +410,171 @@ function RunView({
 }) {
   const parts = run.parts as AiPart[];
   const running = run.status === "running";
-  const now = useNow(running);
   const finalIdx = parts.map((p, i) => (p.type === "text" ? i : -1)).filter((i) => i >= 0).pop();
   const answer = running ? undefined : finalIdx != null ? (parts[finalIdx] as { text: string }).text : (run.reply ?? undefined);
   const steps = parts.filter((p, i) => !(p.type === "text" && i === finalIdx && !running));
   const saved = parts.flatMap((p) => (p.type === "tool" ? (((p.output as { saved?: SavedItem[] } | undefined)?.saved) ?? []) : []));
-  const lastTool = [...parts].reverse().find((p) => p.type === "tool") as Extract<AiPart, { type: "tool" }> | undefined;
-  const elapsed = running ? (now ? Math.max(0, now - run.createdAt) : 0) : (run.ms ?? 0);
   const time = fmt({ hour: "numeric", minute: "2-digit" }, timezone).format(run.createdAt);
 
   return (
-    <article id={`run-${run.id}`} className="scroll-mt-24 py-4">
+    <article id={`run-${run.id}`} className="scroll-mt-24 py-3">
       <UserBubble text={run.input} sentFrom={sentFrom} />
 
       {/* Timi */}
-      <div className={cn("mt-4 space-y-3", sentFrom !== undefined && "animate-in fade-in fill-mode-both delay-150 duration-300")}>
-        {(steps.length > 0 || running) && (
-          <Collapsible>
-            <CollapsibleTrigger className="group tap flex max-w-full items-center gap-1.5 rounded-lg py-0.5 text-[13px] text-ink-3 hover:text-ink-2">
-              <Timi size={22} mood={running ? "thinking" : run.status === "error" ? "error" : "idle"} className="-my-1" />
-              {running ? (
-                <Shimmer className="text-[13px]">{`Working${elapsed ? ` · ${Math.round(elapsed / 1000)}s` : ""}${lastTool ? ` · ${toolLabel(lastTool.name, false)}` : ""}`}</Shimmer>
-              ) : (
-                <span>Worked for {secs(elapsed)}</span>
-              )}
-              {steps.length > 0 && <ChevronRight className="size-3.5 shrink-0 transition-transform group-data-[state=open]:rotate-90" />}
-            </CollapsibleTrigger>
-            <CollapsibleContent className="overflow-hidden">
-              <ol className="mt-2.5 space-y-2 border-l border-line pl-3.5">
-                {steps.map((p, i) => (
-                  <Step key={i} part={p} />
-                ))}
-              </ol>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+      <div className={cn("mt-3 space-y-3", sentFrom !== undefined && "rise [--delay:120ms]")}>
+        {(steps.length > 0 || running) && <Progress run={run} steps={steps} />}
 
         {run.status === "error" && (
-          <p className="flex items-start gap-2 rounded-2xl bg-bad-soft px-4 py-3 text-[14px] font-medium text-bad">
-            <Timi size={22} mood="error" className="-my-0.5" />
-            Couldn&apos;t finish. {run.error?.slice(0, 180)}
+          <p className="rise flex items-start gap-2 rounded-2xl bg-bad-soft px-3.5 py-2.5 text-[14px] leading-snug font-medium text-bad">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <span>Couldn&apos;t finish. {run.error?.slice(0, 180)}</span>
           </p>
         )}
 
         {answer && (
-          <div className={cn("text-[15.5px] leading-7 text-ink [&_li]:my-1 [&_strong]:font-semibold", run.undone && "opacity-50")}>
+          <div
+            className={cn(
+              "rise text-[15px] leading-[1.6] text-ink [&_li]:my-0.5 [&_ol]:my-1.5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-1.5",
+              run.undone && "opacity-50",
+            )}
+          >
             <MessageResponse>{answer}</MessageResponse>
           </div>
         )}
 
-        {saved.length > 0 && (
-          <ul className={cn("space-y-1.5 rounded-2xl bg-surface px-3.5 py-3 ring-1 ring-line", run.undone && "opacity-50")}>
-            {saved.slice(0, 8).map((s, i) => {
-              const Icon = ICONS[s.icon ?? "check"] ?? Check;
-              return (
-                <li key={i} className={cn("flex items-center gap-2.5 text-[13.5px] text-ink-2", run.undone && "line-through")}>
-                  <span className="grid size-5 shrink-0 place-items-center rounded-md bg-ok-soft text-ok">
-                    <Icon className="size-3" strokeWidth={2.4} />
-                  </span>
-                  <span className="min-w-0 truncate">{s.label}</span>
-                </li>
-              );
-            })}
-            {saved.length > 8 && <li className="pl-7.5 text-[12.5px] text-ink-3">+{saved.length - 8} more</li>}
-          </ul>
-        )}
+        {saved.length > 0 && <SavedCard run={run} saved={saved} onUndone={onUndone} />}
 
-        {!running && <Actions run={run} answer={answer} time={time} onUndone={onUndone} />}
+        {!running && <Actions run={run} answer={answer} time={time} />}
       </div>
     </article>
+  );
+}
+
+/**
+ * What Timi is doing. While a run works, finished steps rise in one by one under a live
+ * "Working" line; once it's done they fold into "Worked for 6.2s · 3 steps".
+ */
+function Progress({ run, steps }: { run: AssistantRun; steps: AiPart[] }) {
+  const running = run.status === "running";
+  const now = useNow(running);
+  const [open, setOpen] = useState<boolean | null>(null);
+  const isOpen = open ?? running;
+  const tools = steps.filter((p): p is Extract<AiPart, { type: "tool" }> => p.type === "tool");
+  const last = tools.length > 0;
+  const elapsed = running ? (now ? Math.max(0, now - run.createdAt) : 0) : (run.ms ?? 0);
+  // live: tool calls only; afterwards everything, thoughts included
+  const shown = running ? tools : steps;
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setOpen}>
+      <CollapsibleTrigger
+        disabled={!shown.length && !running}
+        className="group tap -ml-1 flex min-h-8 max-w-full items-center gap-1.5 rounded-full py-0.5 pr-2.5 pl-1 text-[13px] text-ink-3 hover:text-ink-2"
+      >
+        <Timi size={22} mood={running ? "thinking" : run.status === "error" ? "error" : "idle"} className="-my-1" />
+        {running ? (
+          <Shimmer as="span" className="truncate text-[13px]">
+            {last ? "Working…" : "Thinking…"}
+          </Shimmer>
+        ) : (
+          <span className="truncate">
+            Worked for {secs(elapsed)}
+            {tools.length > 0 && ` · ${tools.length} ${tools.length === 1 ? "step" : "steps"}`}
+          </span>
+        )}
+        {running && elapsed >= 1000 && <span className="tnum-live shrink-0 text-ink-3/70">{Math.round(elapsed / 1000)}s</span>}
+        {shown.length > 0 && <ChevronRight className="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />}
+      </CollapsibleTrigger>
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+        {shown.length > 0 && (
+          <ol className="mt-1.5 ml-[10px] space-y-1.5 border-l border-line py-0.5 pl-3.5">
+            {shown.map((p, i) => (
+              <Step key={i} part={p} />
+            ))}
+          </ol>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
 function Step({ part }: { part: AiPart }) {
   if (part.type === "reasoning")
     return (
-      <li className="flex gap-2 text-[12.5px] leading-relaxed text-ink-3">
+      <li className="rise flex gap-2 text-[12.5px] leading-relaxed text-ink-3">
         <BookOpen className="mt-0.5 size-3.5 shrink-0" />
-        <span className="line-clamp-4 whitespace-pre-wrap italic">{part.text}</span>
+        <span className="line-clamp-3 whitespace-pre-wrap">{part.text}</span>
       </li>
     );
-  if (part.type === "text") return <li className="text-[13px] leading-relaxed whitespace-pre-wrap text-ink-3">{part.text}</li>;
+  if (part.type === "text") return <li className="rise text-[13px] leading-relaxed whitespace-pre-wrap text-ink-3">{part.text}</li>;
   const output = part.output as { saved?: SavedItem[]; ok?: boolean; error?: string } | undefined;
   const failed = part.state === "error" || output?.ok === false;
   const n = output?.saved?.length ?? 0;
   return (
-    <li className={cn("flex items-center gap-2 text-[13px]", failed ? "text-bad" : part.name.startsWith("get_") ? "text-ink-3" : "text-ink-2")}>
-      {failed ? <AlertCircle className="size-3.5 shrink-0" /> : <Check className="size-3.5 shrink-0 text-ok" strokeWidth={2.6} />}
+    <li className={cn("rise flex items-center gap-2 text-[13px]", failed ? "text-bad" : part.name.startsWith("get_") ? "text-ink-3" : "text-ink-2")}>
+      {failed ? (
+        <AlertCircle className="size-3.5 shrink-0" />
+      ) : (
+        <span className="grid size-3.5 shrink-0 place-items-center rounded-full bg-ok-soft text-ok [animation:pop_220ms_var(--ease-spring)_backwards]">
+          <Check className="size-2.5" strokeWidth={3} />
+        </span>
+      )}
       <span className="truncate">
         {toolLabel(part.name)}
-        {n > 0 && <span className="text-ink-3"> · {n}</span>}
+        {n > 1 && <span className="text-ink-3"> · {n}</span>}
         {failed && (output?.error || part.error) && <span> · {output?.error ?? part.error}</span>}
       </span>
     </li>
   );
 }
 
-function Actions({ run, answer, time, onUndone }: { run: AssistantRun; answer?: string; time: string; onUndone: () => void }) {
+/** Everything a run saved, as one hairline card, with Undo for the lot. */
+function SavedCard({ run, saved, onUndone }: { run: AssistantRun; saved: SavedItem[]; onUndone: () => void }) {
   const router = useRouter();
-  const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
+  const done = run.status === "done";
+  return (
+    <CardList className={cn("stagger divide-y divide-line [--stagger:40ms]", run.undone && "opacity-60")}>
+      <div className="flex h-10 items-center gap-2 pr-1.5 pl-4">
+        <span className="text-[12px] font-semibold tracking-wide text-ink-3 uppercase">
+          {run.undone ? "Undone" : `Saved · ${saved.length}`}
+        </span>
+        {done && run.saved > 0 && !run.undone && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                await undoTell(run.id);
+                onUndone();
+                router.refresh();
+              })
+            }
+            className="tap ml-auto inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-medium text-ink-2 hover:bg-sunken disabled:opacity-50"
+          >
+            <Undo2 className="size-3.5" />
+            {pending ? "Undoing" : "Undo"}
+          </button>
+        )}
+      </div>
+      {saved.slice(0, 8).map((s, i) => {
+        const Icon = ICONS[s.icon ?? "check"] ?? Check;
+        return (
+          <div key={i} className="flex min-h-11 items-center gap-2.5 px-4 py-2 text-[14px] text-ink">
+            <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-ok-soft text-ok">
+              <Icon className="size-3.5" strokeWidth={2.2} />
+            </span>
+            <span className={cn("min-w-0 truncate", run.undone && "text-ink-3 line-through")}>{s.label}</span>
+          </div>
+        );
+      })}
+      {saved.length > 8 && <div className="px-4 py-2 text-[12.5px] text-ink-3">+{saved.length - 8} more</div>}
+    </CardList>
+  );
+}
+
+function Actions({ run, answer, time }: { run: AssistantRun; answer?: string; time: string }) {
+  const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const copy = async () => {
@@ -535,34 +588,17 @@ function Actions({ run, answer, time, onUndone }: { run: AssistantRun; answer?: 
     timer.current = setTimeout(() => setCopied(false), 1500);
   };
 
-  const btn = "tap inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-medium text-ink-3 hover:bg-sunken hover:text-ink-2";
   return (
     <div className="-ml-2.5 flex items-center gap-0.5">
-      <button type="button" onClick={copy} className={btn} aria-label="Copy reply">
+      <button
+        type="button"
+        onClick={copy}
+        className="tap inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-medium text-ink-3 hover:bg-sunken hover:text-ink-2"
+        aria-label="Copy reply"
+      >
         {copied ? <Check className="size-3.5 text-ok" /> : <Copy className="size-3.5" />}
         {copied ? "Copied" : "Copy"}
       </button>
-      {run.saved > 0 &&
-        run.status === "done" &&
-        (run.undone ? (
-          <span className="px-2.5 text-[12.5px] font-medium text-ink-3">Undone</span>
-        ) : (
-          <button
-            type="button"
-            disabled={pending}
-            className={btn}
-            onClick={() =>
-              start(async () => {
-                await undoTell(run.id);
-                onUndone();
-                router.refresh();
-              })
-            }
-          >
-            <Undo2 className="size-3.5" />
-            Undo
-          </button>
-        ))}
       <span className="ml-auto pr-1 text-[11.5px] text-ink-3 tabular-nums">
         {time}
         {run.ms != null && ` · ${secs(run.ms)}`}
@@ -571,25 +607,27 @@ function Actions({ run, answer, time, onUndone }: { run: AssistantRun; answer?: 
   );
 }
 
+/** First visit: what Timi is for, and the questions people actually have. */
 function EmptyState({ onPick }: { onPick: (s: string) => Promise<boolean> }) {
   return (
-    <div className="flex min-h-[60dvh] flex-col justify-end gap-6 pb-4">
-      <div>
-        <Timi size={112} interactive className="-ml-2 mb-2" />
-        <h1 className="display text-[36px] text-ink">What&apos;s up?</h1>
-        <p className="mt-1.5 max-w-[36ch] text-[15px] leading-relaxed text-ink-2">
-          Log a workout or a meal, plan your week, set goals, or ask about your data.
+    <div className="flex min-h-[calc(100dvh-var(--safe-top)-56px-var(--composer-h)-24px)] flex-col justify-end pb-2">
+      <div className="rise">
+        <Timi size={72} interactive className="-ml-1.5 mb-1" />
+        <h1 className="display text-[30px] leading-tight text-ink">What fits in your time?</h1>
+        <p className="mt-1 max-w-[38ch] text-[15px] leading-snug text-ink-2">
+          Timi checks your free time, goals and season, says what fits, and blocks it. It logs workouts and meals too.
         </p>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {SUGGESTIONS.map((s) => (
+      <div className="stagger mt-5 flex flex-wrap gap-2 [--stagger-base:120ms]">
+        {GUIDE_SUGGESTIONS.map((s) => (
           <button
-            key={s}
+            key={s.label}
             type="button"
-            onClick={() => onPick(s)}
-            className="tap h-9 rounded-full bg-surface px-3.5 text-[13.5px] font-medium text-ink-2 shadow-soft ring-1 ring-line hover:text-ink"
+            title={s.prompt}
+            onClick={() => onPick(s.prompt)}
+            className="tap h-10 rounded-full bg-surface px-3.5 text-[14px] font-medium text-ink-2 ring-1 ring-line hover:text-ink"
           >
-            {s}
+            {s.label}
           </button>
         ))}
       </div>

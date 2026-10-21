@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import { Suspense } from "react";
-import { Section, Skeleton, SubHeader } from "@/components/ui/primitives";
+import { PageHeader, Section, Skeleton, SubHeader } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { sameSplit, snapshotProgram } from "@/lib/gym-program";
@@ -10,13 +10,15 @@ import { ProgramCard, SaveCurrentButton, type ProgramView } from "./client";
 export default function ProgramsPage() {
   return (
     <>
-      <SubHeader back="/fitness" backLabel="Fitness" title="Programs" />
+      <SubHeader back="/fitness" backLabel="Fitness" />
       <Suspense
         fallback={
-          <div className="pt-6">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="mt-6 h-48 rounded-[22px]" />
-            <Skeleton className="mt-4 h-48 rounded-[22px]" />
+          <div>
+            <div className="pt-5 pb-4">
+              <Skeleton className="h-9 w-40" />
+            </div>
+            <Skeleton className="h-48 rounded-[20px]" />
+            <Skeleton className="mt-3 h-48 rounded-[20px]" />
           </div>
         }
       >
@@ -71,30 +73,24 @@ async function Programs() {
   const anyCurrent = [...savedViews, ...presetViews].some((p) => p.current);
 
   return (
-    <div className="fade-up pb-8">
-      <header className="pt-5 pb-5">
-        <h1 className="display text-[38px] text-ink">Programs</h1>
-        <p className="mt-1 text-[15px] leading-relaxed text-ink-2">
-          Load a whole split in one tap. Your logs and history always stay.
-        </p>
-      </header>
+    <div>
+      <PageHeader title="Programs" subtitle="Load a whole split in one tap. Your logs and history stay." />
 
-      <Section title="My programs">
-        <div className="flex flex-col gap-3">
+      <Section
+        title="My programs"
+        count={savedViews.length || undefined}
+        hint={savedViews.length ? undefined : "Save your current routines and split to switch back to them later."}
+      >
+        <div className="stagger flex flex-col gap-3">
           {savedViews.map((p) => (
             <ProgramCard key={p.id} program={p} />
           ))}
-          {!savedViews.length && (
-            <p className="px-1 text-[13.5px] leading-relaxed text-ink-3">
-              Save your current routines and split to switch back to them later.
-            </p>
-          )}
           <SaveCurrentButton suggestedName={anyCurrent ? "" : "My split"} />
         </div>
       </Section>
 
-      <Section title="Presets">
-        <div className="flex flex-col gap-3">
+      <Section title="Presets" count={presetViews.length}>
+        <div className="stagger flex flex-col gap-3">
           {presetViews.map((p) => (
             <ProgramCard key={p.id} program={p} />
           ))}

@@ -10,8 +10,8 @@ const OFFLINE_URL = "/offline.html";
 // registered as /sw.js?dev=1 by `next dev`: no snapshots, no asset caching
 const IS_DEV = new URL(self.location.href).searchParams.get("dev") === "1";
 const SNAPSHOT_MAX_AGE = 7 * 86_400_000;
-// never snapshot these (auth screens, API, files)
-const NO_SNAPSHOT = [/^\/login/, /^\/signup/, /^\/forgot-password/, /^\/reset-password/, /^\/api\//, /^\/offline/, /\.[a-z0-9]+$/i];
+// never snapshot these (landing, auth screens, API, files)
+const NO_SNAPSHOT = [/^\/welcome/, /^\/login/, /^\/signup/, /^\/forgot-password/, /^\/reset-password/, /^\/api\//, /^\/offline/, /\.[a-z0-9]+$/i];
 // live screens: always the network copy, the snapshot only when offline
 const NETWORK_FIRST = [/^\/fitness\/workout\//];
 
@@ -75,7 +75,7 @@ const lastServed = new Map();
 
 async function fetchAndStore(url, key) {
   const res = await fetch(url, { credentials: "include", headers: { accept: "text/html" }, cache: "no-store" });
-  const loggedOut = res.redirected && /\/(login|signup)/.test(new URL(res.url).pathname);
+  const loggedOut = res.redirected && /^\/(login|signup|welcome)/.test(new URL(res.url).pathname);
   if (loggedOut) {
     await clearSnapshots();
     return { status: "logged-out" };
@@ -174,7 +174,7 @@ async function handleNavigation(event) {
   try {
     const res = await fetch(request);
     const isHtml = (res.headers.get("content-type") || "").includes("text/html");
-    const loggedOut = res.redirected && /\/(login|signup)/.test(new URL(res.url).pathname);
+    const loggedOut = res.redirected && /^\/(login|signup|welcome)/.test(new URL(res.url).pathname);
     if (loggedOut) event.waitUntil(clearSnapshots());
     else if (res.ok && isHtml && !res.redirected) {
       const copy = res.clone();

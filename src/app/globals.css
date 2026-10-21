@@ -54,11 +54,15 @@
   --warn: light-dark(#d4952a, #ebb04b);
   --bad: light-dark(#d4533f, #f0715d);
   --shadow-sm:
-    0 1px 2px light-dark(rgb(24 22 18 / 0.04), transparent), 0 1px 1px light-dark(rgb(24 22 18 / 0.03), transparent),
-    0 0 0 1px light-dark(transparent, rgb(255 255 255 / 0.02));
+    0 1px 2px light-dark(rgb(24 22 18 / 0.035), transparent), 0 0 0 0.5px light-dark(rgb(24 22 18 / 0.02), transparent),
+    inset 0 1px 0 light-dark(transparent, rgb(255 255 255 / 0.025));
+  --shadow-md:
+    0 6px 18px -6px light-dark(rgb(24 22 18 / 0.12), rgb(0 0 0 / 0.5)),
+    0 1px 2px light-dark(rgb(24 22 18 / 0.05), transparent);
   --shadow-lg:
-    0 24px 60px -12px light-dark(rgb(24 22 18 / 0.25), rgb(0 0 0 / 0.7)),
-    0 8px 20px -8px light-dark(rgb(24 22 18 / 0.12), transparent);
+    0 24px 60px -12px light-dark(rgb(24 22 18 / 0.22), rgb(0 0 0 / 0.7)),
+    0 8px 20px -8px light-dark(rgb(24 22 18 / 0.1), transparent),
+    inset 0 1px 0 light-dark(transparent, rgb(255 255 255 / 0.04));
 
   --c-coral: light-dark(#e5603b, #ff7a52);
   --c-amber: light-dark(#d4952a, #ebb04b);
@@ -211,7 +215,8 @@
   --focus: color-mix(in oklab, var(--accent) 70%, transparent);
   --tint-soft: var(--accent-soft);
 
-  --tabbar-h: 64px;
+  --tabbar-h: 58px;
+  --page-x: 16px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -243,11 +248,16 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
 
-  --radius-card: 22px;
+  --radius-card: 20px;
   --shadow-soft: var(--shadow-sm);
+  --shadow-lift: var(--shadow-md);
   --shadow-float: var(--shadow-lg);
 
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-rise: rise 320ms var(--ease-out-soft) both;
+  --animate-pop: pop 260ms var(--ease-spring) both;
 
   /* shadcn / AI Elements tokens mapped onto the Timeo palette */
   --color-background: var(--bg);
@@ -269,7 +279,7 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --radius-xl: 22px;
+  --radius-xl: 20px;
 }
 
 /* ─────────────────────────── Base ─────────────────────────── */
@@ -396,8 +406,28 @@ button:disabled {
     -webkit-user-select: none;
     user-select: none;
   }
-  .tap:active:not(:disabled) {
+  .tap:active:not(:disabled, [aria-disabled="true"]) {
     transform: scale(0.97);
+  }
+  /* Rows and wide surfaces: shrink less, darken a touch */
+  .tap-row {
+    transition: transform 160ms var(--ease-spring), background-color 160ms ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .tap-row:active:not(:disabled, [aria-disabled="true"]) {
+    transform: scale(0.99);
+    background-color: var(--sunken);
+  }
+  @media (hover: hover) {
+    .tap-row:hover {
+      background-color: color-mix(in oklab, var(--sunken) 55%, transparent);
+    }
+  }
+
+  /* A hairline card whose direct children are divided rows */
+  .card-list > :not(:last-child) {
+    border-bottom: 1px solid var(--line);
   }
 
   .field {
@@ -480,6 +510,42 @@ button:disabled {
   .fade-up {
     animation: fade-up 420ms var(--ease-spring) both;
   }
+
+  /* Page enter (template.tsx). Fills backwards only, so no transform lingers to
+     trap fixed children once it ends. */
+  .page-enter {
+    animation: rise 280ms var(--ease-out-soft) backwards;
+  }
+
+  .rise {
+    animation: rise 320ms var(--ease-out-soft) backwards;
+    animation-delay: var(--delay, 0ms);
+  }
+
+  /* Direct children rise one after another. --i is set per child (nth-child up
+     to 12, or explicitly by StaggerItem); --stagger is the step. */
+  .stagger > * {
+    animation: rise 320ms var(--ease-out-soft) backwards;
+    animation-delay: calc(var(--stagger-base, 0ms) + var(--i, 0) * var(--stagger, 35ms));
+  }
+  .stagger > :nth-child(2) { --i: 1; }
+  .stagger > :nth-child(3) { --i: 2; }
+  .stagger > :nth-child(4) { --i: 3; }
+  .stagger > :nth-child(5) { --i: 4; }
+  .stagger > :nth-child(6) { --i: 5; }
+  .stagger > :nth-child(7) { --i: 6; }
+  .stagger > :nth-child(8) { --i: 7; }
+  .stagger > :nth-child(9) { --i: 8; }
+  .stagger > :nth-child(10) { --i: 9; }
+  .stagger > :nth-child(11) { --i: 10; }
+  .stagger > :nth-child(n + 12) { --i: 11; }
+
+  /* Meter segments grow in from the left */
+  .meter-grow {
+    transform-origin: left center;
+    animation: meter-grow 700ms var(--ease-out-soft) backwards;
+    animation-delay: var(--delay, 120ms);
+  }
 }
 
 @keyframes shimmer {
@@ -502,11 +568,38 @@ button:disabled {
   }
 }
 
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes meter-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
 }

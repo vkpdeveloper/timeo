@@ -11,6 +11,7 @@ import { PALETTE } from "@/lib/colors";
 import { addDays, formatMin, isValidISODate, parseTime, startOfWeek, weekday, WEEKDAY_NAMES } from "@/lib/dates";
 import { getActiveSeason, seasonEndFor, seasonProgress } from "@/lib/queries";
 import { findFreeSlot } from "@/lib/schedule";
+import { getCapacity } from "./capacity";
 import { bestMatch } from "./match";
 import { matchTask, openTasksBy } from "@/lib/block-task";
 
@@ -97,6 +98,13 @@ export function buildGpsTools(user: CurrentUser, actions: ActionSink) {
   }
 
   return {
+    get_capacity: tool({
+      description:
+        "Time math for 'what can I get done / what fits': free minutes today (from now) and for the rest of a week inside the planner day (blocks and gym slot are busy), free windows per day, a realistic 'usable' figure (75% of free), each goal's weekly target vs planned vs done, the unplanned gap and whether it fits, and weeks left in the season. Call first for any planning or 'can I…' question.",
+      inputSchema: z.object({ date: DateArg.describe("Any day in the week to check, YYYY-MM-DD. Omit for this week.") }),
+      execute: async ({ date }) => getCapacity(user, date && isValidISODate(date) ? date : user.today),
+    }),
+
     get_plan: tool({
       description:
         "The GPS picture: active season (day X of 84, capacity), each goal's tier, weekly hours target, coach status with reasons, this week's planned/done/focus minutes, weekly steps, milestones, plus plan strength. Call before planning or answering 'how am I doing'.",

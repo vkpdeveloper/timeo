@@ -1,71 +1,78 @@
+"use client";
+
+import { motion, useReducedMotion } from "motion/react";
+import { springs } from "@/components/ui/motion";
 import { colorVar } from "@/lib/colors";
 import { formatDuration, formatWeekdayShort, WEEKDAY_LETTER } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import type { EnergyRow } from "./data";
 
-/** Focus minutes per day, Monday to Sunday, today highlighted. */
+/** Focus minutes per day, Monday to Sunday, today highlighted. Fixed height at any width; bars grow in on mount. */
 export function FocusWeekChart({ days, today }: { days: { date: string; focusMin: number }[]; today: string }) {
-  const W = 320;
-  const H = 128;
-  const top = 18;
-  const base = H - 22;
+  const reduce = useReducedMotion();
   const max = Math.max(60, ...days.map((d) => d.focusMin));
   // round the scale up to a whole hour so the guide line reads cleanly
   const scaleMax = Math.ceil(max / 60) * 60;
-  const slot = W / 7;
-  const barW = 22;
-  const r = 4;
+  const best = days.reduce((b, d) => (d.focusMin > b.focusMin ? d : b), days[0]);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label="Focus minutes per day this week">
-      <line x1={0} x2={W} y1={top} y2={top} stroke="var(--line-strong)" strokeDasharray="2 4" />
-      <text x={W} y={top - 6} textAnchor="end" className="fill-ink-3 text-[10px] font-medium">
-        {formatDuration(scaleMax)}
-      </text>
-      <line x1={0} x2={W} y1={base} y2={base} stroke="var(--line)" />
-      {days.map((d, i) => {
-        const isToday = d.date === today;
-        const future = d.date > today;
-        const h = d.focusMin > 0 ? Math.max(r * 2, ((base - top) * d.focusMin) / scaleMax) : 0;
-        const x = i * slot + (slot - barW) / 2;
-        const y = base - h;
-        return (
-          <g key={d.date}>
-            <title>{`${formatWeekdayShort(d.date)}: ${d.focusMin ? formatDuration(d.focusMin) : "no focus"}`}</title>
-            {/* generous hit target for the tooltip */}
-            <rect x={i * slot} y={top} width={slot} height={base - top} fill="transparent" />
-            {h > 0 ? (
-              <path
-                d={`M${x},${base} V${y + r} Q${x},${y} ${x + r},${y} H${x + barW - r} Q${x + barW},${y} ${x + barW},${y + r} V${base} Z`}
-                fill={isToday ? "var(--accent)" : "color-mix(in oklab, var(--ink) 20%, var(--surface))"}
-              />
-            ) : (
-              <rect
-                x={x}
-                y={base - 3}
-                width={barW}
-                height={3}
-                rx={1.5}
-                fill={future ? "var(--sunken)" : "var(--line-strong)"}
-              />
-            )}
-            {isToday && d.focusMin > 0 && (
-              <text x={x + barW / 2} y={y - 5} textAnchor="middle" className="tnum fill-ink text-[10px] font-semibold">
-                {formatDuration(d.focusMin)}
-              </text>
-            )}
-            <text
-              x={i * slot + slot / 2}
-              y={H - 4}
-              textAnchor="middle"
-              className={cn("text-[11px]", isToday ? "fill-ink font-bold" : "fill-ink-3 font-medium")}
-            >
-              {WEEKDAY_LETTER[i]}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+    <div role="img" aria-label="Focus minutes per day this week">
+      <div className="relative h-[104px] border-b border-line">
+        <div className="absolute inset-x-0 top-0 border-t border-dashed border-line" />
+        <span className="tnum absolute top-0.5 left-0 text-[10px] font-medium text-ink-3">{formatDuration(scaleMax)}</span>
+        <div className="absolute inset-x-0 top-4 bottom-0 grid grid-cols-7">
+          {days.map((d, i) => {
+            const isToday = d.date === today;
+            const future = d.date > today;
+            const pct = d.focusMin > 0 ? Math.max(8, (d.focusMin / scaleMax) * 100) : 0;
+            const showValue = d.focusMin > 0 && (isToday || d.date === best.date);
+            return (
+              <div
+                key={d.date}
+                className="flex h-full flex-col items-center justify-end"
+                title={`${formatWeekdayShort(d.date)}: ${d.focusMin ? formatDuration(d.focusMin) : "no focus"}`}
+              >
+                {showValue && (
+                  <motion.span
+                    className={cn("tnum mb-1 text-[10px] font-semibold whitespace-nowrap", isToday ? "text-ink" : "text-ink-3")}
+                    initial={reduce ? false : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.35 + i * 0.04, duration: 0.2 }}
+                  >
+                    {formatDuration(d.focusMin)}
+                  </motion.span>
+                )}
+                {pct > 0 ? (
+                  <motion.span
+                    className="block w-6 max-w-[60%] rounded-t-[6px] rounded-b-[2px]"
+                    style={{
+                      height: `${pct}%`,
+                      originY: 1,
+                      background: isToday ? "var(--accent)" : "color-mix(in oklab, var(--ink) 22%, var(--surface))",
+                    }}
+                    initial={reduce ? false : { scaleY: 0 }}
+                    animate={{ scaleY: 1 }}
+                    transition={{ ...springs.gentle, delay: 0.08 + i * 0.04 }}
+                  />
+                ) : (
+                  <span className={cn("mb-0.5 block size-1 rounded-full", future ? "bg-sunken" : "bg-line-strong")} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="mt-1.5 grid grid-cols-7">
+        {days.map((d, i) => (
+          <span
+            key={d.date}
+            className={cn("text-center text-[11px]", d.date === today ? "font-bold text-ink" : "font-medium text-ink-3")}
+          >
+            {WEEKDAY_LETTER[i]}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -77,7 +84,7 @@ const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).
 /** Diverging bars: average energy after sessions, -2 (drained) to +2 (energised). */
 export function EnergyBars({ rows }: { rows: EnergyRow[] }) {
   return (
-    <ul className="flex flex-col gap-3.5">
+    <ul className="flex flex-col gap-3">
       {rows.map((row) => {
         const pct = (Math.min(2, Math.abs(row.avg)) / 2) * 50;
         const positive = row.avg >= 0;
@@ -93,12 +100,12 @@ export function EnergyBars({ rows }: { rows: EnergyRow[] }) {
                 <span className="font-semibold text-ink-2">{signed(row.avg)}</span>
               </span>
             </div>
-            <div className="relative h-2 rounded-full bg-sunken">
+            <div className="relative h-1.5 rounded-full bg-sunken">
               <span className="absolute inset-y-[-3px] left-1/2 w-px -translate-x-1/2 bg-line-strong" />
               {pct > 0 && (
                 <span
-                  className={cn("absolute inset-y-0", positive ? "left-1/2 rounded-r-full" : "right-1/2 rounded-l-full")}
-                  style={{ width: `${pct}%`, background: positive ? GAVE : DRAINED }}
+                  className={cn("meter-grow absolute inset-y-0", positive ? "left-1/2 rounded-r-full" : "right-1/2 rounded-l-full")}
+                  style={{ width: `${pct}%`, background: positive ? GAVE : DRAINED, transformOrigin: positive ? "left center" : "right center" }}
                 />
               )}
             </div>

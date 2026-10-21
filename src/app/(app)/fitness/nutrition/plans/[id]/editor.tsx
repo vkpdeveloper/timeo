@@ -47,14 +47,14 @@ export function PlanEditor({ plan, meals, isNew }: { plan: DietPlan; meals: Diet
     (Math.abs(sum.calories - plan.calories) > 50 || Math.abs(sum.proteinG - plan.proteinG) > 5);
 
   return (
-    <div className="fade-up pb-8">
-      <header className="pt-5 pb-5">
+    <div className="pb-2">
+      <header className="pt-5 pb-4 lg:pt-10 lg:pb-5">
         <button type="button" onClick={() => setDetails(true)} className="tap block w-full text-left">
           <div className="eyebrow">
             {GOAL_LABEL[plan.goal]}
             {plan.active && <span className="text-ok"> · Active</span>}
           </div>
-          <h1 className="display mt-1.5 text-[38px] text-ink">{plan.name}</h1>
+          <h1 className="display mt-1 text-[32px] lg:text-[40px] text-ink">{plan.name}</h1>
           {plan.description && <p className="mt-1 text-[14.5px] leading-relaxed text-ink-2">{plan.description}</p>}
           <span className="mt-2 inline-block text-[13px] font-semibold text-accent">Edit targets</span>
         </button>

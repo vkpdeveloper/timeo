@@ -4,6 +4,7 @@ import { ChevronRight, Dumbbell, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { Field, PillPicker, Textarea } from "@/components/ui/controls";
+import { CardList, Row, RowIcon } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
@@ -49,18 +50,18 @@ export function MarkDayButtons({
   const [mode, setMode] = useState<null | "skipped" | "unlogged">(null);
   return (
     <>
-      <div className={cn("flex gap-2", className)}>
+      <div className={cn("flex items-center gap-0.5", className)}>
         <button
           type="button"
           onClick={() => setMode("skipped")}
-          className="tap h-10 flex-1 rounded-full bg-sunken px-3 text-[13.5px] font-semibold text-ink-2"
+          className="tap h-11 rounded-full px-2.5 text-[13.5px] font-semibold text-ink-2 hover:bg-sunken"
         >
           Skipped
         </button>
         <button
           type="button"
           onClick={() => setMode("unlogged")}
-          className="tap h-10 flex-1 rounded-full bg-sunken px-3 text-[13.5px] font-semibold text-ink-2"
+          className="tap h-11 rounded-full px-2.5 text-[13.5px] font-semibold text-ink-2 hover:bg-sunken"
         >
           Done, not logged
         </button>
@@ -149,7 +150,7 @@ export function MarkDaySheet({
           </>
         )}
         <ErrorNote error={error} />
-        <SubmitButton size="lg">Save</SubmitButton>
+        <SubmitButton variant="accent" size="lg">Save</SubmitButton>
       </form>
     </Sheet>
   );
@@ -188,40 +189,29 @@ export function StartOtherButton({ routines, date, label = "Other routine" }: { 
         {label}
         <ChevronRight className="size-4" />
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Start a workout">
-        <div className="flex flex-col gap-2 pb-2">
-          {routines.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              disabled={pending}
-              onClick={() => go(r.id)}
-              className="tap flex min-h-14 items-center gap-3 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-left"
-            >
-              <span className="size-2.5 shrink-0 rounded-full" style={{ background: colorVar(r.color) }} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-semibold text-ink">{r.name}</span>
-                <span className="block truncate text-[12.5px] text-ink-3">
-                  {r.focus ? `${r.focus} · ` : ""}
-                  {r.exerciseCount} exercises
-                </span>
-              </span>
-              {pending && which === r.id ? (
-                <span className="text-[12px] text-ink-3">Starting…</span>
-              ) : (
-                <Dumbbell className="size-4 text-ink-3" />
-              )}
-            </button>
-          ))}
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => go(null)}
-            className="tap flex h-14 items-center gap-3 rounded-2xl border border-dashed border-line-strong px-4 text-left text-[15px] font-semibold text-ink-2"
-          >
+      <Sheet open={open} onClose={() => setOpen(false)} title="Start a workout" description="Pick a routine, or start empty and add exercises as you go.">
+        <div className="pb-2">
+          <CardList className="stagger">
+            {routines.map((r) => (
+              <Row
+                key={r.id}
+                onClick={pending ? undefined : () => go(r.id)}
+                icon={
+                  <RowIcon color={r.color}>
+                    <Dumbbell />
+                  </RowIcon>
+                }
+                title={r.name}
+                subtitle={`${r.focus ? `${r.focus} · ` : ""}${r.exerciseCount} exercises`}
+                value={pending && which === r.id ? "Starting…" : undefined}
+                chevron={!(pending && which === r.id)}
+              />
+            ))}
+          </CardList>
+          <Button variant="outline" size="lg" className="mt-3" disabled={pending} onClick={() => go(null)}>
             <Plus className="size-4" />
             {pending && which === "empty" ? "Starting…" : "Empty workout"}
-          </button>
+          </Button>
         </div>
       </Sheet>
     </>

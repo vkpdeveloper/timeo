@@ -6,8 +6,6 @@ import { TodayPanel } from "@/components/ai/today-panel";
 import { Skeleton } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { toClient } from "@/lib/ai/background";
-import { getModelCatalog } from "@/lib/ai/catalog";
-import { DEFAULT_AI_MODEL, type Effort } from "@/lib/ai/shared";
 import { requireUser } from "@/lib/auth";
 import { nowMinIn } from "@/lib/dates";
 import { getDayBlocks, getGoalOptions, getTodayTasks } from "@/lib/queries";
@@ -24,23 +22,11 @@ export default function AssistantPage() {
 
 async function AssistantContent() {
   const user = await requireUser();
-  const [settings, rows, catalog] = await Promise.all([
-    db.select({ aiModel: t.users.aiModel, aiEffort: t.users.aiEffort }).from(t.users).where(eq(t.users.id, user.id)).get(),
-    db.select().from(t.aiCommands).where(eq(t.aiCommands.userId, user.id)).orderBy(desc(t.aiCommands.createdAt)).limit(40),
-    getModelCatalog(),
-  ]);
-  const modelId = settings?.aiModel ?? DEFAULT_AI_MODEL;
-  // the composer offers Go models (plus the current one if it isn't in Go)
-  const models = catalog
-    .filter((m) => m.tier === "go" || m.id === modelId)
-    .map(({ id, name, efforts, free }) => ({ id, name, efforts, free }));
+  const rows = await db.select().from(t.aiCommands).where(eq(t.aiCommands.userId, user.id)).orderBy(desc(t.aiCommands.createdAt)).limit(40);
   return (
     <Assistant
       timezone={user.timezone}
       initialRuns={rows.reverse().map(toClient)}
-      models={models}
-      modelId={modelId}
-      effort={(settings?.aiEffort ?? "low") as Effort}
       today={
         <Suspense fallback={<TodaySkeleton />}>
           <Today />

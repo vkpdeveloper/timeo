@@ -10,12 +10,15 @@ import { ScheduleEditor } from "./editor";
 export default function SchedulePage() {
   return (
     <>
-      <SubHeader back="/fitness" backLabel="Fitness" title="Weekly split" />
+      <SubHeader back="/fitness" backLabel="Fitness" />
       <Suspense
         fallback={
-          <div className="pt-6">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="mt-6 h-96 rounded-[22px]" />
+          <div>
+            <div className="pt-5 pb-4">
+              <Skeleton className="h-9 w-40" />
+            </div>
+            <Skeleton className="h-12" />
+            <Skeleton className="mt-6 h-96 rounded-[20px]" />
           </div>
         }
       >

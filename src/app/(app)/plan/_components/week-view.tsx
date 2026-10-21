@@ -10,53 +10,63 @@ import { coveredMinutes } from "@/lib/schedule";
 import { addScheduledWorkout } from "../actions";
 import { blockColors, KIND_ICON, KIND_LABEL } from "./block-style";
 import { planHref } from "./plan-header";
+import type { Capacity } from "./capacity";
 import { usePlan } from "./plan-provider";
+import { Row, Section } from "@/components/ui/primitives";
 import { TimeGrid } from "./time-grid";
 import type { Ghost, PlanBlock } from "./types";
 
-type SummaryGoal = { id: string; title: string; color: string; targetMin: number; plannedMin: number };
+type SummaryGoal = {
+  id: string;
+  title: string;
+  color: string;
+  targetMin: number;
+  plannedMin: number;
+};
 
 export function WeekSummary({ goals }: { goals: SummaryGoal[] }) {
-  if (goals.length === 0) return null;
   const planned = goals.reduce((s, g) => s + g.plannedMin, 0);
   const target = goals.reduce((s, g) => s + g.targetMin, 0);
   return (
-    <section className="card mt-5 px-4 pt-3.5 pb-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[14px] font-semibold tracking-tight text-ink">Goal time this week</h2>
-        <span className="tnum text-[13px] text-ink-3">
-          <span className="font-semibold text-ink">{formatDuration(planned)}</span> of {formatDuration(target)}
-        </span>
-      </div>
-      <ul className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        {goals.map((g) => {
-          const pct = g.targetMin > 0 ? g.plannedMin / g.targetMin : 0;
-          return (
-            <li key={g.id} className="min-w-0">
-              <div className="flex items-baseline justify-between gap-3 text-[13px]">
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="size-2 shrink-0 rounded-full" style={{ background: colorVar(g.color) }} />
-                  <span className="truncate font-medium text-ink">{g.title}</span>
-                </span>
-                <span className={cn("tnum shrink-0", pct >= 1 ? "font-semibold text-ok" : "text-ink-3")}>
-                  {formatDuration(g.plannedMin)} / {formatDuration(g.targetMin)}
-                </span>
-              </div>
-              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-sunken">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.min(1, pct) * 100}%`,
-                    background: colorVar(g.color),
-                    transition: "width 600ms cubic-bezier(0.32,0.72,0,1)",
-                  }}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+    <>
+      {goals.length > 0 && (
+        <section className="card mt-4 px-4 pt-3 pb-3.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-[13.5px] font-semibold tracking-tight text-ink">Goal time</h2>
+            <span className="tnum text-[13px] text-ink-3">
+              <span className="font-semibold text-ink">{formatDuration(planned)}</span> of {formatDuration(target)}
+            </span>
+          </div>
+          <ul className="mt-2.5 grid gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {goals.map((g) => {
+              const pct = g.targetMin > 0 ? g.plannedMin / g.targetMin : 0;
+              return (
+                <li key={g.id} className="min-w-0">
+                  <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="size-2 shrink-0 rounded-full" style={{ background: colorVar(g.color) }} />
+                      <span className="truncate font-medium text-ink-2">{g.title}</span>
+                    </span>
+                    <span className={cn("tnum shrink-0", pct >= 1 ? "font-medium text-ok" : "text-ink-3")}>
+                      {formatDuration(g.plannedMin)} / {formatDuration(g.targetMin)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-sunken">
+                    <div
+                      className="meter-grow h-full rounded-full"
+                      style={{
+                        width: `${Math.min(1, pct) * 100}%`,
+                        background: colorVar(g.color),
+                      }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+    </>
   );
 }
 
@@ -67,6 +77,7 @@ export function WeekView({
   range,
   blocks,
   ghosts,
+  caps,
 }: {
   days: string[];
   today: string;
@@ -74,11 +85,12 @@ export function WeekView({
   range: { start: number; end: number };
   blocks: PlanBlock[];
   ghosts: Ghost[];
+  caps: Record<string, Capacity>;
 }) {
   return (
     <>
       <div className="lg:hidden">
-        <WeekAgenda days={days} today={today} blocks={blocks} ghosts={ghosts} />
+        <WeekAgenda days={days} today={today} blocks={blocks} ghosts={ghosts} caps={caps} />
       </div>
       <div className="hidden lg:block">
         <WeekGrid days={days} today={today} timezone={timezone} range={range} blocks={blocks} ghosts={ghosts} />
@@ -87,49 +99,91 @@ export function WeekView({
   );
 }
 
-function WeekAgenda({ days, today, blocks, ghosts }: { days: string[]; today: string; blocks: PlanBlock[]; ghosts: Ghost[] }) {
+function WeekAgenda({
+  days,
+  today,
+  blocks,
+  ghosts,
+  caps,
+}: {
+  days: string[];
+  today: string;
+  blocks: PlanBlock[];
+  ghosts: Ghost[];
+  caps: Record<string, Capacity>;
+}) {
   const { openBlock, openNew } = usePlan();
+  const past = days.filter((d) => d < today);
+  const ahead = days.filter((d) => d >= today);
   return (
-    <div className="mt-6 space-y-6">
-      {days.map((d) => {
+    <div className="stagger mt-5">
+      {past.length > 0 && (
+        <Section
+          title="Earlier"
+          count={past.length === 7 ? undefined : `${past.length} ${past.length === 1 ? "day" : "days"}`}
+          card
+        >
+          {past.map((d) => {
+            const c = caps[d];
+            return (
+              <Row
+                key={d}
+                href={planHref(d, "day", today)}
+                title={
+                  <span className="flex items-baseline gap-2">
+                    {formatWeekdayShort(d)}
+                    <span className="tnum text-[13px] font-normal text-ink-3">{dayOfMonth(d)}</span>
+                  </span>
+                }
+                value={c?.count ? `${formatDuration(c.plannedTotal)} · ${c.done}/${c.count} done` : "Nothing planned"}
+              />
+            );
+          })}
+        </Section>
+      )}
+      {ahead.map((d) => {
         const list = blocks.filter((b) => b.date === d);
-        const live = list.filter((b) => !b.skippedAt);
         const ghost = ghosts.find((g) => g.date === d);
         const isToday = d === today;
+        const c = caps[d];
         return (
-          <section key={d}>
-            <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
-              <Link href={planHref(d, "day", today)} className="tap flex items-baseline gap-2">
-                <span className={cn("text-[15px] font-semibold tracking-tight", isToday ? "text-accent" : "text-ink")}>
-                  {formatWeekdayShort(d)}
+          <Section
+            key={d}
+            title={
+              <Link href={planHref(d, "day", today)} className="tap inline-flex items-baseline gap-2">
+                <span className={isToday ? "text-accent" : undefined}>{isToday ? "Today" : formatWeekdayShort(d)}</span>
+                <span className="tnum text-[13px] font-medium text-ink-3">
+                  {isToday ? `${formatWeekdayShort(d)} ${dayOfMonth(d)}` : dayOfMonth(d)}
                 </span>
-                <span className="tnum text-[13px] text-ink-3">{dayOfMonth(d)}</span>
-                {isToday && <span className="text-[12px] font-semibold text-accent">Today</span>}
               </Link>
-              <span className="tnum text-[12.5px] text-ink-3">
-                {live.length ? `${formatDuration(coveredMinutes(live))} planned` : ""}
-              </span>
-            </div>
+            }
+            action={
+              c && c.plannedTotal > 0 ? (
+                <span className="tnum text-[12.5px] font-normal">
+                  {formatDuration(c.plannedTotal)} planned · {formatDuration(c.freeMin)} free
+                </span>
+              ) : undefined
+            }
+            card={!(list.length === 0 && !ghost)}
+          >
             {list.length === 0 && !ghost ? (
               <button
                 type="button"
                 onClick={() => openNew({ date: d, start: 9 * 60, end: 10 * 60 })}
-                className="tap flex h-12 w-full items-center gap-2 rounded-2xl border border-dashed border-line-strong px-4 text-[13.5px] text-ink-3"
+                className="tap flex h-12 w-full items-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line-strong px-4 text-[13.5px] text-ink-3"
               >
-                <Plus className="size-4" /> Nothing planned
+                <Plus className="size-4" /> Nothing planned. Add a block
               </button>
             ) : (
-              <div className="card overflow-hidden">
-                {mergeByTime(list, ghost).map((item) =>
-                  "id" in item ? (
-                    <AgendaRow key={item.id} block={item} onOpen={() => openBlock(item)} />
-                  ) : (
-                    <GhostRow key="ghost" ghost={item} />
-                  ),
-                )}
-              </div>
+              mergeByTime(list, ghost).map((item) =>
+                "id" in item ? (
+                  <AgendaRow key={item.id} block={item} onOpen={() => openBlock(item)} />
+                ) : (
+                  <GhostRow key="ghost" ghost={item} />
+                ),
+              )
             )}
-          </section>
+          </Section>
         );
       })}
     </div>
@@ -149,11 +203,7 @@ function AgendaRow({ block: b, onOpen }: { block: PlanBlock; onOpen: () => void 
   const done = !!b.doneAt;
   const skipped = !!b.skippedAt;
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="tap flex w-full items-center gap-3 px-4 py-2.5 text-left active:bg-sunken [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line"
-    >
+    <button type="button" onClick={onOpen} className="tap-row flex min-h-[52px] w-full items-center gap-3 px-4 py-2 text-left">
       <span className="tnum w-[52px] shrink-0 text-[12.5px] leading-tight">
         <span className="block font-medium text-ink-2">{formatMin(b.startMin, true)}</span>
         <span className="block text-ink-3">{formatDuration(b.endMin - b.startMin)}</span>
@@ -184,7 +234,9 @@ function GhostRow({ ghost }: { ghost: Ghost }) {
       </span>
       <span
         className="h-8 w-[3px] shrink-0 rounded-full"
-        style={{ background: `repeating-linear-gradient(${colorVar(ghost.color)} 0 3px, transparent 3px 6px)` }}
+        style={{
+          background: `repeating-linear-gradient(${colorVar(ghost.color)} 0 3px, transparent 3px 6px)`,
+        }}
       />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 truncate text-[14px] font-medium" style={{ color: colorVar(ghost.color) }}>
@@ -198,7 +250,10 @@ function GhostRow({ ghost }: { ghost: Ghost }) {
         disabled={pending}
         onClick={() => start(() => addScheduledWorkout(ghost.date))}
         className="tap inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[12.5px] font-semibold"
-        style={{ background: softVar(ghost.color), color: colorVar(ghost.color) }}
+        style={{
+          background: softVar(ghost.color),
+          color: colorVar(ghost.color),
+        }}
       >
         {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />} Add
       </button>
@@ -228,10 +283,14 @@ function WeekGrid({
           const live = blocks.filter((b) => b.date === d && !b.skippedAt);
           return (
             <Link key={d} href={planHref(d, "day", today)} className="tap min-w-0 flex-1 text-center">
-              <div className={cn("text-[11px] font-semibold tracking-wide uppercase", d === today ? "text-accent" : "text-ink-3")}>
+              <div
+                className={cn("text-[11px] font-semibold tracking-wide uppercase", d === today ? "text-accent" : "text-ink-3")}
+              >
                 {formatWeekdayShort(d)}
               </div>
-              <div className={cn("tnum text-[18px] font-semibold", d === today ? "text-accent" : "text-ink")}>{dayOfMonth(d)}</div>
+              <div className={cn("tnum text-[18px] font-semibold", d === today ? "text-accent" : "text-ink")}>
+                {dayOfMonth(d)}
+              </div>
               <div className="tnum text-[11px] text-ink-3">{live.length ? formatDuration(coveredMinutes(live)) : "–"}</div>
             </Link>
           );

@@ -1,12 +1,12 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { createBlock, deleteBlock, updateBlock } from "@/actions/blocks";
 import type { GoalOption } from "@/actions/context";
 import { logBodyMetric, logMeal } from "@/actions/health";
 import { createTask, deleteTask, updateTask } from "@/actions/tasks";
-import { Button, SubmitButton } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Field, Input, PillPicker, Segmented, Select, Textarea } from "@/components/ui/controls";
 import { DatePicker, TimePicker } from "@/components/ui/pickers";
 import { Sheet } from "@/components/ui/sheet";
@@ -29,25 +29,77 @@ function GoalSelect({ goals, defaultValue }: { goals: GoalOption[]; defaultValue
   );
 }
 
+/** Submits the sheet's form in a transition; the footer button reads `pending` and targets `formId`. */
 function useSubmit(action: (fd: FormData) => Promise<unknown>, onDone: () => void) {
   const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const formId = useId();
   return {
     error,
-    action: async (fd: FormData) => {
+    pending,
+    formId,
+    onSubmit: (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const fd = new FormData(e.currentTarget);
       setError(null);
-      try {
-        await action(fd);
-        onDone();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
-      }
+      start(async () => {
+        try {
+          await action(fd);
+          onDone();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Something went wrong");
+        }
+      });
     },
   };
 }
 
 function ErrorNote({ error }: { error: string | null }) {
   if (!error) return null;
-  return <p className="mb-3 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>;
+  return (
+    <p role="alert" className="mb-4 animate-pop rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">
+      {error}
+    </p>
+  );
+}
+
+/** One primary action at the bottom of a sheet, with an optional delete beside it. */
+function SheetFooter({
+  formId,
+  pending,
+  children,
+  onDelete,
+  deleting,
+  deleteLabel,
+}: {
+  formId: string;
+  pending: boolean;
+  children: ReactNode;
+  onDelete?: () => void;
+  deleting?: boolean;
+  deleteLabel?: string;
+}) {
+  return (
+    <div className="flex gap-2.5">
+      {onDelete && (
+        <Button
+          type="button"
+          variant="danger"
+          size="icon"
+          className="size-12 rounded-2xl"
+          loading={deleting}
+          disabled={pending}
+          aria-label={deleteLabel}
+          onClick={onDelete}
+        >
+          <Trash2 className="size-[18px]" />
+        </Button>
+      )}
+      <Button type="submit" form={formId} variant="accent" size="lg" className="flex-1" loading={pending} disabled={deleting}>
+        {children}
+      </Button>
+    </div>
+  );
 }
 
 // ─────────────────────────── Task ───────────────────────────
@@ -65,19 +117,34 @@ export function TaskSheet({
   task?: Task;
   defaults?: { goalId?: string; dueDate?: string | null; weekly?: boolean; milestoneId?: string };
 }) {
-  const { error, action } = useSubmit(task ? updateTask : createTask, onClose);
+  const { error, pending: saving, formId, onSubmit } = useSubmit(task ? updateTask : createTask, onClose);
   const [due, setDue] = useState<string>(task?.dueDate ?? defaults?.dueDate ?? today);
   const [pending, start] = useTransition();
   const tomorrow = addDays(today, 1);
 
   return (
-    <Sheet open={open} onClose={onClose} title={task ? "Edit task" : "New task"}>
-      <form action={action} key={task?.id ?? "new"}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={task ? "Edit task" : "New task"}
+      footer={
+        <SheetFooter
+          formId={formId}
+          pending={saving}
+          onDelete={task ? () => start(async () => { await deleteTask(task.id); onClose(); }) : undefined}
+          deleting={pending}
+          deleteLabel="Delete task"
+        >
+          {task ? "Save" : "Add task"}
+        </SheetFooter>
+      }
+    >
+      <form id={formId} onSubmit={onSubmit} key={task?.id ?? "new"}>
         {task && <input type="hidden" name="id" value={task.id} />}
         {defaults?.weekly && <input type="hidden" name="weekly" value="1" />}
         {defaults?.milestoneId && <input type="hidden" name="milestoneId" value={defaults.milestoneId} />}
         <Field>
-          <Input name="title" placeholder="What needs doing?" defaultValue={task?.title} autoFocus required />
+          <Input name="title" placeholder="What needs doing?" aria-label="Task" defaultValue={task?.title} autoFocus required className="text-[17px] font-medium" />
         </Field>
         <Field label="Goal">
           <GoalSelect goals={goals} defaultValue={task?.goalId ?? defaults?.goalId} />
@@ -102,26 +169,10 @@ export function TaskSheet({
             <Input type="number" name="estimateMin" inputMode="numeric" min={5} step={5} placeholder="30" defaultValue={task?.estimateMin ?? ""} />
           </Field>
         </div>
-        <Field label="Notes">
+        <Field label="Notes" className="mb-1">
           <Textarea name="notes" rows={2} placeholder="Anything useful" defaultValue={task?.notes ?? ""} />
         </Field>
         <ErrorNote error={error} />
-        <div className="flex gap-2.5">
-          {task && (
-            <Button
-              type="button"
-              variant="danger"
-              size="icon"
-              className="size-[52px] rounded-2xl"
-              loading={pending}
-              aria-label="Delete task"
-              onClick={() => start(async () => { await deleteTask(task.id); onClose(); })}
-            >
-              <Trash2 className="size-[18px]" />
-            </Button>
-          )}
-          <SubmitButton size="lg" className="flex-1">{task ? "Save" : "Add task"}</SubmitButton>
-        </div>
       </form>
     </Sheet>
   );
@@ -151,18 +202,42 @@ export function BlockSheet({
   block?: Block;
   defaults?: { date?: string; start?: number; end?: number; goalId?: string; kind?: Block["kind"]; title?: string; taskId?: string };
 }) {
-  const { error, action } = useSubmit(block ? updateBlock : createBlock, onClose);
+  const { error, pending: saving, formId, onSubmit } = useSubmit(block ? updateBlock : createBlock, onClose);
   const [pending, start] = useTransition();
   const startMin = block?.startMin ?? defaults?.start ?? 9 * 60;
   const endMin = block?.endMin ?? defaults?.end ?? startMin + 60;
 
   return (
-    <Sheet open={open} onClose={onClose} title={block ? "Edit block" : "Block time"} description={block ? undefined : "Give your goals a place on the calendar."}>
-      <form action={action} key={block?.id ?? "new"}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={block ? "Edit block" : "Block time"}
+      description={block ? undefined : "Give a goal a place on your calendar."}
+      footer={
+        <SheetFooter
+          formId={formId}
+          pending={saving}
+          onDelete={block ? () => start(async () => { await deleteBlock(block.id); onClose(); }) : undefined}
+          deleting={pending}
+          deleteLabel="Delete block"
+        >
+          {block ? "Save" : "Add to calendar"}
+        </SheetFooter>
+      }
+    >
+      <form id={formId} onSubmit={onSubmit} key={block?.id ?? "new"}>
         {block && <input type="hidden" name="id" value={block.id} />}
         {defaults?.taskId && <input type="hidden" name="taskId" value={defaults.taskId} />}
         <Field>
-          <Input name="title" placeholder="e.g. Deep work: ship v2" defaultValue={block?.title ?? defaults?.title} autoFocus={!block} required />
+          <Input
+            name="title"
+            placeholder="e.g. Deep work: ship v2"
+            aria-label="Block"
+            defaultValue={block?.title ?? defaults?.title}
+            autoFocus={!block}
+            required
+            className="text-[17px] font-medium"
+          />
         </Field>
         <Field label="Type">
           <PillPicker name="kind" defaultValue={block?.kind ?? defaults?.kind ?? "focus"} options={KINDS.map((k) => ({ ...k }))} />
@@ -178,22 +253,6 @@ export function BlockSheet({
           <p className="mb-4 px-1 text-[13px] text-ink-3">Moved {block.rescheduleCount}× so far. The coach watches for blocks that keep slipping.</p>
         )}
         <ErrorNote error={error} />
-        <div className="flex gap-2.5">
-          {block && (
-            <Button
-              type="button"
-              variant="danger"
-              size="icon"
-              className="size-[52px] rounded-2xl"
-              loading={pending}
-              aria-label="Delete block"
-              onClick={() => start(async () => { await deleteBlock(block.id); onClose(); })}
-            >
-              <Trash2 className="size-[18px]" />
-            </Button>
-          )}
-          <SubmitButton size="lg" className="flex-1">{block ? "Save" : "Add to calendar"}</SubmitButton>
-        </div>
       </form>
     </Sheet>
   );
@@ -246,13 +305,13 @@ function BlockTimes({ startMin, endMin }: { startMin: number; endMin: number }) 
 }
 
 export function MealSheet({ open, onClose, today }: BaseProps & { today: string }) {
-  const { error, action } = useSubmit(logMeal, onClose);
+  const { error, pending, formId, onSubmit } = useSubmit(logMeal, onClose);
   return (
-    <Sheet open={open} onClose={onClose} title="Log a meal">
-      <form action={action}>
+    <Sheet open={open} onClose={onClose} title="Log a meal" footer={<SheetFooter formId={formId} pending={pending}>Log meal</SheetFooter>}>
+      <form id={formId} onSubmit={onSubmit}>
         <input type="hidden" name="date" value={today} />
         <Field>
-          <Input name="name" placeholder="e.g. Chicken rice bowl" autoFocus required />
+          <Input name="name" placeholder="e.g. Chicken rice bowl" aria-label="Meal" autoFocus required className="text-[17px] font-medium" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Calories" hint="kcal">
@@ -269,7 +328,6 @@ export function MealSheet({ open, onClose, today }: BaseProps & { today: string 
           </Field>
         </div>
         <ErrorNote error={error} />
-        <SubmitButton size="lg">Log meal</SubmitButton>
       </form>
     </Sheet>
   );
@@ -278,13 +336,19 @@ export function MealSheet({ open, onClose, today }: BaseProps & { today: string 
 // ─────────────────────────── Weigh-in ───────────────────────────
 
 export function WeighInSheet({ open, onClose, today, lastWeight }: BaseProps & { today: string; lastWeight?: number | null }) {
-  const { error, action } = useSubmit(logBodyMetric, onClose);
+  const { error, pending, formId, onSubmit } = useSubmit(logBodyMetric, onClose);
   const [unit, setUnit] = useState<"kg" | "lb">("kg");
   const [value, setValue] = useState<string>(lastWeight ? String(lastWeight) : "");
   const kg = value ? (unit === "kg" ? Number(value) : Math.round((Number(value) / 2.20462) * 10) / 10) : "";
   return (
-    <Sheet open={open} onClose={onClose} title="Weigh-in" description="Same time, same conditions works best.">
-      <form action={action}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Weigh-in"
+      description="Same time, same conditions works best."
+      footer={<SheetFooter formId={formId} pending={pending}>Save</SheetFooter>}
+    >
+      <form id={formId} onSubmit={onSubmit}>
         <input type="hidden" name="date" value={today} />
         <input type="hidden" name="weightKg" value={kg} />
         <div className="mb-4 flex items-center gap-3">
@@ -317,7 +381,6 @@ export function WeighInSheet({ open, onClose, today, lastWeight }: BaseProps & {
           </Field>
         </div>
         <ErrorNote error={error} />
-        <SubmitButton size="lg">Save</SubmitButton>
       </form>
     </Sheet>
   );

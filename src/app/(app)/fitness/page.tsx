@@ -1,7 +1,6 @@
 import {
-  Apple,
   CalendarRange,
-  ChevronRight,
+  Clock,
   Dumbbell,
   History,
   LayoutGrid,
@@ -13,10 +12,22 @@ import {
 import Link from "next/link";
 import { Suspense } from "react";
 import { ButtonLink, SubmitButton } from "@/components/ui/button";
-import { Card, PageHeader, Row, Section, SectionLink, Skeleton } from "@/components/ui/primitives";
+import { Reveal } from "@/components/ui/motion";
+import {
+  AskTimi,
+  Card,
+  PageHeader,
+  Row,
+  Section,
+  SectionLink,
+  Skeleton,
+  Stat,
+  StatStrip,
+} from "@/components/ui/primitives";
+import { GUIDE } from "@/lib/ai/guide";
 import { requireUser } from "@/lib/auth";
 import { colorVar, tint } from "@/lib/colors";
-import { addDays, formatLongDate, formatMin, formatWeekdayShort, weekday } from "@/lib/dates";
+import { addDays, formatLongDate, formatMin, formatWeekdayShort, WEEKDAY_SHORT, weekday } from "@/lib/dates";
 import {
   getLatestWeight,
   getNutritionDay,
@@ -25,11 +36,14 @@ import {
   getTrainingWeek,
   getWeekStreak,
   getWeights,
+  type RoutineSummary,
+  type ScheduleDay,
   type TrainingDay,
 } from "@/lib/fitness";
 import { fmtKg, rollingAverage } from "@/lib/fitness-math";
 import { startWorkout } from "./actions";
-import { IconBadge, MacroSummary, Sparkline, StatTile, StatusChip, WeekStrip } from "./_components/bits";
+import { MacroRings, StatusChip, WeekStrip } from "./_components/bits";
+import { Sparkline } from "./_components/charts";
 import { MarkDayButtons, StartOtherButton, UndoMarkButton, type RoutineOption } from "./_components/day-actions";
 import { WaterCard } from "./_components/water";
 import { WorkoutClockText } from "./_components/workout-clock";
@@ -45,23 +59,35 @@ export default function FitnessPage() {
 function HubSkeleton() {
   return (
     <div>
-      <div className="pt-6 pb-5 lg:pt-10">
+      <div className="pt-5 pb-4 lg:pt-10 lg:pb-5">
         <Skeleton className="mb-2 h-3 w-32" />
-        <Skeleton className="h-10 w-40" />
+        <Skeleton className="h-9 w-40" />
       </div>
-      <Skeleton className="h-64 rounded-[22px]" />
-      <Skeleton className="mt-8 h-36 rounded-[22px]" />
-      <Skeleton className="mt-8 h-40 rounded-[22px]" />
+      <Skeleton className="h-12" />
+      <Skeleton className="mt-4 h-52 rounded-[20px]" />
+      <Skeleton className="mt-6 h-28 rounded-[20px]" />
+      <Skeleton className="mt-6 h-40 rounded-[20px]" />
     </div>
   );
+}
+
+/** The next training day after `date` in the weekly split (looks up to a week ahead). */
+function nextSession(schedule: ScheduleDay[], date: string) {
+  for (let i = 1; i <= 7; i++) {
+    const d = addDays(date, i);
+    const s = schedule[weekday(d)];
+    if (s?.routine) return { date: d, inDays: i, routine: s.routine, startMin: s.startMin };
+  }
+  return null;
 }
 
 async function Hub() {
   const user = await requireUser();
   const routinesP = getRoutines(user.id);
   const scheduleP = getSchedule(user.id, routinesP);
-  const [routines, week, { streak, target }, nutrition, weights, latest] = await Promise.all([
+  const [routines, schedule, week, { streak, target }, nutrition, weights, latest] = await Promise.all([
     routinesP,
+    scheduleP,
     scheduleP.then((s) => getTrainingWeek(user.id, user.today, user.today, s)),
     scheduleP.then((s) => getWeekStreak(user.id, user.today, s.filter((d) => d.routine).length)),
     getNutritionDay(user.id, user.today),
@@ -78,21 +104,59 @@ async function Hub() {
   }));
   const notes = week.days.filter((d) => d.swapped || (d.status === "skipped" && d.log?.skipReason));
   const first = weights[0]?.weightKg;
-  const delta = latest?.weightKg != null && first != null && weights.length > 1 ? latest.weightKg - first : null;
+  const delta = latest?.weightKg != null && first != null && weights.length > 1 ? Math.round((latest.weightKg - first) * 10) / 10 : null;
+  const kcalLeft = nutrition.target ? nutrition.target.calories - nutrition.totals.calories : null;
+  const left = week.planned - week.done;
+  const trainingDays = schedule.filter((d) => d.routine).length;
+  const plannedToday = !today.log && !!today.scheduled.routine;
 
   return (
-    <div className="fade-up">
-      <PageHeader eyebrow={formatLongDate(user.today)} title="Fitness" />
+    <div>
+      <PageHeader
+        eyebrow={formatLongDate(user.today)}
+        title="Fitness"
+        action={plannedToday ? <AskTimi prompt={GUIDE.logWorkout} label="Log as planned" /> : undefined}
+      />
 
-      <TodayCard day={today} routines={options} />
+      <StatStrip>
+        <Stat
+          value={`${week.done}/${week.planned}`}
+          label={left > 0 ? "sessions this week" : "week done"}
+          tone={week.planned > 0 && left <= 0 ? "ok" : "default"}
+          href="/fitness/history"
+        />
+        <Stat value={streak} unit={streak === 1 ? "wk" : "wks"} label={target > 1 ? `week streak, ${target}+ a week` : "week streak"} />
+        <Stat
+          value={latest?.weightKg != null ? fmtKg(latest.weightKg) : "—"}
+          unit={latest?.weightKg != null ? "kg" : undefined}
+          label={
+            delta == null ? "body weight" : delta === 0 ? "flat in 30 days" : `${delta > 0 ? "+" : "−"}${fmtKg(Math.abs(delta))} in 30 days`
+          }
+          href="/fitness/body"
+        />
+        <Stat
+          value={kcalLeft == null ? "—" : Math.abs(kcalLeft).toLocaleString("en-US")}
+          label={kcalLeft == null ? "no kcal target" : kcalLeft >= 0 ? "kcal left today" : "kcal over today"}
+          tone={kcalLeft != null && kcalLeft < 0 ? "warn" : "default"}
+          href="/fitness/nutrition"
+        />
+      </StatStrip>
 
-      <Section title="This week" action={<SectionLink href="/fitness/history">History</SectionLink>}>
+      <Reveal delay={60} className="mt-5">
+        <TodayCard day={today} routines={options} next={nextSession(schedule, user.today)} />
+      </Reveal>
+
+      <Section
+        title="This week"
+        count={week.planned ? `${week.done} of ${week.planned} done` : undefined}
+        action={<SectionLink href="/fitness/history">History</SectionLink>}
+      >
         <Card className="overflow-hidden">
-          <div className="px-2 pt-2 pb-1">
+          <div className="px-2 py-2">
             <WeekStrip days={week.days} href={(d) => (d.log ? `/fitness/history/${d.log.id}` : null)} />
           </div>
           {notes.length > 0 && (
-            <div className="mx-4 mb-1 flex flex-col gap-1.5 border-t border-line pt-3 pb-2">
+            <div className="flex flex-col gap-1.5 border-t border-line px-4 py-3">
               {notes.map((d) => (
                 <p key={d.date} className="flex gap-2 text-[12.5px] leading-snug text-ink-2">
                   <span className="w-8 shrink-0 font-semibold text-ink-3">{formatWeekdayShort(d.date)}</span>
@@ -105,99 +169,80 @@ async function Hub() {
               ))}
             </div>
           )}
-          <div className="grid grid-cols-3 divide-x divide-line border-t border-line">
-            <StatTile label="Sessions" value={`${week.done}/${week.planned}`} />
-            <StatTile label="Working sets" value={week.workingSets} />
-            <StatTile
-              label="Streak"
-              value={`${streak} wk`}
-              sub={`${target}+ a week`}
-            />
-          </div>
         </Card>
       </Section>
 
-      <Section title="Nutrition today" action={<SectionLink href="/fitness/nutrition">Meals</SectionLink>}>
-        <Link href="/fitness/nutrition" className="card tap block p-4">
-          <MacroSummary totals={nutrition.totals} target={nutrition.target} compact />
+      <Section
+        title="Nutrition"
+        count={nutrition.target?.planName}
+        action={<SectionLink href="/fitness/nutrition">Meals</SectionLink>}
+        card
+      >
+        <Link href="/fitness/nutrition" className="tap-row block px-3 pt-4 pb-3.5">
+          <MacroRings totals={nutrition.totals} target={nutrition.target} />
           {!nutrition.target && (
-            <p className="mt-3 text-[13px] text-ink-3">No active plan. Pick one to see targets.</p>
+            <p className="mt-3 px-1 text-center text-[13px] text-ink-3">No active plan. Pick one to see targets.</p>
           )}
         </Link>
-        <div className="mt-3">
-          <WaterCard ml={nutrition.waterMl} targetMl={nutrition.waterTargetMl} day={user.today} />
-        </div>
+        <WaterCard ml={nutrition.waterMl} targetMl={nutrition.waterTargetMl} day={user.today} />
       </Section>
 
-      <Section title="Body" action={<SectionLink href="/fitness/body">Trend</SectionLink>}>
-        <Link href="/fitness/body" className="card tap flex items-center gap-4 p-4">
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-medium text-ink-3">Weight</div>
-            {latest?.weightKg != null ? (
-              <div className="mt-0.5 flex items-baseline gap-1.5">
-                <span className="display tnum text-[34px] text-ink">{fmtKg(latest.weightKg)}</span>
-                <span className="text-[13px] font-medium text-ink-3">kg</span>
-              </div>
-            ) : (
-              <div className="mt-1 text-[15px] font-medium text-ink-2">No weigh-ins yet</div>
-            )}
-            {delta != null && (
-              <div className="tnum text-[12.5px] text-ink-3">
-                {delta === 0 ? "No change" : `${delta > 0 ? "+" : "−"}${fmtKg(Math.abs(Math.round(delta * 10) / 10))} kg`} in 30 days
-              </div>
-            )}
-          </div>
-          <Sparkline values={rollingAverage(weights.map((w) => ({ date: w.date, value: w.weightKg })))} width={128} height={44} />
-          <ChevronRight className="size-4 shrink-0 text-ink-3" />
-        </Link>
-      </Section>
-
-      <Section title="Training">
-        <Card>
-          <Row href="/fitness/programs">
-            <IconBadge color="var(--c-teal)"><LayoutGrid /></IconBadge>
-            <span className="flex-1">
-              <span className="block text-[15px] font-medium text-ink">Programs</span>
-              <span className="block text-[12.5px] text-ink-3">Load a whole split in one tap</span>
-            </span>
-          </Row>
-          <Row href="/fitness/routines">
-            <IconBadge color="var(--c-coral)"><Dumbbell /></IconBadge>
-            <span className="flex-1 text-[15px] font-medium text-ink">Routines</span>
-            <span className="text-[13px] text-ink-3">{routines.length}</span>
-          </Row>
-          <Row href="/fitness/schedule">
-            <IconBadge color="var(--c-indigo)"><CalendarRange /></IconBadge>
-            <span className="flex-1 text-[15px] font-medium text-ink">Weekly split</span>
-          </Row>
-          <Row href="/fitness/history">
-            <IconBadge color="var(--c-sage)"><History /></IconBadge>
-            <span className="flex-1 text-[15px] font-medium text-ink">History</span>
-          </Row>
-          <Row href="/fitness/exercises">
-            <IconBadge color="var(--c-violet)"><ListChecks /></IconBadge>
-            <span className="flex-1 text-[15px] font-medium text-ink">Exercises</span>
-          </Row>
-          <Row href="/fitness/nutrition">
-            <IconBadge color="var(--c-amber)"><Apple /></IconBadge>
-            <span className="flex-1 text-[15px] font-medium text-ink">Nutrition</span>
-            {nutrition.target && <span className="truncate text-[13px] text-ink-3">{nutrition.target.planName}</span>}
-          </Row>
-          <Row href="/fitness/body">
-            <IconBadge color="var(--c-rose)"><Scale /></IconBadge>
-            <span className="flex-1 text-[15px] font-medium text-ink">Body</span>
-          </Row>
-          <Row href="/fitness/import">
-            <IconBadge color="var(--c-slate)"><Upload /></IconBadge>
-            <span className="flex-1 text-[15px] font-medium text-ink">Import</span>
-          </Row>
-        </Card>
+      <Section title="Training" card stagger>
+        <Row
+          href="/fitness/routines"
+          icon={<Dumbbell />}
+          iconColor="coral"
+          title="Routines"
+          value={routines.length || undefined}
+        />
+        <Row
+          href="/fitness/schedule"
+          icon={<CalendarRange />}
+          iconColor="indigo"
+          title="Weekly split"
+          value={`${trainingDays} ${trainingDays === 1 ? "day" : "days"}`}
+        />
+        <Row href="/fitness/programs" icon={<LayoutGrid />} iconColor="teal" title="Programs" subtitle="Load a whole split in one tap" />
+        <Row href="/fitness/history" icon={<History />} iconColor="sage" title="History" />
+        <Row href="/fitness/exercises" icon={<ListChecks />} iconColor="violet" title="Exercises" />
+        <Row href="/fitness/body" icon={<Scale />} iconColor="rose" title="Body">
+          <Sparkline
+            values={rollingAverage(weights.map((w) => ({ date: w.date, value: w.weightKg })))}
+            width={88}
+            height={28}
+            color="var(--c-rose)"
+            className="ml-auto"
+          />
+        </Row>
+        <Row href="/fitness/import" icon={<Upload />} iconColor="slate" title="Import" subtitle="Past training from a sheet or app" />
       </Section>
     </div>
   );
 }
 
-function TodayCard({ day, routines }: { day: TrainingDay; routines: RoutineOption[] }) {
+function Facts({ routine }: { routine: RoutineSummary }) {
+  return (
+    <div className="tnum mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px] text-ink-2">
+      <span className="inline-flex items-center gap-1.5">
+        <Clock className="size-3.5 text-ink-3" /> ~{routine.estimatedMin} min
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <Dumbbell className="size-3.5 text-ink-3" /> {routine.exerciseCount} exercises
+      </span>
+      <span className="text-ink-3">{routine.setCount} sets</span>
+    </div>
+  );
+}
+
+function TodayCard({
+  day,
+  routines,
+  next,
+}: {
+  day: TrainingDay;
+  routines: RoutineOption[];
+  next: ReturnType<typeof nextSession>;
+}) {
   const s = day.scheduled;
   const r = s.routine;
   const log = day.log;
@@ -208,24 +253,24 @@ function TodayCard({ day, routines }: { day: TrainingDay; routines: RoutineOptio
   if (log) {
     const name = log.status === "skipped" ? day.plannedName : log.name;
     return (
-      <div className="card overflow-hidden" style={tint(color)}>
-        <div className="p-5">
+      <Card className="overflow-hidden" style={tint(color)}>
+        <div className="p-4">
           <div className="flex items-center justify-between gap-3">
-            <span className="eyebrow">Today</span>
+            <span className="eyebrow" style={{ color: log.status === "skipped" ? undefined : colorVar(color) }}>
+              Today
+            </span>
             <StatusChip status={log.status} />
           </div>
-          <h2 className="display mt-2 text-[34px] text-ink">{name}</h2>
-          {day.swapped && <p className="mt-1 text-[13.5px] text-ink-3">Planned: {day.plannedName}</p>}
-          {log.status === "skipped" && log.skipReason && (
-            <p className="mt-1.5 text-[14px] text-ink-2">{log.skipReason}</p>
-          )}
+          <h2 className="display mt-1 text-[30px] text-ink">{name}</h2>
+          {day.swapped && <p className="mt-0.5 text-[13.5px] text-ink-3">Planned: {day.plannedName}</p>}
+          {log.status === "skipped" && log.skipReason && <p className="mt-1 text-[14px] text-ink-2">{log.skipReason}</p>}
           {log.status === "in_progress" && (
-            <WorkoutClockText clock={log} className="tnum-live mt-1 block text-[15px] font-medium text-ink-2" />
+            <WorkoutClockText clock={log} className="tnum-live mt-0.5 block text-[15px] font-medium text-ink-2" />
           )}
-          <div className="mt-5 flex items-center gap-2">
+          <div className="mt-4 flex items-center gap-2">
             {log.status === "in_progress" ? (
-              <ButtonLink href={`/fitness/workout/${log.id}`} variant="tint" size="lg">
-                Open workout
+              <ButtonLink href={`/fitness/workout/${log.id}`} variant="accent" size="lg">
+                <Play className="size-4 fill-current" /> Back to workout
               </ButtonLink>
             ) : log.status === "completed" ? (
               <ButtonLink href={`/fitness/history/${log.id}`} variant="secondary" size="lg">
@@ -247,57 +292,82 @@ function TodayCard({ day, routines }: { day: TrainingDay; routines: RoutineOptio
             )}
           </div>
         </div>
-      </div>
+        {log.status === "completed" && next && <NextLine next={next} />}
+      </Card>
     );
   }
 
   // Rest day
   if (!r) {
     return (
-      <div className="card p-5">
-        <div className="flex items-center justify-between">
-          <span className="eyebrow">Today · {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][weekday(day.date)]}</span>
-          <StatusChip status="rest" />
+      <Card className="overflow-hidden">
+        <div className="p-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="eyebrow">Today · {WEEKDAY_SHORT[weekday(day.date)]}</span>
+            <StatusChip status="rest" />
+          </div>
+          <h2 className="display mt-1 text-[30px] text-ink">{s.label ?? "Rest day"}</h2>
+          {s.notes && <p className="mt-1 text-[14px] leading-relaxed text-ink-2">{s.notes}</p>}
         </div>
-        <h2 className="display mt-2 text-[34px] text-ink">{s.label ?? "Rest"}</h2>
-        {s.notes && <p className="mt-1.5 text-[14px] leading-relaxed text-ink-2">{s.notes}</p>}
-        <div className="mt-4 -ml-2">
-          <StartOtherButton routines={routines} date={day.date} label="Start a workout anyway" />
+        <div className="flex items-center justify-between gap-2 border-t border-line py-1 pr-2 pl-4">
+          <span className="min-w-0 truncate text-[13.5px] text-ink-3">
+            {next ? (
+              <>
+                Next <b className="font-semibold text-ink">{next.routine.name}</b> {whenLabel(next)}
+              </>
+            ) : (
+              "No training days in your split"
+            )}
+          </span>
+          <StartOtherButton routines={routines} date={day.date} label="Train anyway" />
         </div>
-      </div>
+      </Card>
     );
   }
 
+  // A planned session, not started
   return (
-    <div className="card overflow-hidden" style={tint(color)}>
-      <div className="h-1.5" style={{ background: colorVar(color) }} />
-      <div className="p-5">
-        <div className="eyebrow" style={{ color: colorVar(color) }}>
-          Today{time ? ` · ${time}` : ""}
-        </div>
-        <h2 className="display mt-2 text-[40px] text-ink">{r.name}</h2>
-        {r.focus && <p className="mt-1 text-[14.5px] text-ink-2">{r.focus}</p>}
-        <div className="tnum mt-4 flex gap-5 text-[13px] text-ink-3">
-          <span><b className="text-[15px] font-semibold text-ink">{r.exerciseCount}</b> exercises</span>
-          <span><b className="text-[15px] font-semibold text-ink">{r.setCount}</b> sets</span>
-          <span>~<b className="text-[15px] font-semibold text-ink">{r.estimatedMin}</b> min</span>
-        </div>
-        {s.notes && <p className="mt-3 text-[13.5px] text-ink-2">{s.notes}</p>}
-        <form action={startWorkout.bind(null, r.id, day.date)} className="mt-5">
-          <SubmitButton variant="tint" size="lg" className="h-14 text-[17px]">
-            <Play className="size-4 fill-current" /> Start {r.name}
-          </SubmitButton>
-        </form>
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <MarkDayButtons date={day.date} routines={routines} scheduledId={r.id} className="flex-1" />
-        </div>
-        <div className="mt-1 -ml-2 flex justify-between">
-          <StartOtherButton routines={routines} date={day.date} label="Different session" />
-          <Link href={`/fitness/routines/${r.id}`} className="tap inline-flex h-10 items-center px-2 text-[13.5px] font-semibold text-ink-3">
+    <Card className="overflow-hidden" style={tint(color)}>
+      <div className="relative p-4">
+        <span className="absolute inset-y-4 left-0 w-[3px] rounded-r-full" style={{ background: colorVar(color) }} />
+        <div className="flex items-center justify-between gap-3">
+          <span className="eyebrow" style={{ color: colorVar(color) }}>
+            Today{time ? ` · ${time}` : ""}
+          </span>
+          <Link
+            href={`/fitness/routines/${r.id}`}
+            className="tap -my-2 -mr-1 inline-flex h-10 items-center px-1 text-[13px] font-medium text-ink-3"
+          >
             View routine
           </Link>
         </div>
+        <h2 className="display mt-0.5 text-[32px] text-ink">{r.name}</h2>
+        {r.focus && <p className="text-[14px] text-ink-2">{r.focus}</p>}
+        <Facts routine={r} />
+        {s.notes && <p className="mt-2 text-[13.5px] text-ink-3">{s.notes}</p>}
+        <form action={startWorkout.bind(null, r.id, day.date)} className="mt-4">
+          <SubmitButton variant="accent" size="lg" className="h-[52px] text-[16.5px]">
+            <Play className="size-4 fill-current" /> Start workout
+          </SubmitButton>
+        </form>
       </div>
+      <div className="flex items-center gap-1 border-t border-line px-2 py-1">
+        <MarkDayButtons date={day.date} routines={routines} scheduledId={r.id} className="flex-1" />
+        <StartOtherButton routines={routines} date={day.date} label="Other" />
+      </div>
+    </Card>
+  );
+}
+
+function whenLabel(next: NonNullable<ReturnType<typeof nextSession>>) {
+  const when = next.inDays === 1 ? "tomorrow" : WEEKDAY_SHORT[weekday(next.date)];
+  return next.startMin != null ? `${when}, ${formatMin(next.startMin)}` : when;
+}
+
+function NextLine({ next }: { next: NonNullable<ReturnType<typeof nextSession>> }) {
+  return (
+    <div className="border-t border-line px-4 py-3 text-[13.5px] text-ink-3">
+      Next <b className="font-semibold text-ink">{next.routine.name}</b> {whenLabel(next)} · ~{next.routine.estimatedMin} min
     </div>
   );
 }

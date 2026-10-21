@@ -1,0 +1,66 @@
+/* Auth screens: the landing page's glow and season rings, kept quiet behind one form. */
+
+.auth-glow {
+  background: radial-gradient(circle, color-mix(in oklab, var(--accent) 20%, transparent) 0%, transparent 68%);
+  animation: auth-fade 1.2s ease-out both;
+}
+
+.auth-rings {
+  opacity: 0.85;
+  animation:
+    auth-rings-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both,
+    auth-turn 240s linear infinite;
+}
+
+.auth-arc {
+  animation: auth-arc 2s 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.auth-fade {
+  animation: auth-fade 700ms 200ms ease-out backwards;
+}
+
+/* On wider screens the form sits in a glass card. */
+@media (min-width: 640px) {
+  .auth-panel {
+    padding: 36px 32px 28px;
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    background: color-mix(in oklab, var(--surface) 78%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    box-shadow: var(--shadow-lg);
+    animation: auth-fade 600ms ease-out backwards;
+  }
+}
+
+@keyframes auth-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes auth-rings-in {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+
+@keyframes auth-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes auth-arc {
+  from {
+    stroke-dashoffset: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-rings {
+    animation: none;
+  }
+}

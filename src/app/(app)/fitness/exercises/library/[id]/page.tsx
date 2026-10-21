@@ -40,10 +40,10 @@ async function Entry({ params }: { params: PageProps<"/fitness/exercises/library
     .get();
 
   return (
-    <div className="fade-up pb-8">
-      <header className="pt-5 pb-5">
+    <div className="pb-2">
+      <header className="pt-5 pb-4 lg:pt-10 lg:pb-5">
         <div className="eyebrow">{[muscleLabel(entry.muscle), entry.equipment].filter(Boolean).join(" · ")}</div>
-        <h1 className="display mt-1.5 text-[34px] text-balance text-ink">{entry.name}</h1>
+        <h1 className="display mt-1 text-[32px] lg:text-[40px] text-balance text-ink">{entry.name}</h1>
       </header>
       <ExerciseFrames catalogId={entry.id} name={entry.name} images={entry.images} />
       <AddFromLibrary catalogId={entry.id} mineId={mine?.id ?? null} />

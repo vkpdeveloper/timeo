@@ -21,14 +21,21 @@ export const KIND_ICON: Record<Block["kind"], LucideIcon> = {
   admin: Inbox,
 };
 
-
 /** Bar and fill colours for a block: its goal (or routine) colour, otherwise neutral. */
 export function blockColors(color: string | null) {
   if (color) return { bar: colorVar(color), fill: softVar(color), ink: colorVar(color) };
-  return { bar: "var(--ink-3)", fill: "var(--surface)", ink: "var(--ink-2)" };
+  return {
+    bar: "var(--ink-3)",
+    fill: "color-mix(in oklab, var(--ink-3) 12%, var(--surface))",
+    ink: "var(--ink-2)",
+  };
 }
 
 export function blockVars(color: string | null): CSSProperties {
   const c = blockColors(color);
-  return { ["--bar" as string]: c.bar, ["--fill" as string]: c.fill, ["--bar-ink" as string]: c.ink };
+  return {
+    ["--bar" as string]: c.bar,
+    ["--fill" as string]: c.fill,
+    ["--bar-ink" as string]: c.ink,
+  };
 }

@@ -24,9 +24,11 @@ function WeekSkeleton() {
   return (
     <div>
       <SubHeader back="/review" backLabel="Review" />
-      <Skeleton className="mt-6 h-1.5 w-full" />
-      <Skeleton className="mt-10 h-12 w-48" />
-      <Skeleton className="mt-6 h-48 rounded-[22px]" />
+      <Skeleton className="mx-auto mt-3 h-2 w-32" />
+      <Skeleton className="mt-6 h-3 w-24" />
+      <Skeleton className="mt-2 h-9 w-40" />
+      <Skeleton className="mt-5 h-[76px] rounded-[20px]" />
+      <Skeleton className="mt-6 h-40 rounded-[20px]" />
     </div>
   );
 }
@@ -40,7 +42,7 @@ async function WeekReview({ searchParams }: { searchParams: PageProps<"/review/w
 
   const season = await getActiveSeason(user.id);
   const [stats, goals, reflection, energy] = await Promise.all([
-    getWeekStats(user.id, weekStart),
+    getWeekStats(user.id, weekStart, user.today),
     season ? getGoalWeeks(user.id, season.id, weekStart) : Promise.resolve([]),
     db
       .select()

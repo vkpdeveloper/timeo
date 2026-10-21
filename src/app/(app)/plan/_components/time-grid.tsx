@@ -22,10 +22,13 @@ export function useNowMin(timezone: string) {
     tick();
     let interval: ReturnType<typeof setInterval> | undefined;
     // align to the start of the next minute, then tick every minute
-    const timeout = setTimeout(() => {
-      tick();
-      interval = setInterval(tick, 60_000);
-    }, 60_000 - (Date.now() % 60_000));
+    const timeout = setTimeout(
+      () => {
+        tick();
+        interval = setInterval(tick, 60_000);
+      },
+      60_000 - (Date.now() % 60_000),
+    );
     return () => {
       clearTimeout(timeout);
       if (interval) clearInterval(interval);
@@ -34,7 +37,11 @@ export function useNowMin(timezone: string) {
   return now;
 }
 
-export type GridColumn = { date: string; blocks: PlanBlock[]; ghost: Ghost | null };
+export type GridColumn = {
+  date: string;
+  blocks: PlanBlock[];
+  ghost: Ghost | null;
+};
 
 export function TimeGrid({
   columns,
@@ -73,11 +80,14 @@ export function TimeGrid({
     if (isToday && now == null) return;
     scrolled.current = true;
     const first = col?.blocks.find((b) => !b.skippedAt)?.startMin;
-    const target = isToday ? now! : first ?? null;
+    const target = isToday ? now! : (first ?? null);
     if (target == null) return;
     const top = ref.current.getBoundingClientRect().top + window.scrollY + y(target);
     if (top - window.scrollY > window.innerHeight * 0.6) {
-      window.scrollTo({ top: Math.max(0, top - window.innerHeight * 0.32), behavior: "instant" });
+      window.scrollTo({
+        top: Math.max(0, top - window.innerHeight * 0.32),
+        behavior: "instant",
+      });
     }
   });
 
@@ -127,7 +137,12 @@ export function TimeGrid({
                 onClick={(e) => onTap(col.date, e)}
               >
                 {col.ghost && col.ghost.startMin != null && (
-                  <GhostBlock ghost={col.ghost} top={y(col.ghost.startMin)} height={col.ghost.durationMin * pxPerMin} compact={compact} />
+                  <GhostBlock
+                    ghost={col.ghost}
+                    top={y(col.ghost.startMin)}
+                    height={col.ghost.durationMin * pxPerMin}
+                    compact={compact}
+                  />
                 )}
                 {placed.map(({ item: b, col: c, cols }) => (
                   <BlockCard
@@ -147,7 +162,10 @@ export function TimeGrid({
                 {showDraft && (
                   <div
                     className="pointer-events-none absolute right-1 left-1 rounded-[10px] border-[1.5px] border-dashed border-accent bg-accent-soft/70"
-                    style={{ top: y(draft.start) + 1, height: (draft.end - draft.start) * pxPerMin - 2 }}
+                    style={{
+                      top: y(draft.start) + 1,
+                      height: (draft.end - draft.start) * pxPerMin - 2,
+                    }}
                   >
                     <span className="tnum block px-2 pt-1 text-[11.5px] font-semibold text-accent">{formatMin(draft.start)}</span>
                   </div>
@@ -218,11 +236,11 @@ function BlockCard({
         onOpen();
       }}
       className={cn(
-        "tap absolute z-10 overflow-hidden rounded-[10px] text-left",
-        "border border-line bg-[var(--fill)] shadow-[0_1px_2px_rgb(0_0_0/0.04)]",
-        done && "opacity-55",
+        "tap absolute z-10 overflow-hidden rounded-[10px] text-left transition-[box-shadow,opacity]",
+        "bg-[var(--fill)] hover:brightness-110",
+        done && "opacity-60",
         skipped && "opacity-45",
-        live && "ring-[1.5px] ring-[var(--bar)]",
+        live && "shadow-[0_0_0_1.5px_var(--bar),0_6px_18px_-6px_color-mix(in_oklab,var(--bar)_45%,transparent)]",
       )}
       style={{
         ...style,
@@ -235,11 +253,11 @@ function BlockCard({
           : null),
       }}
     >
-      <span className="absolute inset-y-0 left-0 w-[3px] bg-[var(--bar)]" />
+      <span className={cn("absolute left-[3px] w-[3px] rounded-full bg-[var(--bar)]", h < 30 ? "inset-y-[3px]" : "inset-y-1")} />
       <span
         className={cn(
           "flex h-full min-w-0 flex-col pr-1.5",
-          compact ? "pl-[7px]" : "pl-[10px]",
+          compact ? "pl-[10px]" : "pl-[13px]",
           oneLine ? "justify-center" : compact ? "pt-1" : "pt-[5px]",
         )}
       >

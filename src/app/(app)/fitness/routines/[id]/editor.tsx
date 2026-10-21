@@ -1,9 +1,12 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Play, Plus, Trash2 } from "lucide-react";
+import { motion } from "motion/react";
 import { useOptimistic, useState, useTransition } from "react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { ColorPicker, Field, Input, Stepper, Textarea } from "@/components/ui/controls";
+import { springs } from "@/components/ui/motion";
+import { Section } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import type { WorkoutTemplate } from "@/db/schema";
 import { cn } from "@/lib/cn";
@@ -77,13 +80,13 @@ export function RoutineEditor({
     });
 
   return (
-    <div className="fade-up pb-8" style={tint(routine.color)}>
-      <header className="pt-5 pb-5">
+    <div className="pb-2" style={tint(routine.color)}>
+      <header className="pt-5 pb-4 lg:pt-10 lg:pb-5">
         <button type="button" onClick={() => setDetails(true)} className="tap block w-full text-left">
           <div className="eyebrow" style={{ color: colorVar(routine.color) }}>
             {days.length ? days.join(" · ") : "Not scheduled"}
           </div>
-          <h1 className="display mt-1.5 text-[38px] text-ink">{routine.name}</h1>
+          <h1 className="display mt-1 text-[32px] lg:text-[40px] text-ink">{routine.name}</h1>
           {routine.focus && <p className="mt-1 text-[15px] text-ink-2">{routine.focus}</p>}
           <p className="tnum mt-2 text-[13px] text-ink-3">
             {list.length} exercises · {totalSets} sets · ~{routine.estimatedMin} min ·{" "}
@@ -92,25 +95,20 @@ export function RoutineEditor({
         </button>
         {routine.notes && <p className="mt-3 text-[14px] leading-relaxed whitespace-pre-line text-ink-2">{routine.notes}</p>}
         <Button
-          variant="tint"
+          variant="accent"
           size="lg"
-          className="mt-5"
+          className="mt-4 h-[52px] text-[16.5px]"
           loading={starting}
           disabled={!list.length}
           onClick={() => startTransition(() => startWorkout(routine.id))}
         >
-          <Play className="size-4 fill-current" /> Start {routine.name}
+          <Play className="size-4 fill-current" /> Start workout
         </Button>
       </header>
 
-      <div className="mb-2.5 flex items-baseline justify-between px-1">
-        <h2 className="text-[15px] font-semibold tracking-tight text-ink">Exercises</h2>
-        <span className="text-[12.5px] text-ink-3">Tap to edit sets and reps</span>
-      </div>
-
-      <div className="card overflow-hidden">
+      <Section title="Exercises" count={list.length} hint="Tap one to change its sets, reps and rest." card>
         {list.map((it, i) => (
-          <div key={it.id} className="flex items-center gap-1 border-b border-line pr-1.5 last:border-0">
+          <motion.div key={it.id} layout transition={springs.smooth} className="flex items-center gap-1 pr-1.5">
             <button type="button" onClick={() => setEditing(it)} className="tap min-w-0 flex-1 px-4 py-3 text-left">
               <div className="flex items-center gap-2">
                 <span className="tnum w-4 shrink-0 text-[12px] font-semibold text-ink-3">{i + 1}</span>
@@ -145,19 +143,16 @@ export function RoutineEditor({
                 <ChevronDown className="size-[18px]" />
               </button>
             </div>
-          </div>
+          </motion.div>
         ))}
         <button
           type="button"
           onClick={() => setPicker(true)}
-          className={cn(
-            "tap flex h-13 w-full items-center justify-center gap-1.5 py-3.5 text-[14.5px] font-semibold text-accent",
-            list.length > 0 && "border-t border-line",
-          )}
+          className="tap flex h-[52px] w-full items-center justify-center gap-1.5 text-[14.5px] font-semibold text-accent"
         >
           <Plus className="size-4" /> Add exercise
         </button>
-      </div>
+      </Section>
 
       <DeleteRoutine id={routine.id} />
 
@@ -236,7 +231,7 @@ function DetailsSheet({ open, onClose, routine }: { open: boolean; onClose: () =
           <Textarea name="notes" rows={2} defaultValue={routine.notes ?? ""} placeholder="e.g. 15 working sets" />
         </Field>
         <ErrorNote error={error} />
-        <SubmitButton size="lg">Save</SubmitButton>
+        <SubmitButton variant="accent" size="lg">Save</SubmitButton>
       </form>
     </Sheet>
   );
@@ -305,7 +300,7 @@ function ItemSheet({ item, onClose, onRemove }: { item: Item | null; onClose: ()
               type="button"
               variant="danger"
               size="icon"
-              className="size-[52px] rounded-2xl"
+              className="size-12 rounded-2xl"
               aria-label="Remove from routine"
               disabled={temp}
               onClick={() => {
@@ -315,7 +310,7 @@ function ItemSheet({ item, onClose, onRemove }: { item: Item | null; onClose: ()
             >
               <Trash2 className="size-[18px]" />
             </Button>
-            <SubmitButton size="lg" className="flex-1" disabled={temp}>
+            <SubmitButton variant="accent" size="lg" className="flex-1" disabled={temp}>
               Save
             </SubmitButton>
           </div>
@@ -333,7 +328,7 @@ function DeleteRoutine({ id }: { id: string }) {
       type="button"
       disabled={pending}
       onClick={() => (confirm ? start(() => deleteRoutine(id)) : setConfirm(true))}
-      className="tap mt-8 h-11 w-full rounded-2xl text-[14px] font-semibold text-bad"
+      className="tap mt-6 h-11 w-full rounded-2xl text-[14px] font-semibold text-bad"
     >
       {pending ? "Deleting…" : confirm ? "Tap again to delete. Past sessions are kept." : "Delete routine"}
     </button>

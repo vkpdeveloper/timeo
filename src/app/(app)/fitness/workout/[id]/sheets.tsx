@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Segmented, Textarea } from "@/components/ui/controls";
+import { CountUp } from "@/components/ui/motion";
+import { Stat, StatStrip } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { tint } from "@/lib/colors";
@@ -224,20 +226,20 @@ export function FinishSheet({
       onClose={onClose}
       title={editing ? "Save session" : "Finish workout"}
       footer={
-        <Button size="lg" variant="tint" loading={pending} onClick={finish} style={tint(color)}>
+        <Button size="lg" variant="accent" loading={pending} onClick={finish} style={tint(color)}>
           {editing ? "Save" : "Finish workout"}
         </Button>
       }
     >
-      <div className="grid grid-cols-3 gap-2">
-        <SummaryStat label="Duration" value={durationSec == null ? "—" : durationSec < 60 ? "<1m" : formatDuration(durationSec / 60)} />
-        <SummaryStat label="Working sets" value={String(workingSets)} />
-        <SummaryStat label="Volume" value={volume ? fmtVolume(volume) : "—"} />
-      </div>
+      <StatStrip card>
+        <Stat label="time" value={durationSec == null ? "—" : durationSec < 60 ? "<1m" : formatDuration(durationSec / 60)} />
+        <Stat label="working sets" value={<CountUp value={workingSets} />} />
+        <Stat label="volume" value={volume ? fmtVolume(volume) : "—"} />
+      </StatStrip>
       <p className="mt-2 px-1 text-[12px] text-ink-3">Volume counts sets with known weight, as logged.</p>
 
       {prs.length > 0 && (
-        <div className="mt-4 rounded-2xl bg-[var(--c-amber-soft)] p-3.5">
+        <div className="mt-4 animate-pop rounded-2xl bg-[var(--c-amber-soft)] p-3.5">
           <div className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-[var(--c-amber)]">
             <Trophy className="size-4" /> {prs.length === 1 ? "New best" : `${prs.length} new bests`}
           </div>
@@ -296,14 +298,5 @@ export function FinishSheet({
         {discarding ? "Discarding…" : confirmDiscard ? "Tap again to delete this workout" : editing ? "Delete session" : "Discard workout"}
       </button>
     </Sheet>
-  );
-}
-
-function SummaryStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-sunken px-3 py-3">
-      <div className="text-[11.5px] font-medium text-ink-3">{label}</div>
-      <div className="tnum mt-0.5 text-[19px] font-semibold tracking-tight text-ink">{value}</div>
-    </div>
   );
 }

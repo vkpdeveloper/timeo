@@ -1,15 +1,17 @@
 "use client";
 
 import { Check, ChevronLeft } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/controls";
-import { Card, StatusPill, SubHeader } from "@/components/ui/primitives";
+import { springs } from "@/components/ui/motion";
+import { Card, Meter, Row, RowIcon, Section, Stat, StatStrip, StatusPill, SubHeader } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { colorVar, tint } from "@/lib/colors";
 import { formatDuration } from "@/lib/dates";
 import { saveGoalUpdate, saveWeeklyReflection } from "../actions";
+import { roundedTime } from "../shared";
 import type { GoalStatus, GoalWeek, WeekStats } from "../data";
 
 type ReflectionFields = {
@@ -126,7 +128,10 @@ export function WeekFlow({
   };
 
   const setField = (k: keyof ReflectionFields) => (v: string) => setFields((f) => ({ ...f, [k]: v }));
-  const progress = steps.length > 1 ? index / (steps.length - 1) : 1;
+
+  const reduce = useReducedMotion();
+  const total = steps.length - 1; // the done screen is not a step
+  const isLast = step.kind === "energy";
 
   return (
     <div>
@@ -135,38 +140,47 @@ export function WeekFlow({
         backLabel="Review"
         title={`${title} review`}
         action={
-          step.kind !== "done" && index > 0 ? (
+          step.kind !== "done" ? (
             <span className="tnum text-[13px] font-medium text-ink-3">
-              {index} / {steps.length - 2}
+              {index + 1} of {total}
             </span>
           ) : undefined
         }
       />
-      <div className="mt-2 h-1 overflow-hidden rounded-full bg-sunken">
-        <motion.div
-          className="h-full rounded-full bg-accent"
-          initial={false}
-          animate={{ width: `${Math.max(0.04, progress) * 100}%` }}
-          transition={{ type: "spring", damping: 30, stiffness: 200 }}
-        />
+      <div
+        className="flex items-center justify-center gap-1.5 pt-2"
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-valuenow={Math.min(index + 1, total)}
+        aria-label={`Step ${Math.min(index + 1, total)} of ${total}`}
+      >
+        {steps.slice(0, total).map((s, i) => (
+          <motion.span
+            key={i}
+            className={cn("h-1.5 rounded-full", i <= index ? "bg-accent" : "bg-line-strong")}
+            initial={false}
+            animate={{ width: i === index ? 20 : 6, opacity: i < index ? 0.45 : 1 }}
+            transition={springs.smooth}
+          />
+        ))}
       </div>
 
       <AnimatePresence mode="wait" initial={false} custom={dir}>
         <motion.div
           key={index}
           custom={dir}
-          initial={{ opacity: 0, x: dir * 24 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: dir * -24 }}
-          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-          className="pt-8"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, x: dir * 32 }}
+          animate={{ opacity: 1, x: 0, transition: springs.smooth }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, x: dir * -32, transition: { duration: 0.14, ease: [0.4, 0, 1, 1] } }}
+          className={cn("pt-5", step.kind !== "done" && "pb-32")}
         >
           {step.kind === "intro" && (
             <Intro
               title={title}
               range={range}
               stats={stats}
-              goalCount={goals.length}
+              goals={goals}
               isCurrent={isCurrent}
               daysLeft={daysLeft}
               reviewed={!!reflection}
@@ -211,25 +225,29 @@ export function WeekFlow({
             </Questions>
           )}
           {step.kind === "done" && <Done title={title} goals={goals} assessments={assessments} next={fields.next} />}
-
-          {error && (
-            <p className="mt-5 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>
-          )}
-
-          {step.kind !== "done" && (
-            <div className="mt-8 flex gap-2">
-              {index > 0 && (
-                <Button variant="secondary" size="icon" className="size-[52px] rounded-2xl" onClick={() => go(-1)} aria-label="Back">
-                  <ChevronLeft className="size-5" />
-                </Button>
-              )}
-              <Button size="lg" className="flex-1" loading={pending} onClick={next}>
-                {step.kind === "intro" ? "Start" : step.kind === "energy" ? "Finish" : "Next"}
-              </Button>
-            </div>
-          )}
         </motion.div>
       </AnimatePresence>
+
+      {step.kind !== "done" && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:left-60">
+          <div className="h-8 bg-gradient-to-t from-bg to-transparent" />
+          <div className="pointer-events-auto bg-bg pb-[max(16px,var(--safe-bottom))]">
+            <div className="mx-auto w-full max-w-[640px] px-4 sm:px-6 lg:max-w-[760px]">
+              {error && <p className="mb-2 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>}
+              <div className="flex gap-2">
+                {index > 0 && (
+                  <Button variant="secondary" size="icon" className="size-12 rounded-2xl" onClick={() => go(-1)} aria-label="Back">
+                    <ChevronLeft className="size-5" />
+                  </Button>
+                )}
+                <Button variant="accent" size="lg" className="flex-1" loading={pending} onClick={next}>
+                  {step.kind === "intro" ? "Start" : isLast ? "Finish" : "Next"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -240,7 +258,7 @@ function Intro({
   title,
   range,
   stats,
-  goalCount,
+  goals,
   isCurrent,
   daysLeft,
   reviewed,
@@ -248,16 +266,24 @@ function Intro({
   title: string;
   range: string;
   stats: WeekStats;
-  goalCount: number;
+  goals: GoalWeek[];
   isCurrent: boolean;
   daysLeft: number;
   reviewed: boolean;
 }) {
+  const { dueMin, doneMin } = stats.blocks;
+  const summary =
+    dueMin > 0
+      ? `You protected ${roundedTime(doneMin)} of ${roundedTime(dueMin)} planned${isCurrent && daysLeft > 0 ? " so far" : ""}.`
+      : stats.focusMin > 0
+        ? `${roundedTime(stats.focusMin)} of focus this week.`
+        : "Nothing was planned this week.";
   return (
     <div>
       <div className="eyebrow">{range}</div>
-      <h1 className="display mt-2 text-[44px] text-ink">{title}</h1>
-      <p className="mt-2 text-[15px] text-ink-2">
+      <h1 className="display mt-1 text-[32px] text-ink">{title}</h1>
+      <p className="mt-1.5 text-[15px] leading-snug text-ink">{summary}</p>
+      <p className="mt-0.5 text-[14px] text-ink-3">
         {reviewed
           ? "Already reviewed. Change anything you like."
           : isCurrent && daysLeft > 2
@@ -265,33 +291,33 @@ function Intro({
             : "Five calm minutes. Honest, not perfect."}
       </p>
 
-      <div className="mt-7 grid grid-cols-2 gap-3">
-        <Tile label="Focus" value={formatDuration(stats.focusMin)} sub={`${stats.sessions} sessions`} />
-        <Tile
-          label="Focus quality"
-          value={stats.avgQuality != null ? String(stats.avgQuality) : "–"}
-          sub={stats.avgQuality != null ? "out of 100" : "no ratings"}
-        />
-        <Tile label="Blocks done" value={`${stats.blocks.done}/${stats.blocks.planned}`} sub={stats.blocks.skipped ? `${stats.blocks.skipped} skipped` : "none skipped"} />
-        <Tile label="Workouts" value={`${stats.workouts.done}/${stats.workouts.scheduled}`} sub="scheduled" />
-      </div>
+      <StatStrip card className="mt-5">
+        <Stat value={formatDuration(stats.focusMin)} label={`focus · ${stats.sessions} ${stats.sessions === 1 ? "session" : "sessions"}`} />
+        <Stat value={stats.blocks.done} unit={`of ${stats.blocks.planned}`} label="blocks done" />
+        <Stat value={stats.workouts.done} unit={`of ${stats.workouts.scheduled}`} label="workouts" />
+      </StatStrip>
 
-      <p className="mt-7 text-[14px] leading-relaxed text-ink-3">
-        {goalCount > 0
-          ? `${goalCount === 1 ? "One goal" : `${goalCount} goals`}, one at a time. Then two short questions.`
-          : "No open goals this season. Just two short questions."}
-      </p>
+      {goals.length > 0 ? (
+        <Section title="One check per goal" count={goals.length} hint="Then two short questions." card>
+          {goals.map((g) => (
+            <Row
+              key={g.id}
+              icon={
+                <RowIcon color={g.color}>
+                  <span className="size-2.5 rounded-full bg-current" />
+                </RowIcon>
+              }
+              title={g.title}
+              subtitle={`${roundedTime(Math.max(g.doneMin, g.focusMin))} of ${roundedTime(g.plannedMin)} planned`}
+            >
+              <StatusPill status={g.update?.status ?? g.currentStatus} />
+            </Row>
+          ))}
+        </Section>
+      ) : (
+        <p className="mt-6 px-1 text-[14px] text-ink-3">No open goals this season. Just two short questions.</p>
+      )}
     </div>
-  );
-}
-
-function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Card className="px-4 py-3.5">
-      <div className="text-[12px] font-medium text-ink-3">{label}</div>
-      <div className="tnum mt-0.5 text-[22px] font-semibold tracking-tight text-ink">{value}</div>
-      {sub && <div className="text-[12px] text-ink-3">{sub}</div>}
-    </Card>
   );
 }
 
@@ -311,32 +337,40 @@ function GoalStep({ goal, value, onChange }: { goal: GoalWeek; value: Assessment
         <span className="size-2.5 rounded-full" style={{ background: colorVar(goal.color) }} />
         <span className="eyebrow">{goal.tier} goal</span>
       </div>
-      <h1 className="mt-2 text-[26px] leading-tight font-semibold tracking-tight text-ink">{goal.title}</h1>
-      {goal.outcome && <p className="mt-1 text-[14.5px] text-ink-3">{goal.outcome}</p>}
+      <h1 className="display mt-1 text-[28px] text-balance text-ink">{goal.title}</h1>
+      {goal.outcome && <p className="mt-1 text-[14px] leading-snug text-ink-3">{goal.outcome}</p>}
 
-      <Card className="mt-6 grid grid-cols-2">
-        <Num
-          label="Planned time done"
-          value={goal.plannedMin ? `${formatDuration(goal.doneMin)}` : "–"}
-          sub={goal.plannedMin ? `of ${formatDuration(goal.plannedMin)}` : "nothing planned"}
-          className="border-r border-b border-line"
+      <Card className="mt-5 p-4">
+        <div className="tnum flex items-baseline justify-between gap-3">
+          <span className="text-[13.5px] text-ink-3">
+            <span className="text-[20px] font-semibold tracking-tight text-ink">{roundedTime(goal.doneMin)}</span> of{" "}
+            {roundedTime(goal.plannedMin)} planned
+          </span>
+          <span className="text-[13px] text-ink-3">{goal.focusMin ? `${roundedTime(goal.focusMin)} focus` : "no focus"}</span>
+        </div>
+        <Meter
+          className="mt-2.5"
+          height={6}
+          legend={false}
+          total={Math.max(goal.plannedMin, goal.doneMin, 1)}
+          segments={[
+            { kind: "done", value: goal.doneMin },
+            { kind: "planned", value: Math.max(0, goal.plannedMin - goal.doneMin) },
+          ]}
         />
-        <Num label="Focused" value={goal.focusMin ? formatDuration(goal.focusMin) : "0m"} sub="in sessions" className="border-b border-line" />
-        <Num
-          label="Weekly steps"
-          value={goal.stepsTotal ? `${goal.stepsDone}/${goal.stepsTotal}` : "–"}
-          sub={goal.stepsTotal ? "done" : "none set"}
-          className="border-r border-line"
-        />
-        <Num
-          label="Moved"
-          value={`${goal.reschedules}×`}
-          sub={goal.skipped ? `${goal.skipped} skipped` : "none skipped"}
-        />
+        <p className="tnum mt-2 text-[12.5px] text-ink-3">
+          {[
+            goal.stepsTotal ? `${goal.stepsDone} of ${goal.stepsTotal} ${goal.stepsTotal === 1 ? "step" : "steps"} done` : "No weekly step",
+            goal.reschedules ? `moved ${goal.reschedules}×` : null,
+            goal.skipped ? `${goal.skipped} skipped` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        {hint && <p className="mt-2.5 border-t border-line pt-2.5 text-[13.5px] text-ink-2">{hint}</p>}
       </Card>
-      {hint && <p className="mt-3 px-1 text-[13.5px] text-ink-2">{hint}</p>}
 
-      <div className="mt-7">
+      <div className="mt-6">
         <div className="mb-2 flex items-baseline justify-between px-1">
           <span className="text-[13px] font-medium text-ink-2">How is it going?</span>
           {goal.previous && (
@@ -349,7 +383,7 @@ function GoalStep({ goal, value, onChange }: { goal: GoalWeek; value: Assessment
         <Segmented options={STATUS_OPTIONS} value={value.status} onChange={(status) => onChange({ ...value, status })} />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5">
         <div className="mb-1 flex items-baseline justify-between px-1">
           <span className="text-[13px] font-medium text-ink-2">Confidence you&apos;ll hit it</span>
           <span className="tnum text-[17px] font-semibold text-ink">{value.confidence}%</span>
@@ -361,7 +395,7 @@ function GoalStep({ goal, value, onChange }: { goal: GoalWeek; value: Assessment
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4">
         <label className="mb-1.5 block px-1 text-[13px] font-medium text-ink-2" htmlFor={`note-${goal.id}`}>
           Note
         </label>
@@ -380,16 +414,6 @@ function GoalStep({ goal, value, onChange }: { goal: GoalWeek; value: Assessment
 }
 
 const STATUS_TEXT: Record<GoalStatus, string> = { on_track: "On track", adjust: "Adjust", off_track: "Off track" };
-
-function Num({ label, value, sub, className }: { label: string; value: string; sub?: string; className?: string }) {
-  return (
-    <div className={cn("px-4 py-3.5", className)}>
-      <div className="text-[12px] font-medium text-ink-3">{label}</div>
-      <div className="tnum mt-0.5 text-[20px] font-semibold tracking-tight text-ink">{value}</div>
-      {sub && <div className="text-[12px] text-ink-3">{sub}</div>}
-    </div>
-  );
-}
 
 function ConfidenceSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
@@ -422,8 +446,8 @@ function Questions({ eyebrow, title, children }: { eyebrow: string; title: strin
   return (
     <div>
       <div className="eyebrow">{eyebrow}</div>
-      <h1 className="display mt-2 text-[40px] text-ink">{title}</h1>
-      <div className="mt-6 flex flex-col gap-5">{children}</div>
+      <h1 className="display mt-1 text-[30px] text-ink">{title}</h1>
+      <div className="mt-5 flex flex-col gap-4">{children}</div>
     </div>
   );
 }
@@ -462,7 +486,7 @@ function Prompt({
               key={h}
               type="button"
               onClick={() => onChange(current.trim() ? `${current.trim()}, ${h}` : h)}
-              className="tap rounded-full bg-sunken px-2.5 py-1 text-[12.5px] font-medium text-ink-2"
+              className="tap inline-flex min-h-8 items-center rounded-full bg-sunken px-3 text-[12.5px] font-medium text-ink-2"
             >
               + {h}
             </button>
@@ -486,36 +510,47 @@ function Done({
 }) {
   return (
     <div>
-      <div className="grid size-14 place-items-center rounded-full bg-ok-soft text-ok">
+      <motion.div
+        className="grid size-14 place-items-center rounded-full bg-ok-soft text-ok"
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={springs.snappy}
+      >
         <Check className="size-7" strokeWidth={2.6} />
-      </div>
-      <h1 className="display mt-5 text-[40px] text-ink">{title} reviewed</h1>
-      <p className="mt-2 text-[15px] text-ink-2">That&apos;s the habit. See you next week.</p>
+      </motion.div>
+      <h1 className="display mt-4 text-[32px] text-ink">{title} reviewed</h1>
+      <p className="mt-1 text-[15px] text-ink-2">That&apos;s the habit. See you next week.</p>
 
       {goals.length > 0 && (
-        <Card className="mt-7">
+        <Section title="Where each goal stands" card stagger>
           {goals.map((g) => {
             const a = assessments[g.id];
             return (
-              <div key={g.id} className="flex items-center gap-3 px-4 py-3.5 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-                <span className="size-2.5 shrink-0 rounded-full" style={{ background: colorVar(g.color) }} />
-                <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">{g.title}</span>
-                <span className="tnum text-[13px] text-ink-3">{a.confidence}%</span>
-                <StatusPill status={a.status} />
-              </div>
+              <Row
+                key={g.id}
+                icon={
+                <RowIcon color={g.color}>
+                  <span className="size-2.5 rounded-full bg-current" />
+                </RowIcon>
+              }
+                title={g.title}
+                value={`${a.confidence}%`}
+              >
+                <StatusPill status={a.status} className="ml-auto" />
+              </Row>
             );
           })}
-        </Card>
+        </Section>
       )}
 
       {next && (
-        <Card className="mt-3 px-4 py-3.5">
-          <div className="text-[12px] font-medium text-ink-3">Next week&apos;s focus</div>
+        <Card className="mt-3 px-4 py-3">
+          <div className="text-[12.5px] font-medium text-ink-3">Next week&apos;s focus</div>
           <p className="mt-0.5 text-[15px] leading-snug text-ink">{next}</p>
         </Card>
       )}
 
-      <ButtonLink href="/review" size="lg" className="mt-8">
+      <ButtonLink href="/review" variant="accent" size="lg" className="mt-6">
         Done
       </ButtonLink>
     </div>

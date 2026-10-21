@@ -1,30 +1,14 @@
 "use client";
 
 import { MailCheck } from "lucide-react";
-import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ButtonLink, SubmitButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/controls";
+import { AuthSwitch, FormError, PasswordInput } from "./auth-form";
 import { requestPasswordReset, resetPassword, type ForgotState, type ResetState } from "./actions";
 
-function ErrorNote({ error }: { error?: string }) {
-  if (!error) return null;
-  return (
-    <p role="alert" className="rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">
-      {error}
-    </p>
-  );
-}
-
 function BackToSignIn() {
-  return (
-    <p className="pt-3 text-center text-[14px] text-ink-3">
-      Remembered it?{" "}
-      <Link href="/login" className="font-semibold text-ink">
-        Sign in
-      </Link>
-    </p>
-  );
+  return <AuthSwitch text="Remembered it?" href="/login" label="Sign in" />;
 }
 
 export function ForgotForm() {
@@ -32,34 +16,50 @@ export function ForgotForm() {
 
   if (state?.sent)
     return (
-      <div>
+      <div className="animate-rise space-y-5">
         <div className="flex items-start gap-3 rounded-2xl border border-line bg-surface px-4 py-3.5">
-          <MailCheck className="mt-0.5 size-5 shrink-0 text-accent" strokeWidth={1.8} />
-          <p className="text-[14.5px] leading-relaxed text-ink-2">
-            If <span className="font-semibold text-ink">{state.email}</span> has an account, a reset link is on its way. It
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+            <MailCheck className="size-[18px]" strokeWidth={1.9} />
+          </span>
+          <p className="text-[14px] leading-relaxed text-ink-2">
+            If <span className="font-semibold break-all text-ink">{state.email}</span> has an account, a reset link is on its way. It
             expires in 10 minutes.
           </p>
         </div>
-        <p className="mt-4 px-1 text-[13px] leading-relaxed text-ink-3">Nothing after a minute? Check spam, or send it again.</p>
-        <form action={action} className="mt-5">
+        <form action={action} className="space-y-2">
           <input type="hidden" name="email" value={state.email} />
           <SubmitButton size="lg" variant="secondary">
             Send again
           </SubmitButton>
+          <p className="px-1 text-center text-[13px] text-ink-3">Nothing after a minute? Check spam, or send it again.</p>
         </form>
         <BackToSignIn />
       </div>
     );
 
   return (
-    <form action={action} className="space-y-3">
-      <Input name="email" type="email" placeholder="Email" autoComplete="email" inputMode="email" defaultValue={state?.email} required autoFocus />
-      <ErrorNote error={state?.error} />
-      <SubmitButton size="lg" className="mt-2">
-        Send reset link
-      </SubmitButton>
+    <div className="space-y-5">
+      <form action={action} className="space-y-2.5">
+        <Input
+          name="email"
+          type="email"
+          placeholder="Email"
+          aria-label="Email"
+          autoComplete="email"
+          inputMode="email"
+          autoCapitalize="off"
+          spellCheck={false}
+          defaultValue={state?.email}
+          required
+          autoFocus
+        />
+        <FormError error={state?.error} />
+        <SubmitButton variant="accent" size="lg" className="mt-1">
+          Send reset link
+        </SubmitButton>
+      </form>
       <BackToSignIn />
-    </form>
+    </div>
   );
 }
 
@@ -80,15 +80,15 @@ export function ResetForm({ token }: { token: string }) {
         setTried(true);
         if (confirm !== password) e.preventDefault();
       }}
-      className="space-y-3"
+      className="space-y-2.5"
     >
       <input type="hidden" name="token" value={token} />
       {/* lets password managers save the new password against the account */}
       <input type="text" name="username" autoComplete="username" hidden readOnly />
-      <Input
+      <PasswordInput
         name="password"
-        type="password"
         placeholder="New password"
+        aria-label="New password"
         autoComplete="new-password"
         minLength={8}
         required
@@ -100,6 +100,7 @@ export function ResetForm({ token }: { token: string }) {
         name="confirm"
         type="password"
         placeholder="Confirm new password"
+        aria-label="Confirm new password"
         autoComplete="new-password"
         required
         value={confirm}
@@ -107,20 +108,20 @@ export function ResetForm({ token }: { token: string }) {
         aria-invalid={mismatch || undefined}
         className={mismatch ? "border-bad" : undefined}
       />
-      {mismatch ? <ErrorNote error="Passwords don't match." /> : <ErrorNote error={state?.error} />}
-      <SubmitButton size="lg" className="mt-2">
+      {mismatch ? <FormError error="Passwords don't match." /> : <FormError error={state?.error} />}
+      <SubmitButton variant="accent" size="lg" className="mt-1">
         Save and sign in
       </SubmitButton>
-      <p className="pt-2 text-center text-[13px] leading-relaxed text-ink-3">This signs you out on your other devices.</p>
+      <p className="pt-1 text-center text-[13px] leading-relaxed text-ink-3">This signs you out on your other devices.</p>
     </form>
   );
 }
 
 export function ExpiredLink() {
   return (
-    <div>
-      <ErrorNote error="This link has expired or was already used. Links work once, for 10 minutes." />
-      <ButtonLink href="/forgot-password" size="lg" className="mt-5">
+    <div className="space-y-5">
+      <FormError error="This link has expired or was already used. Links work once, for 10 minutes." />
+      <ButtonLink href="/forgot-password" variant="accent" size="lg">
         Send a new link
       </ButtonLink>
       <BackToSignIn />

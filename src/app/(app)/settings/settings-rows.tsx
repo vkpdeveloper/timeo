@@ -1,50 +1,24 @@
 "use client";
 
-import { ChevronRight, LocateFixed, Trash2 } from "lucide-react";
-import { useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
+import { CalendarClock, Globe, LocateFixed, Trash2, User } from "lucide-react";
+import { useId, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/controls";
 import { TimePicker } from "@/components/ui/pickers";
+import { Row, RowIcon } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
-import { cn } from "@/lib/cn";
 import { formatMin, toTimeInput } from "@/lib/dates";
 import { deleteAccount, updateDayHours, updateName, updateTimezone, type Result } from "./actions";
-
-/** A Row-styled button that opens a sheet. */
-function RowButton({
-  label,
-  value,
-  onClick,
-  danger,
-  icon,
-}: {
-  label: ReactNode;
-  value?: ReactNode;
-  onClick: () => void;
-  danger?: boolean;
-  icon?: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="tap flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-sunken [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line"
-    >
-      {icon}
-      <span className={cn("flex-1 text-[15px] font-medium", danger ? "text-bad" : "text-ink")}>{label}</span>
-      {value != null && <span className="max-w-[55%] truncate text-[14px] text-ink-3">{value}</span>}
-      {!danger && <ChevronRight className="size-4 shrink-0 text-ink-3" />}
-    </button>
-  );
-}
 
 /** Sheet open state plus a submit handler that keeps the form's values when saving fails. */
 function useSheetForm(action: (fd: FormData) => Promise<Result>) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const formId = useId();
   return {
     open,
+    formId,
     show: () => {
       setError(null);
       setOpen(true);
@@ -71,23 +45,29 @@ function useSheetForm(action: (fd: FormData) => Promise<Result>) {
 
 function ErrorNote({ error }: { error: string | null }) {
   if (!error) return null;
-  return <p className="mb-3 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>;
+  return <p role="alert" className="mb-3 animate-pop rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">{error}</p>;
+}
+
+/** The sheet's one action, submitting the form by id. */
+function SaveButton({ formId, pending, children = "Save", ...props }: { formId: string; pending: boolean; children?: React.ReactNode } & Omit<React.ComponentProps<typeof Button>, "form">) {
+  return (
+    <Button type="submit" form={formId} variant="accent" size="lg" loading={pending} {...props}>
+      {children}
+    </Button>
+  );
 }
 
 export function NameRow({ name }: { name: string }) {
   const s = useSheetForm(updateName);
   return (
     <>
-      <RowButton label="Name" value={name} onClick={s.show} />
-      <Sheet open={s.open} onClose={s.close} title="Your name">
-        <form onSubmit={s.onSubmit}>
+      <Row onClick={s.show} icon={<User />} iconColor="slate" title="Name" value={name} />
+      <Sheet open={s.open} onClose={s.close} title="Your name" footer={<SaveButton formId={s.formId} pending={s.pending} />}>
+        <form id={s.formId} onSubmit={s.onSubmit}>
           <Field>
-            <Input name="name" defaultValue={name} maxLength={80} autoComplete="name" required autoFocus />
+            <Input name="name" defaultValue={name} maxLength={80} autoComplete="name" aria-label="Name" required autoFocus />
           </Field>
           <ErrorNote error={s.error} />
-          <Button type="submit" size="lg" loading={s.pending}>
-            Save
-          </Button>
         </form>
       </Sheet>
     </>
@@ -114,18 +94,26 @@ export function TimezoneRow({ timezone, zones }: { timezone: string; zones: stri
   const label = (z: string) => z.replaceAll("_", " ");
   return (
     <>
-      <RowButton
-        label="Timezone"
-        value={label(timezone)}
+      <Row
         onClick={() => {
           setValue(timezone);
           s.show();
         }}
+        icon={<Globe />}
+        iconColor="sky"
+        title="Timezone"
+        value={label(timezone)}
       />
-      <Sheet open={s.open} onClose={s.close} title="Timezone" description="Days start and end here.">
-        <form onSubmit={s.onSubmit}>
+      <Sheet
+        open={s.open}
+        onClose={s.close}
+        title="Timezone"
+        description="Days start and end here."
+        footer={<SaveButton formId={s.formId} pending={s.pending} />}
+      >
+        <form id={s.formId} onSubmit={s.onSubmit}>
           <Field>
-            <Select name="timezone" value={value} onChange={(e) => setValue(e.target.value)}>
+            <Select name="timezone" value={value} onChange={(e) => setValue(e.target.value)} aria-label="Timezone">
               {device && !options.includes(device) && <option value={device}>{label(device)}</option>}
               {options.map((z) => (
                 <option key={z} value={z}>
@@ -140,13 +128,8 @@ export function TimezoneRow({ timezone, zones }: { timezone: string; zones: stri
               Use this device&apos;s timezone
             </Button>
           )}
-          {device && device === value && (
-            <p className="mb-4 px-1 text-[13px] text-ink-3">Matches this device.</p>
-          )}
+          {device && device === value && <p className="mb-4 px-1 text-[13px] text-ink-3">Matches this device.</p>}
           <ErrorNote error={s.error} />
-          <Button type="submit" size="lg" loading={s.pending}>
-            Save
-          </Button>
         </form>
       </Sheet>
     </>
@@ -157,9 +140,21 @@ export function DayHoursRow({ startMin, endMin }: { startMin: number; endMin: nu
   const s = useSheetForm(updateDayHours);
   return (
     <>
-      <RowButton label="Planner day" value={`${formatMin(startMin)} – ${formatMin(endMin)}`} onClick={s.show} />
-      <Sheet open={s.open} onClose={s.close} title="Planner day" description="The hours your calendar shows.">
-        <form onSubmit={s.onSubmit}>
+      <Row
+        onClick={s.show}
+        icon={<CalendarClock />}
+        iconColor="indigo"
+        title="Planner day"
+        value={`${formatMin(startMin)} – ${formatMin(endMin)}`}
+      />
+      <Sheet
+        open={s.open}
+        onClose={s.close}
+        title="Planner day"
+        description="The hours your calendar shows."
+        footer={<SaveButton formId={s.formId} pending={s.pending} />}
+      >
+        <form id={s.formId} onSubmit={s.onSubmit}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Starts">
               <TimePicker name="start" defaultValue={toTimeInput(startMin)} step={900} aria-label="Day starts" />
@@ -169,9 +164,6 @@ export function DayHoursRow({ startMin, endMin }: { startMin: number; endMin: nu
             </Field>
           </div>
           <ErrorNote error={s.error} />
-          <Button type="submit" size="lg" loading={s.pending}>
-            Save
-          </Button>
         </form>
       </Sheet>
     </>
@@ -183,26 +175,32 @@ export function DeleteAccountRow() {
   const [typed, setTyped] = useState("");
   return (
     <>
-      <RowButton
-        label="Delete account"
-        danger
-        icon={
-          <span className="grid size-8 shrink-0 place-items-center rounded-[9px] bg-bad-soft text-bad">
-            <Trash2 className="size-[17px]" />
-          </span>
-        }
+      <Row
         onClick={() => {
           setTyped("");
           s.show();
         }}
+        icon={
+          <RowIcon className="bg-bad-soft! text-bad!">
+            <Trash2 />
+          </RowIcon>
+        }
+        title="Delete account"
+        tone="bad"
+        chevron={false}
       />
       <Sheet
         open={s.open}
         onClose={s.close}
         title="Delete account"
         description="This removes your account and all your data. It can't be undone."
+        footer={
+          <SaveButton formId={s.formId} pending={s.pending} variant="danger" disabled={typed !== "DELETE"}>
+            Delete everything
+          </SaveButton>
+        }
       >
-        <form onSubmit={s.onSubmit}>
+        <form id={s.formId} onSubmit={s.onSubmit}>
           <Field label="Type DELETE to confirm">
             <Input
               name="confirm"
@@ -215,12 +213,8 @@ export function DeleteAccountRow() {
             />
           </Field>
           <ErrorNote error={s.error} />
-          <Button type="submit" size="lg" variant="danger" loading={s.pending} disabled={typed !== "DELETE"}>
-            Delete everything
-          </Button>
         </form>
       </Sheet>
     </>
   );
 }
-

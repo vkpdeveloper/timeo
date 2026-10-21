@@ -120,6 +120,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
         description="Replaces your weekly schedule. Your logs and history stay."
         footer={
           <Button
+            variant="accent"
             size="lg"
             loading={pending}
             onClick={() =>
@@ -206,7 +207,7 @@ export function SaveCurrentButton({ suggestedName }: { suggestedName: string }) 
   const [error, setError] = useState<string | null>(null);
   return (
     <>
-      <Button variant="secondary" size="lg" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
         <Plus className="size-4" /> Save current as program
       </Button>
       <Sheet
@@ -233,7 +234,7 @@ export function SaveCurrentButton({ suggestedName }: { suggestedName: string }) 
             <Textarea name="description" rows={2} placeholder="What it is for" />
           </Field>
           <ErrorNote error={error} />
-          <SubmitButton size="lg">Save program</SubmitButton>
+          <SubmitButton variant="accent" size="lg">Save program</SubmitButton>
         </form>
       </Sheet>
     </>

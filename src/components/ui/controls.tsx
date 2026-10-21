@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { PALETTE, colorVar } from "@/lib/colors";
+import { springs } from "./motion";
 
 export function Label({ children, hint, htmlFor }: { children: ReactNode; hint?: ReactNode; htmlFor?: string }) {
   return (
@@ -90,7 +91,7 @@ export function Segmented<T extends string>({
               <motion.span
                 layoutId={layoutId}
                 className="absolute inset-0 -z-10 rounded-[10px] bg-surface shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
-                transition={{ type: "spring", damping: 30, stiffness: 420 }}
+                transition={springs.snappy}
               />
             )}
             {o.label}

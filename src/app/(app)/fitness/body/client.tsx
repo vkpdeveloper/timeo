@@ -1,10 +1,12 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useOptimistic, useState, useTransition } from "react";
 import { deleteBodyMetric } from "@/actions/health";
 import { WeighInSheet } from "@/components/forms/sheets";
 import { Button } from "@/components/ui/button";
+import { listItem } from "@/components/ui/motion";
 import type { BodyMetric } from "@/db/schema";
 import { formatMonthDay, formatWeekdayShort } from "@/lib/dates";
 import { fmtKg } from "@/lib/fitness-math";
@@ -13,7 +15,7 @@ export function WeighInButton({ today, lastWeight }: { today: string; lastWeight
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button size="lg" onClick={() => setOpen(true)}>
+      <Button variant="accent" size="lg" onClick={() => setOpen(true)}>
         <Plus className="size-4" /> Weigh-in
       </Button>
       <WeighInSheet open={open} onClose={() => setOpen(false)} today={today} lastWeight={lastWeight} />
@@ -25,9 +27,10 @@ export function BodyEntries({ entries }: { entries: BodyMetric[] }) {
   const [list, remove] = useOptimistic(entries, (l, id: string) => l.filter((e) => e.id !== id));
   const [, start] = useTransition();
   return (
-    <div className="card overflow-hidden">
+    <div className="card card-list overflow-hidden">
+      <AnimatePresence initial={false}>
       {list.map((e) => (
-        <div key={e.id} className="flex items-center gap-3 border-b border-line py-2.5 pr-2 pl-4 last:border-0">
+        <motion.div key={e.id} {...listItem} className="flex min-h-[52px] items-center gap-3 py-1 pr-1.5 pl-4">
           <div className="w-24 shrink-0 text-[13px] text-ink-3">
             {formatWeekdayShort(e.date)}, {formatMonthDay(e.date)}
           </div>
@@ -58,8 +61,9 @@ export function BodyEntries({ entries }: { entries: BodyMetric[] }) {
           >
             <Trash2 className="size-4" />
           </button>
-        </div>
+        </motion.div>
       ))}
+      </AnimatePresence>
     </div>
   );
 }

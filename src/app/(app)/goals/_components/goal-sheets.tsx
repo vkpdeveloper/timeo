@@ -77,7 +77,7 @@ export function GoalSheet({
           <Stepper name="weeklyHours" value={hours} onChange={setHours} step={0.5} min={0} max={40} format={fmtHours} />
         </Field>
         <ErrorNote error={error} />
-        <SubmitButton size="lg" className="mt-2">{goal ? "Save" : "Add goal"}</SubmitButton>
+        <SubmitButton variant="accent" size="lg" className="mt-2">{goal ? "Save" : "Add goal"}</SubmitButton>
       </form>
     </Sheet>
   );
@@ -112,7 +112,7 @@ export function SeasonSheet({ open, onClose, season }: { open: boolean; onClose:
           <Stepper name="capacity" value={cap} onChange={setCap} min={1} max={100} format={(v) => `${v}h`} />
         </Field>
         <ErrorNote error={error} />
-        <SubmitButton size="lg" className="mt-2">Save</SubmitButton>
+        <SubmitButton variant="accent" size="lg" className="mt-2">Save</SubmitButton>
       </form>
     </Sheet>
   );

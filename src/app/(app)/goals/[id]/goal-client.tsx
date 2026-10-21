@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarCheck, CalendarPlus, Check, Ellipsis, Flag, ListPlus, Pencil, Plus, ShieldCheck, Trash2, Undo2 } from "lucide-react";
+import { motion } from "motion/react";
 import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 import { protectTime } from "@/actions/blocks";
 import type { GoalOption } from "@/actions/context";
@@ -9,11 +10,12 @@ import { TaskSheet } from "@/components/forms/sheets";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { CheckCircle, Field, Input, Segmented, Textarea } from "@/components/ui/controls";
 import { DatePicker } from "@/components/ui/pickers";
+import { springs } from "@/components/ui/motion";
 import { Sheet } from "@/components/ui/sheet";
 import type { Goal, Milestone, Task } from "@/db/schema";
 import type { CoachRecommendation } from "@/lib/coach";
 import { cn } from "@/lib/cn";
-import { formatMin, formatMonthDay, relativeDay } from "@/lib/dates";
+import { diffDays, formatMin, formatMonthDay, relativeDay } from "@/lib/dates";
 import {
   addGoalUpdate,
   createMilestone,
@@ -92,16 +94,28 @@ function MenuItem({ icon, children, onClick, danger }: { icon: ReactNode; childr
 
 // ─────────────────────────── Coach ───────────────────────────
 
-export function CoachAction({ rec, ctx, goalTitle }: { rec: CoachRecommendation; ctx: Ctx; goalTitle: string }) {
+/** The coach's one next step. Full width accent on the goal page, a quiet chip on overview cards. */
+export function CoachAction({
+  rec,
+  ctx,
+  goalTitle,
+  compact = false,
+}: {
+  rec: CoachRecommendation;
+  ctx: Ctx;
+  goalTitle: string;
+  compact?: boolean;
+}) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [sheet, setSheet] = useState<null | "step" | "milestone">(null);
 
+  const iconCls = compact ? "size-4" : "size-[18px]";
   const icon = {
-    protect_time: <ShieldCheck className="size-[18px]" />,
-    schedule_step: <CalendarPlus className="size-[18px]" />,
-    add_weekly_step: <ListPlus className="size-[18px]" />,
-    add_milestone: <Flag className="size-[18px]" />,
+    protect_time: <ShieldCheck className={iconCls} />,
+    schedule_step: <CalendarPlus className={iconCls} />,
+    add_weekly_step: <ListPlus className={iconCls} />,
+    add_milestone: <Flag className={iconCls} />,
   }[rec.kind];
 
   const run = () => {
@@ -119,15 +133,23 @@ export function CoachAction({ rec, ctx, goalTitle }: { rec: CoachRecommendation;
 
   if (result?.ok)
     return (
-      <div className="flex items-center gap-2.5 rounded-2xl bg-ok-soft px-4 py-3 text-[14px] font-medium text-ok">
-        <CalendarCheck className="size-[18px] shrink-0" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={springs.snappy}
+        className={cn(
+          "flex items-center gap-2 font-medium text-ok",
+          compact ? "min-h-9 text-[13px]" : "rounded-2xl bg-ok-soft px-4 py-3 text-[14px]",
+        )}
+      >
+        <CalendarCheck className={cn(iconCls, "shrink-0")} />
         {result.text}
-      </div>
+      </motion.div>
     );
 
   return (
     <>
-      <Button variant="tint" size="lg" loading={pending} onClick={run}>
+      <Button variant={compact ? "outline" : "accent"} size={compact ? "sm" : "lg"} loading={pending} onClick={run}>
         {icon}
         {rec.label}
       </Button>
@@ -145,7 +167,7 @@ function TaskRow({ task, today, onOpen }: { task: Task; today: string; onOpen: (
   const [, start] = useTransition();
   const overdue = !done && task.dueDate != null && task.dueDate < today;
   return (
-    <div className="flex items-center gap-3 px-4 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+    <div className="flex min-h-[52px] items-center gap-3 px-4 py-1.5">
       <CheckCircle
         checked={done}
         onToggle={() =>
@@ -155,8 +177,15 @@ function TaskRow({ task, today, onOpen }: { task: Task; today: string; onOpen: (
           })
         }
       />
-      <button type="button" onClick={onOpen} className="tap flex min-w-0 flex-1 items-center gap-3 py-1 text-left">
-        <span className={cn("min-w-0 flex-1 text-[15px] leading-snug", done ? "text-ink-3 line-through decoration-line-strong" : "text-ink")}>{task.title}</span>
+      <button type="button" onClick={onOpen} className="tap flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left">
+        <span
+          className={cn(
+            "min-w-0 flex-1 text-[15px] leading-snug transition-colors duration-200",
+            done ? "text-ink-3 line-through decoration-line-strong" : "text-ink",
+          )}
+        >
+          {task.title}
+        </span>
         {task.dueDate && (
           <span className={cn("tnum shrink-0 text-[12.5px]", overdue ? "font-medium text-bad" : "text-ink-3")}>
             {relativeDay(task.dueDate, today)}
@@ -164,6 +193,21 @@ function TaskRow({ task, today, onOpen }: { task: Task; today: string; onOpen: (
         )}
       </button>
     </div>
+  );
+}
+
+function AddRow({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="tap-row flex min-h-[52px] w-full items-center gap-3 px-4 text-[14.5px] font-medium text-accent"
+    >
+      <span className="grid size-6 place-items-center">
+        <Plus className="size-[18px]" strokeWidth={2.4} />
+      </span>
+      {children}
+    </button>
   );
 }
 
@@ -184,20 +228,12 @@ export function TaskList({
   const [adding, setAdding] = useState(false);
   return (
     <>
-      <div className="card overflow-hidden">
-        {tasks.length === 0 && empty && <p className="px-4 pt-4 pb-1 text-[14px] text-ink-3">{empty}</p>}
+      <div className="card card-list overflow-hidden">
+        {tasks.length === 0 && empty && <p className="px-4 pt-3.5 pb-1 text-[13.5px] text-ink-3">{empty}</p>}
         {tasks.map((task) => (
           <TaskRow key={task.id} task={task} today={ctx.today} onOpen={() => setEditing(task)} />
         ))}
-        {weekly && (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className={cn("tap flex w-full items-center gap-2 px-4 py-3.5 text-[14.5px] font-medium text-accent active:bg-sunken", tasks.length > 0 && "border-t border-line")}
-          >
-            <Plus className="size-4" strokeWidth={2.4} /> Add a step
-          </button>
-        )}
+        {weekly && <AddRow onClick={() => setAdding(true)}>Add a step</AddRow>}
       </div>
       <TaskSheet open={!!editing} onClose={() => setEditing(null)} goals={ctx.goals} today={ctx.today} task={editing ?? undefined} key={editing?.id ?? "edit"} />
       <TaskSheet open={adding} onClose={() => setAdding(false)} goals={ctx.goals} today={ctx.today} defaults={{ goalId, weekly: true }} />
@@ -240,7 +276,7 @@ function MilestoneSheet({
               type="button"
               variant="danger"
               size="icon"
-              className="size-[52px] rounded-2xl"
+              className="size-12 rounded-2xl"
               loading={pending}
               aria-label="Delete milestone"
               onClick={() =>
@@ -253,57 +289,110 @@ function MilestoneSheet({
               <Trash2 className="size-[18px]" />
             </Button>
           )}
-          <SubmitButton size="lg" className="flex-1">{milestone ? "Save" : "Add milestone"}</SubmitButton>
+          <SubmitButton variant="accent" size="lg" className="flex-1">
+            {milestone ? "Save" : "Add milestone"}
+          </SubmitButton>
         </div>
       </form>
     </Sheet>
   );
 }
 
-function MilestoneRow({ m, today, onOpen }: { m: Milestone; today: string; onOpen: () => void }) {
+/** "Oct 28 · in 7 days", "Overdue · Oct 10", "Done". */
+function milestoneWhen(m: Milestone, done: boolean, today: string) {
+  if (done) return "Done";
+  if (!m.dueDate) return "No date";
+  if (m.dueDate < today) return `Overdue · ${formatMonthDay(m.dueDate)}`;
+  const days = diffDays(m.dueDate, today);
+  if (days <= 1) return relativeDay(m.dueDate, today);
+  return `${formatMonthDay(m.dueDate)} · ${days < 14 ? `in ${days} days` : `in ${Math.round(days / 7)} weeks`}`;
+}
+
+function MilestoneNode({
+  m,
+  today,
+  first,
+  last,
+  next,
+  onOpen,
+}: {
+  m: Milestone;
+  today: string;
+  first: boolean;
+  last: boolean;
+  next: boolean;
+  onOpen: () => void;
+}) {
   const [done, setDone] = useOptimistic(m.doneAt != null);
   const [, start] = useTransition();
   const overdue = !done && m.dueDate != null && m.dueDate < today;
   return (
-    <div className="flex items-center gap-3 px-4 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-      <CheckCircle
-        checked={done}
-        onToggle={() =>
-          start(async () => {
-            setDone(!done);
-            await setMilestoneDone(m.id, !done);
-          })
-        }
-      />
-      <button type="button" onClick={onOpen} className="tap flex min-w-0 flex-1 items-center gap-3 py-1 text-left">
-        <span className={cn("min-w-0 flex-1 text-[15px] leading-snug", done ? "text-ink-3 line-through decoration-line-strong" : "text-ink")}>{m.title}</span>
-        {m.dueDate && (
-          <span className={cn("tnum shrink-0 text-[12.5px]", overdue ? "font-medium text-bad" : "text-ink-3")}>
-            {overdue ? "Overdue · " : ""}
-            {formatMonthDay(m.dueDate)}
-          </span>
-        )}
+    <li className="relative flex min-h-[56px] items-center gap-3 px-4">
+      {/* rail: the segment above this node, then below it */}
+      {!first && <span className="absolute top-0 left-[27.5px] h-1/2 w-px bg-line-strong" aria-hidden />}
+      {!last && (
+        <span
+          className={cn("absolute bottom-0 left-[27.5px] h-1/2 w-px transition-colors duration-300", done ? "bg-tint" : "bg-line-strong")}
+          aria-hidden
+        />
+      )}
+      <span className="relative z-10 rounded-full bg-surface">
+        <CheckCircle
+          checked={done}
+          size={22}
+          label={done ? `Reopen ${m.title}` : `Mark ${m.title} done`}
+          onToggle={() =>
+            start(async () => {
+              setDone(!done);
+              await setMilestoneDone(m.id, !done);
+            })
+          }
+        />
+      </span>
+      <button type="button" onClick={onOpen} className="tap flex min-h-11 min-w-0 flex-1 flex-col justify-center py-1.5 text-left">
+        <span
+          className={cn(
+            "text-[15px] leading-snug transition-colors duration-200",
+            done ? "text-ink-3 line-through decoration-line-strong" : next ? "font-semibold text-ink" : "text-ink",
+          )}
+        >
+          {m.title}
+        </span>
+        <span className={cn("tnum mt-0.5 text-[12.5px]", overdue ? "font-medium text-bad" : "text-ink-3")}>
+          {next && !overdue && <span className="font-semibold text-tint">Next · </span>}
+          {milestoneWhen(m, done, today)}
+        </span>
       </button>
-    </div>
+    </li>
   );
 }
 
+/** Milestones as a dated timeline; the first open one is marked as next. */
 export function MilestoneList({ milestones, goalId, today }: { milestones: Milestone[]; goalId: string; today: string }) {
   const [editing, setEditing] = useState<Milestone | null>(null);
   const [adding, setAdding] = useState(false);
+  const nextId = milestones.find((m) => m.doneAt == null)?.id;
   return (
     <>
       <div className="card overflow-hidden">
-        {milestones.map((m) => (
-          <MilestoneRow key={m.id} m={m} today={today} onOpen={() => setEditing(m)} />
-        ))}
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className={cn("tap flex w-full items-center gap-2 px-4 py-3.5 text-[14.5px] font-medium text-accent active:bg-sunken", milestones.length > 0 && "border-t border-line")}
-        >
-          <Plus className="size-4" strokeWidth={2.4} /> Add milestone
-        </button>
+        {milestones.length > 0 && (
+          <ol className="py-1.5">
+            {milestones.map((m, i) => (
+              <MilestoneNode
+                key={m.id}
+                m={m}
+                today={today}
+                first={i === 0}
+                last={i === milestones.length - 1}
+                next={m.id === nextId}
+                onOpen={() => setEditing(m)}
+              />
+            ))}
+          </ol>
+        )}
+        <div className={cn(milestones.length > 0 && "border-t border-line")}>
+          <AddRow onClick={() => setAdding(true)}>Add milestone</AddRow>
+        </div>
       </div>
       <MilestoneSheet open={!!editing} onClose={() => setEditing(null)} goalId={goalId} milestone={editing ?? undefined} key={editing?.id ?? "edit"} />
       <MilestoneSheet open={adding} onClose={() => setAdding(false)} goalId={goalId} />
@@ -325,7 +414,7 @@ export function CheckInButton({ goalId, suggested }: { goalId: string; suggested
   const { error, action } = useSubmit(addGoalUpdate, () => setOpen(false));
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="tap inline-flex items-center gap-1 text-[13px] font-semibold text-accent">
+      <button type="button" onClick={() => setOpen(true)} className="tap -my-2 inline-flex h-10 items-center gap-1 px-1 text-[13px] font-semibold text-accent">
         <Plus className="size-3.5" strokeWidth={2.6} /> Check in
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Check in" description="An honest read on this goal today.">
@@ -353,7 +442,7 @@ export function CheckInButton({ goalId, suggested }: { goalId: string; suggested
             <Textarea name="note" rows={2} placeholder="What changed, what's next" />
           </Field>
           <ErrorNote error={error} />
-          <SubmitButton size="lg">Save check-in</SubmitButton>
+          <SubmitButton variant="accent" size="lg">Save check-in</SubmitButton>
         </form>
       </Sheet>
     </>

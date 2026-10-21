@@ -5,14 +5,21 @@ import { motion, type PanInfo } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useOptimistic, useRef, useTransition } from "react";
 import { Segmented } from "@/components/ui/controls";
+import { springs } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
 import { addDays, dayOfMonth, startOfWeek, toUTCDate, weekDays, WEEKDAY_LETTER } from "@/lib/dates";
 import type { PlanView } from "./types";
 
-const monthFmt = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long" });
-const monthShortFmt = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short" });
+const monthFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  month: "long",
+});
+const monthShortFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  month: "short",
+});
 
 export const planHref = (date: string, view: PlanView, today?: string) => {
   const params = new URLSearchParams();
@@ -28,12 +35,15 @@ export function PlanHeader({
   view,
   eyebrow,
   dots,
+  summary,
 }: {
   date: string;
   today: string;
   view: PlanView;
   eyebrow: string;
   dots: Record<string, string[]>;
+  /** Capacity line pinned under the strip. */
+  summary?: React.ReactNode;
 }) {
   const router = useRouter();
   const [, start] = useTransition();
@@ -70,7 +80,7 @@ export function PlanHeader({
       <PageHeader
         eyebrow={eyebrow}
         title={title}
-        className="pb-4"
+        className="pb-3!"
         action={
           <div className="flex items-center gap-2">
             <button
@@ -96,12 +106,12 @@ export function PlanHeader({
       />
 
       <div className="glass sticky top-0 z-30 -mx-4 border-b border-line px-2 pt-safe sm:-mx-6 sm:px-4 lg:mx-0 lg:rounded-b-2xl lg:border-x">
-        <div className="flex items-center py-2">
+        <div className="flex items-center py-1.5">
           <button
             type="button"
             aria-label="Previous week"
             onClick={() => go(addDays(state.date, -7))}
-            className="tap grid h-14 w-8 shrink-0 place-items-center rounded-xl text-ink-3 hover:text-ink"
+            className="tap grid h-[60px] w-8 shrink-0 place-items-center rounded-xl text-ink-3 hover:text-ink"
           >
             <ChevronLeft className="size-[18px]" />
           </button>
@@ -132,25 +142,40 @@ export function PlanHeader({
                     }}
                     aria-label={d}
                     aria-current={selected ? "date" : undefined}
-                    className="tap flex h-14 flex-col items-center justify-start gap-1 pt-0.5"
+                    className="tap relative mx-[3px] flex h-[60px] flex-col items-center justify-center gap-[3px] rounded-2xl"
                   >
-                    <span className={cn("text-[10.5px] font-semibold tracking-wide", isT ? "text-accent" : "text-ink-3")}>
+                    {selected && (
+                      <motion.span
+                        layoutId="plan-day-pill"
+                        transition={springs.snappy}
+                        className={cn("absolute inset-0 rounded-2xl", isT ? "bg-accent" : "bg-ink")}
+                      />
+                    )}
+                    {!selected && isT && <span className="absolute inset-0 rounded-2xl bg-accent-soft" />}
+                    <span
+                      className={cn(
+                        "relative text-[10.5px] font-semibold tracking-wide",
+                        selected ? (isT ? "text-accent-ink/80" : "text-bg/70") : isT ? "text-accent" : "text-ink-3",
+                      )}
+                    >
                       {WEEKDAY_LETTER[i]}
                     </span>
                     <span
                       className={cn(
-                        "tnum grid size-8 shrink-0 place-items-center rounded-full text-[15px] font-semibold transition-colors",
-                        selected ? (isT ? "bg-accent text-accent-ink" : "bg-ink text-bg") : isT ? "text-accent" : "text-ink",
+                        "tnum relative text-[16px] leading-none font-semibold",
+                        selected ? (isT ? "text-accent-ink" : "text-bg") : isT ? "text-accent" : "text-ink",
                       )}
                     >
                       {dayOfMonth(d)}
                     </span>
-                    <span className="flex h-1 items-center gap-[3px]">
+                    <span className="relative flex h-1 items-center gap-[3px]" aria-hidden>
                       {dayDots.map((c, j) => (
                         <span
                           key={j}
-                          className="size-1 rounded-full"
-                          style={{ background: c === "neutral" ? "var(--ink-3)" : colorVar(c) }}
+                          className={cn("size-1 rounded-full", selected && "ring-1 ring-black/10")}
+                          style={{
+                            background: c === "neutral" ? "var(--ink-3)" : colorVar(c),
+                          }}
                         />
                       ))}
                     </span>
@@ -163,11 +188,12 @@ export function PlanHeader({
             type="button"
             aria-label="Next week"
             onClick={() => go(addDays(state.date, 7))}
-            className="tap grid h-14 w-8 shrink-0 place-items-center rounded-xl text-ink-3 hover:text-ink"
+            className="tap grid h-[60px] w-8 shrink-0 place-items-center rounded-xl text-ink-3 hover:text-ink"
           >
             <ChevronRight className="size-[18px]" />
           </button>
         </div>
+        {summary}
       </div>
     </>
   );

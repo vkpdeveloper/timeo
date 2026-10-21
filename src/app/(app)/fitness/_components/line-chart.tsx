@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { formatMonthDay } from "@/lib/dates";
 
@@ -30,6 +31,7 @@ export function LineChart({
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState<number | null>(null);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     const el = ref.current;
@@ -108,16 +110,31 @@ export function LineChart({
               )}
             </>
           )}
-          {avg &&
-            points.map((p, i) => (
-              <circle key={p.date} cx={x(i)} cy={y(p.value)} r={2.5} fill={color} opacity={0.28} />
-            ))}
-          <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-          {!avg &&
-            points.length <= 40 &&
-            points.map((p, i) => (
-              <circle key={p.date} cx={x(i)} cy={y(p.value)} r={3.5} fill={color} stroke="var(--surface)" strokeWidth={2} />
-            ))}
+          {avg && (
+            <motion.g initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.25 }}>
+              {points.map((p, i) => (
+                <circle key={p.date} cx={x(i)} cy={y(p.value)} r={2.5} fill={color} opacity={0.28} />
+              ))}
+            </motion.g>
+          )}
+          <motion.path
+            d={path}
+            fill="none"
+            stroke={color}
+            strokeWidth={2.25}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={reduce ? false : { pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          />
+          {!avg && points.length <= 40 && (
+            <motion.g initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.5 }}>
+              {points.map((p, i) => (
+                <circle key={p.date} cx={x(i)} cy={y(p.value)} r={3.5} fill={color} stroke="var(--surface)" strokeWidth={2} />
+              ))}
+            </motion.g>
+          )}
           {a && active != null && (
             <g>
               <line x1={x(active)} x2={x(active)} y1={top - 4} y2={top + h} stroke="var(--line-strong)" strokeWidth={1} />

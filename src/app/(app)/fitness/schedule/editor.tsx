@@ -1,15 +1,15 @@
 "use client";
 
-import { ChevronRight, LayoutGrid } from "lucide-react";
-import Link from "next/link";
+import { LayoutGrid } from "lucide-react";
 import { useState } from "react";
 import { SubmitButton } from "@/components/ui/button";
 import { Field, Input, Segmented, Textarea } from "@/components/ui/controls";
 import { TimePicker } from "@/components/ui/pickers";
+import { PageHeader, Row, RowIcon, Section, Stat, StatStrip } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
-import { formatMin, toTimeInput, WEEKDAY_NAMES } from "@/lib/dates";
+import { formatDuration, formatMin, toTimeInput, WEEKDAY_NAMES } from "@/lib/dates";
 import type { ScheduleDay } from "@/lib/fitness";
 import { ErrorNote, type RoutineOption } from "../_components/day-actions";
 import { saveScheduleDay, saveTrainingNotes } from "./actions";
@@ -27,56 +27,55 @@ export function ScheduleEditor({
 }) {
   const [editing, setEditing] = useState<ScheduleDay | null>(null);
   const trainingDays = schedule.filter((d) => d.routine).length;
+  const minutes = schedule.reduce((a, d) => a + (d.routine?.estimatedMin ?? 0), 0);
   return (
-    <div className="fade-up pb-8">
-      <header className="pt-5 pb-5">
-        <h1 className="display text-[38px] text-ink">Weekly split</h1>
-        <p className="mt-1 text-[15px] text-ink-2">
-          {trainingDays} training {trainingDays === 1 ? "day" : "days"}, {7 - trainingDays} rest
-        </p>
-      </header>
+    <div>
+      <PageHeader title="Weekly split" subtitle="Tap a day to change what you train." />
+      <StatStrip>
+        <Stat value={trainingDays} label={`training ${trainingDays === 1 ? "day" : "days"}`} />
+        <Stat value={7 - trainingDays} label={`rest ${7 - trainingDays === 1 ? "day" : "days"}`} />
+        <Stat value={formatDuration(minutes)} label="planned a week" />
+      </StatStrip>
 
-      <div className="card overflow-hidden">
+      <Section card stagger>
         {schedule.map((d) => (
-          <button
+          <Row
             key={d.weekday}
-            type="button"
             onClick={() => setEditing(d)}
-            className="tap flex w-full items-center gap-3.5 border-b border-line px-4 py-3.5 text-left last:border-0 active:bg-sunken"
-          >
-            <div className="w-10 shrink-0">
-              <div className={cn("text-[13px] font-semibold", d.weekday === todayWeekday ? "text-accent" : "text-ink-3")}>
-                {WEEKDAY_NAMES[d.weekday].slice(0, 3)}
-              </div>
-            </div>
-            <span
-              className="h-9 w-[3px] shrink-0 rounded-full"
-              style={{ background: d.routine ? colorVar(d.routine.color) : "var(--line-strong)" }}
-            />
-            <div className="min-w-0 flex-1">
-              <div className={cn("truncate text-[15.5px] font-semibold", d.routine ? "text-ink" : "text-ink-2")}>
-                {d.routine?.name ?? d.label ?? "Rest"}
-              </div>
-              <div className="truncate text-[12.5px] text-ink-3">
-                {[d.startMin != null ? formatMin(d.startMin) : null, d.routine?.focus, d.notes].filter(Boolean).join(" · ") ||
-                  (d.routine ? `${d.routine.exerciseCount} exercises` : "Recovery")}
-              </div>
-            </div>
-            <ChevronRight className="size-4 shrink-0 text-ink-3" />
-          </button>
+            icon={
+              <RowIcon className="bg-transparent!">
+                <span className={cn("text-[13px] font-semibold", d.weekday === todayWeekday ? "text-accent" : "text-ink-3")}>
+                  {WEEKDAY_NAMES[d.weekday].slice(0, 3)}
+                </span>
+              </RowIcon>
+            }
+            title={
+              <span className="flex items-center gap-2">
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ background: d.routine ? colorVar(d.routine.color) : "var(--line-strong)" }}
+                />
+                <span className={cn("truncate", !d.routine && "text-ink-2")}>{d.routine?.name ?? d.label ?? "Rest"}</span>
+              </span>
+            }
+            subtitle={
+              [d.startMin != null ? formatMin(d.startMin) : null, d.routine?.focus, d.notes].filter(Boolean).join(" · ") ||
+              (d.routine ? `${d.routine.exerciseCount} exercises` : "Recovery")
+            }
+            value={d.routine ? `~${d.routine.estimatedMin}m` : undefined}
+          />
         ))}
-      </div>
+      </Section>
 
-      <Link href="/fitness/programs" className="card tap mt-3 flex items-center gap-3 px-4 py-3.5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--c-teal-soft)] text-[var(--c-teal)]">
-          <LayoutGrid className="size-[18px]" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-medium text-ink">Programs</span>
-          <span className="block text-[12.5px] text-ink-3">Switch to a preset or a saved split</span>
-        </span>
-        <ChevronRight className="size-4 shrink-0 text-ink-3" />
-      </Link>
+      <Section card>
+        <Row
+          href="/fitness/programs"
+          icon={<LayoutGrid />}
+          iconColor="teal"
+          title="Programs"
+          subtitle="Switch to a preset or a saved split"
+        />
+      </Section>
 
       <NotesCard notes={trainingNotes} />
 
@@ -90,11 +89,7 @@ function NotesCard({ notes }: { notes: string }) {
   const [saved, setSaved] = useState(false);
   const dirty = value !== notes && !saved;
   return (
-    <section className="mt-8">
-      <div className="mb-2.5 flex items-baseline justify-between px-1">
-        <h2 className="text-[15px] font-semibold tracking-tight text-ink">Program notes</h2>
-        <span className="text-[12.5px] text-ink-3">Shown to you and the coach</span>
-      </div>
+    <Section title="Program notes" hint="Shown to you and to Timi.">
       <form
         action={async (fd) => {
           await saveTrainingNotes(fd);
@@ -120,7 +115,7 @@ function NotesCard({ notes }: { notes: string }) {
           </SubmitButton>
         </div>
       </form>
-    </section>
+    </Section>
   );
 }
 
@@ -200,7 +195,7 @@ function DaySheet({ day, routines, onClose }: { day: ScheduleDay | null; routine
             />
           </Field>
           <ErrorNote error={error} />
-          <SubmitButton size="lg">Save</SubmitButton>
+          <SubmitButton variant="accent" size="lg">Save</SubmitButton>
         </form>
       )}
     </Sheet>

@@ -2,7 +2,7 @@ import { and, asc, desc, eq, ne } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { EmptyState, Skeleton, SubHeader } from "@/components/ui/primitives";
+import { Card, EmptyState, Section, Skeleton, Stat, StatStrip, SubHeader } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { catalogEntry } from "@/lib/exercise-catalog-server";
@@ -91,47 +91,46 @@ async function Exercise({ params }: { params: PageProps<"/fitness/exercises/[id]
   const entry = catalogEntry(ex.catalogId);
 
   return (
-    <div className="fade-up pb-8">
-      <header className="flex items-start justify-between gap-3 pt-5 pb-5">
+    <div className="pb-2">
+      <header className="flex items-start justify-between gap-3 pt-5 pb-4 lg:pt-10 lg:pb-5">
         <div className="min-w-0">
           <div className="eyebrow">{[muscleLabel(ex.muscle), ex.equipment].filter(Boolean).join(" · ")}</div>
-          <h1 className="display mt-1.5 text-[36px] text-ink">{ex.name}</h1>
+          <h1 className="display mt-1 text-[32px] lg:text-[40px] text-ink">{ex.name}</h1>
           {basis && <p className="mt-1 text-[14px] text-ink-2">Weight logged {basis.replace("kg ", "")}</p>}
           {ex.cues && <p className="mt-2 text-[14px] leading-relaxed text-ink-2">{ex.cues}</p>}
         </div>
         <EditExerciseButton exercise={ex} />
       </header>
 
-      <section className="mb-8">
+      <section className="mb-2">
         {entry && entry.images > 0 && <ExerciseFrames catalogId={entry.id} name={entry.name} images={entry.images} />}
         <LinkLibrary exerciseId={ex.id} name={ex.name} linked={entry ? { id: entry.id, name: entry.name } : null} />
       </section>
 
       {sessions.length === 0 ? (
-        <EmptyState title="No sets logged yet" body="Progress shows up here after your first session with this exercise." />
+        <EmptyState className="mt-6" title="No sets logged yet" body="Progress shows up here after your first session with this exercise." />
       ) : (
         <>
-          <div className="card grid grid-cols-3 divide-x divide-line">
-            <Stat label="Best set" value={best ? fmtSet(best) : "—"} />
-            <Stat label="Est. 1RM" value={bestE1rm != null ? `${fmtKg(Math.round(bestE1rm * 10) / 10)}` : "—"} unit="kg" />
-            <Stat label="Heaviest" value={heaviest != null ? fmtKg(heaviest) : "—"} unit="kg" />
-          </div>
+          <StatStrip className="mt-6">
+            <Stat label="best set" value={best ? fmtSet(best) : "—"} />
+            <Stat
+              label="estimated 1RM"
+              value={bestE1rm != null ? fmtKg(Math.round(bestE1rm * 10) / 10) : "—"}
+              unit={bestE1rm != null ? "kg" : undefined}
+            />
+            <Stat label="heaviest" value={heaviest != null ? fmtKg(heaviest) : "—"} unit={heaviest != null ? "kg" : undefined} />
+          </StatStrip>
 
           {trend.length >= 2 && (
-            <section className="mt-8">
-              <div className="mb-2.5 flex items-baseline justify-between px-1">
-                <h2 className="text-[15px] font-semibold tracking-tight text-ink">Estimated 1RM</h2>
-                <span className="text-[12px] text-ink-3">Best working set per session · Epley</span>
-              </div>
-              <div className="card px-2 pt-3 pb-2">
+            <Section title="Estimated 1RM" hint="Best working set per session (Epley).">
+              <Card className="px-2 pt-3 pb-2">
                 <LineChart points={trend} unit=" kg" color="var(--c-violet)" label={`Estimated one-rep max trend for ${ex.name}`} />
-              </div>
-            </section>
+              </Card>
+            </Section>
           )}
 
-          <section className="mt-8">
-            <h2 className="mb-2.5 px-1 text-[15px] font-semibold tracking-tight text-ink">Recent sessions</h2>
-            <div className="card overflow-hidden">
+          <Section title="Recent sessions" count={sessions.length}>
+            <div className="card card-list stagger overflow-hidden">
               {sessions.slice(0, 20).map((s) => {
                 const working = s.sets.filter((x) => !x.warmup);
                 const warm = s.sets.length - working.length;
@@ -140,7 +139,7 @@ async function Exercise({ params }: { params: PageProps<"/fitness/exercises/[id]
                   <Link
                     key={s.logId}
                     href={`/fitness/history/${s.logId}`}
-                    className="tap block border-b border-line px-4 py-3 last:border-0 active:bg-sunken"
+                    className="tap-row block px-4 py-3"
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-[13px] font-semibold text-ink-2">
@@ -157,23 +156,11 @@ async function Exercise({ params }: { params: PageProps<"/fitness/exercises/[id]
                 );
               })}
             </div>
-          </section>
+          </Section>
         </>
       )}
 
       {entry && <HowTo entry={entry} />}
-    </div>
-  );
-}
-
-function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
-  return (
-    <div className="min-w-0 px-4 py-3.5">
-      <div className="text-[12px] font-medium text-ink-3">{label}</div>
-      <div className="mt-0.5 flex items-baseline gap-1">
-        <span className="tnum truncate text-[19px] font-semibold tracking-tight text-ink">{value}</span>
-        {unit && value !== "—" && <span className="text-[11.5px] text-ink-3">{unit}</span>}
-      </div>
     </div>
   );
 }

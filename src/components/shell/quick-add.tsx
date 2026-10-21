@@ -41,19 +41,19 @@ export function QuickAdd({ variant = "fab" }: { variant?: "fab" | "wide" }) {
           type="button"
           onClick={open}
           aria-label="Quick add"
-          className="tap grid size-[var(--tabbar-h)] place-items-center rounded-[24px] bg-ink text-bg shadow-float"
+          className="tap grid size-[var(--tabbar-h)] place-items-center rounded-[22px] bg-ink text-bg shadow-float active:opacity-90"
         >
-          <Plus className="size-6" strokeWidth={2.4} />
+          <Plus className="size-[22px]" strokeWidth={2.4} />
         </button>
       ) : (
-        <button type="button" onClick={open} className="tap flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[14px] font-semibold text-bg">
+        <button type="button" onClick={open} className="tap flex h-10 w-full items-center justify-center gap-2 rounded-[12px] bg-ink text-[14px] font-semibold text-bg active:opacity-90">
           <Plus className="size-4" strokeWidth={2.4} /> Quick add
         </button>
       )}
 
       <Sheet open={mode === "menu"} onClose={close} title="Add">
         <CommandBar className="mb-4" onSent={close} />
-        <div className="grid grid-cols-2 gap-2.5 pb-2">
+        <div className="stagger grid grid-cols-2 gap-2 pb-2 [--stagger:25ms]">
           {items.map((it) => {
             const Icon = it.icon;
             return (
@@ -73,7 +73,7 @@ export function QuickAdd({ variant = "fab" }: { variant?: "fab" | "wide" }) {
                     });
                   } else setMode(it.key);
                 }}
-                className={cn("tap flex h-[88px] flex-col items-start justify-between rounded-[20px] border border-line bg-surface-2 p-3.5 text-left")}
+                className={cn("tap flex h-[80px] flex-col items-start justify-between rounded-[18px] border border-line bg-surface-2 p-3 text-left")}
               >
                 <span className="grid size-8 place-items-center rounded-xl" style={{ background: `color-mix(in oklab, ${it.tint} 15%, var(--surface))`, color: it.tint }}>
                   <Icon className="size-[18px]" strokeWidth={2} />

@@ -1,19 +1,34 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { Flag, Sparkles, Target } from "lucide-react";
+import { Check, Flag, Sparkles, Target } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ButtonLink } from "@/components/ui/button";
-import { Card, EmptyState, PageHeader, Section, Skeleton, StatusPill } from "@/components/ui/primitives";
+import { CountUp } from "@/components/ui/motion";
+import {
+  AskTimi,
+  Card,
+  EmptyState,
+  Meter,
+  PageHeader,
+  Row,
+  Section,
+  Skeleton,
+  Stat,
+  StatStrip,
+  StatusPill,
+} from "@/components/ui/primitives";
 import { db, t } from "@/db";
+import { GUIDE } from "@/lib/ai/guide";
 import { requireUser } from "@/lib/auth";
 import { getGoalHealth, getPlanStrength, type GoalHealth } from "@/lib/coach";
 import { cn } from "@/lib/cn";
-import { colorVar } from "@/lib/colors";
+import { tint } from "@/lib/colors";
 import { formatMonthDay, relativeDay } from "@/lib/dates";
-import { getActiveSeason, seasonProgress } from "@/lib/queries";
+import { getActiveSeason, getGoalOptions, seasonProgress } from "@/lib/queries";
+import { CoachAction } from "./[id]/goal-client";
 import { AddGoalButton } from "./_components/goal-sheets";
-import { fmtHours, fmtMin, TIERS } from "./_components/meta";
-import { PlanStrengthChip, SeasonMenu } from "./_components/overview-client";
+import { fmtHours, fmtMin, tierLabel } from "./_components/meta";
+import { PlanStrengthStat, SeasonMenu } from "./_components/overview-client";
 
 export default function GoalsPage() {
   return (
@@ -25,15 +40,19 @@ export default function GoalsPage() {
 
 function GoalsSkeleton() {
   return (
-    <div className="pt-6">
-      <Skeleton className="h-4 w-32" />
-      <Skeleton className="mt-3 h-10 w-56" />
-      <Skeleton className="mt-6 h-28" />
-      <Skeleton className="mt-8 h-24" />
-      <Skeleton className="mt-3 h-24" />
+    <div className="pt-5">
+      <Skeleton className="h-3 w-28" />
+      <Skeleton className="mt-2 h-9 w-48" />
+      <Skeleton className="mt-2 h-4 w-40" />
+      <Skeleton className="mt-5 h-12" />
+      <Skeleton className="mt-4 h-6" />
+      <Skeleton className="mt-6 h-36 rounded-[20px]" />
+      <Skeleton className="mt-2.5 h-36 rounded-[20px]" />
     </div>
   );
 }
+
+const DRIFT_RANK = { off_track: 0, adjust: 1, on_track: 2 } as const;
 
 async function GoalsContent() {
   const user = await requireUser();
@@ -42,73 +61,90 @@ async function GoalsContent() {
   if (!season) {
     return (
       <>
-        <PageHeader title="Goals" subtitle="Twelve weeks. A few things that matter." />
+        <PageHeader eyebrow="Goals" title="No season yet" subtitle="Twelve weeks. A few things that matter." />
         <EmptyState
           icon={<Target />}
-          title="No season yet"
-          body="Dump everything out, pick what matters, give it time. Takes about ten minutes."
+          title="Plan your first season"
+          body="Write down what you want, pick up to three goals, give each one hours a week. About ten minutes."
           action={
-            <ButtonLink href="/goals/setup">
+            <ButtonLink href="/goals/setup" variant="accent" size="sm">
               <Sparkles className="size-4" /> Plan a season
             </ButtonLink>
           }
+          timi={GUIDE.firstSeason}
+          timiLabel="Set it up with Timi"
         />
       </>
     );
   }
 
-  const [health, completed] = await Promise.all([
+  const [health, completed, goalOptions] = await Promise.all([
     getGoalHealth(user.id, user.today),
     db
       .select({ id: t.goals.id, title: t.goals.title, color: t.goals.color })
       .from(t.goals)
       .where(and(eq(t.goals.seasonId, season.id), eq(t.goals.userId, user.id), isNotNull(t.goals.completedAt))),
+    getGoalOptions(user.id),
   ]);
   const strength = await getPlanStrength(user.id, season.id, health);
   const progress = seasonProgress(season, user.today);
   const ended = user.today > season.endDate;
   const notStarted = user.today < season.startDate;
   const weeks = Math.ceil(progress.total / 7);
+  const weeksLeft = weeks - progress.week;
+  const ctx = { goals: goalOptions, today: user.today };
+
+  const onTrack = health.filter((h) => h.autoStatus === "on_track").length;
+  const effort = health.reduce((s, h) => s + Math.max(h.week.doneMin, h.week.focusMin), 0);
+  const target = health.reduce((s, h) => s + h.week.targetMin, 0);
+  const weeklyHours = health.reduce((s, h) => s + h.goal.weeklyHours, 0);
+  // Timi helps with the goal drifting most (one chip per screen).
+  const rescue = [...health].filter((h) => h.autoStatus !== "on_track").sort((a, b) => DRIFT_RANK[a.autoStatus] - DRIFT_RANK[b.autoStatus])[0];
+
+  const subtitle = notStarted
+    ? `Starts ${relativeDay(season.startDate, user.today).toLowerCase()}`
+    : ended
+      ? `Ended ${formatMonthDay(season.endDate)}`
+      : `Week ${progress.week} of ${weeks} · ${weeksLeft > 0 ? `${weeksLeft} ${weeksLeft === 1 ? "week" : "weeks"} left` : `${progress.daysLeft} ${progress.daysLeft === 1 ? "day" : "days"} left`}`;
 
   return (
     <>
       <PageHeader
-        eyebrow={`Season · Week ${progress.week} of ${weeks}`}
+        eyebrow={`Season · ends ${formatMonthDay(season.endDate)}`}
         title={season.name}
-        subtitle={season.intention ?? undefined}
+        subtitle={<span className="font-medium text-ink">{subtitle}</span>}
         action={
-          <div className="flex gap-2">
+          <>
             <AddGoalButton endDateLabel={formatMonthDay(season.endDate)} />
             <SeasonMenu season={season} />
-          </div>
+          </>
         }
       />
 
-      <Card className="px-4 pt-4 pb-3.5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-[14px] font-medium text-ink-2">
-            {notStarted ? (
-              <>Starts {relativeDay(season.startDate, user.today)}</>
-            ) : ended ? (
-              <>Season ended {formatMonthDay(season.endDate)}</>
-            ) : (
-              <>
-                <span className="tnum font-semibold text-ink">Day {progress.day}</span>
-                <span className="tnum"> of {progress.total}</span>
-                <span className="text-ink-3"> · </span>
-                <span className="tnum">{progress.daysLeft} left</span>
-              </>
-            )}
-          </div>
-          <PlanStrengthChip strength={strength} />
-        </div>
-        <WeekBar weeks={weeks} current={notStarted ? 0 : ended ? weeks + 1 : progress.week} />
-      </Card>
+      {health.length > 0 && (
+        <StatStrip>
+          <Stat
+            value={`${onTrack} of ${health.length}`}
+            label="goals on track"
+            tone={onTrack === health.length ? "ok" : onTrack === 0 ? "bad" : "warn"}
+          />
+          <Stat value={<CountUp value={effort} format="duration" />} label={`of ${fmtMin(target)} done this week`} />
+          <PlanStrengthStat strength={strength} />
+        </StatStrip>
+      )}
+
+      <SeasonBar
+        weeks={weeks}
+        current={notStarted ? 0 : ended ? weeks + 1 : progress.week}
+        start={season.startDate}
+        end={season.endDate}
+        intention={season.intention}
+      />
 
       {ended && (
-        <Card className="mt-3 flex items-center justify-between gap-3 px-4 py-3.5">
-          <p className="text-[14px] text-ink-2">Time to review and plan the next one.</p>
-          <ButtonLink href="/goals/setup" size="sm">
+        <Card className="mt-4 flex items-center justify-between gap-3 py-3 pr-3 pl-4">
+          <p className="text-[14px] text-ink-2">Review it, then plan the next one.</p>
+          <ButtonLink href="/goals/setup" variant="accent" size="sm">
             New season
           </ButtonLink>
         </Card>
@@ -116,127 +152,144 @@ async function GoalsContent() {
 
       {health.length === 0 ? (
         <EmptyState
-          className="mt-8"
+          className="mt-6"
           icon={<Target />}
           title="No open goals"
-          body="Add a goal with the plus button above."
+          body="Add one with the plus button. Three is plenty for twelve weeks."
+          timi={GUIDE.canIFit("a new goal")}
+          timiLabel="What fits?"
         />
       ) : (
-        TIERS.map((tier) => {
-          const list = health.filter((h) => h.goal.tier === tier.value);
-          if (!list.length) return null;
-          const hours = list.reduce((s, h) => s + h.goal.weeklyHours, 0);
-          return (
-            <Section key={tier.value} title={tier.heading} action={<span className="tnum">{fmtHours(hours)} / week</span>} className="mt-9">
-              <div className="flex flex-col gap-2.5">
-                {list.map((h) => (
-                  <GoalCard key={h.goal.id} h={h} today={user.today} />
-                ))}
-              </div>
-            </Section>
-          );
-        })
+        <Section title="Goals" count={`${fmtHours(weeklyHours)} a week`} stagger bodyClassName="flex flex-col gap-2.5">
+          {health.map((h) => (
+            <GoalCard key={h.goal.id} h={h} today={user.today} ctx={ctx} rescue={h === rescue} />
+          ))}
+        </Section>
       )}
 
       {completed.length > 0 && (
-        <Section title="Completed" className="mt-9">
-          <Card className="overflow-hidden">
-            {completed.map((g) => (
-              <Link
-                key={g.id}
-                href={`/goals/${g.id}`}
-                className="tap flex items-center gap-3 px-4 py-3.5 text-[15px] text-ink-3 active:bg-sunken [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line"
-              >
-                <span className="size-2 rounded-full" style={{ background: colorVar(g.color) }} />
-                <span className="truncate line-through decoration-line-strong">{g.title}</span>
-              </Link>
-            ))}
-          </Card>
+        <Section title="Completed" count={completed.length} card>
+          {completed.map((g) => (
+            <Row
+              key={g.id}
+              href={`/goals/${g.id}`}
+              icon={<Check strokeWidth={2.6} />}
+              iconColor={g.color}
+              title={<span className="text-ink-3 line-through decoration-line-strong">{g.title}</span>}
+            />
+          ))}
         </Section>
       )}
     </>
   );
 }
 
-function WeekBar({ weeks, current }: { weeks: number; current: number }) {
+/** Twelve week segments: past weeks filled, this week in accent. */
+function SeasonBar({
+  weeks,
+  current,
+  start,
+  end,
+  intention,
+}: {
+  weeks: number;
+  current: number;
+  start: string;
+  end: string;
+  intention: string | null;
+}) {
   return (
-    <div className="mt-4" aria-label={`Week ${current} of ${weeks}`}>
-      <div className="flex gap-[3px]">
+    <div className="mt-4 px-1">
+      <div className="meter-grow flex gap-[3px]" role="img" aria-label={`Week ${current} of ${weeks}`}>
         {Array.from({ length: weeks }, (_, i) => {
           const w = i + 1;
           return (
-            <div
+            <span
               key={w}
               className={cn(
-                "h-2 flex-1 rounded-full",
-                w < current ? "bg-ink-2" : w === current ? "bg-accent" : "bg-sunken",
+                "h-1.5 flex-1 rounded-full",
+                w < current ? "bg-ink-3" : w === current ? "bg-accent" : "bg-sunken",
               )}
             />
           );
         })}
       </div>
-      <div className="mt-1.5 flex gap-[3px]">
-        {Array.from({ length: weeks }, (_, i) => {
-          const w = i + 1;
-          return (
-            <div
-              key={w}
-              className={cn(
-                "tnum flex-1 text-center text-[10px] font-medium",
-                w === current ? "font-semibold text-accent" : "text-ink-3",
-              )}
-            >
-              {w === current ? `w${w}` : w}
-            </div>
-          );
-        })}
+      <div className="tnum mt-1.5 flex justify-between text-[11.5px] font-medium text-ink-3">
+        <span>{formatMonthDay(start)}</span>
+        <span>{formatMonthDay(end)}</span>
       </div>
+      {intention && <p className="mt-2 text-[13.5px] leading-snug text-ink-3 italic">{intention}</p>}
     </div>
   );
 }
 
-function GoalCard({ h, today }: { h: GoalHealth; today: string }) {
+type Ctx = Parameters<typeof CoachAction>[0]["ctx"];
+
+function GoalCard({ h, today, ctx, rescue }: { h: GoalHealth; today: string; ctx: Ctx; rescue: boolean }) {
   const { goal, week } = h;
-  const color = colorVar(goal.color);
   const effort = Math.max(week.doneMin, week.focusMin);
-  const planned = week.targetMin ? Math.min(1, week.plannedMin / week.targetMin) : 0;
-  const done = week.targetMin ? Math.min(1, effort / week.targetMin) : 0;
+  const total = Math.max(week.targetMin, week.plannedMin, effort, 1);
   const ms = h.nextMilestone;
   const overdue = ms?.dueDate != null && ms.dueDate < today;
+  const drifting = h.autoStatus !== "on_track";
+  // Only surface the coach's step when something needs fixing; on-track cards stay calm.
+  const rec = h.recommendation && (drifting || h.recommendation.kind === "protect_time") ? h.recommendation : undefined;
 
   return (
-    <Link href={`/goals/${goal.id}`} className="tap card relative block overflow-hidden py-4 pr-4 pl-5 active:bg-surface-2">
-      <span className="absolute inset-y-0 left-0 w-[4px]" style={{ background: color }} />
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="min-w-0 pt-0.5 text-[16px] leading-snug font-semibold tracking-tight text-ink">{goal.title}</h3>
-        <StatusPill status={h.autoStatus} className="shrink-0" />
-      </div>
-      {h.autoStatus !== "on_track" && h.reasons[0] && <p className="mt-1 text-[13px] text-ink-3">{h.reasons[0]}</p>}
-
-      <div className="mt-3.5">
-        <div className="relative h-1.5 overflow-hidden rounded-full bg-sunken">
-          <div className="absolute inset-y-0 left-0 rounded-full opacity-30" style={{ width: `${planned * 100}%`, background: color }} />
-          <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${done * 100}%`, background: color }} />
+    <div className="card overflow-hidden" style={tint(goal.color)}>
+      <Link href={`/goals/${goal.id}`} className="tap-row block px-4 pt-3.5 pb-3.5">
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-[11.5px] font-semibold tracking-wide text-ink-3 uppercase">
+              <span className="size-2 rounded-full bg-tint" />
+              {tierLabel(goal.tier)}
+            </div>
+            <h3 className="mt-1 text-[16px] leading-snug font-semibold tracking-tight text-ink">{goal.title}</h3>
+          </div>
+          <StatusPill status={h.autoStatus} className="mt-0.5 shrink-0" />
         </div>
-        <div className="tnum mt-2 flex items-center justify-between gap-2 text-[12.5px] text-ink-3">
-          <span>
-            <span className="font-medium text-ink-2">{fmtMin(week.plannedMin)}</span> of {fmtHours(goal.weeklyHours)} blocked
+        {drifting && h.reasons[0] && <p className="mt-1 text-[13px] text-ink-2">{h.reasons[0]}</p>}
+
+        <div className="tnum mt-3 flex items-baseline justify-between gap-3 text-[13px]">
+          <span className="text-ink-3">
+            <span className="font-semibold text-ink">{fmtMin(effort)}</span> of {fmtMin(week.targetMin)} this week
           </span>
-          <span>{fmtMin(effort)} done</span>
+          <span className="text-ink-3">{fmtMin(week.plannedMin)} blocked</span>
         </div>
-      </div>
+        <Meter
+          className="mt-2"
+          height={6}
+          legend={false}
+          total={total}
+          segments={[
+            { kind: "done", value: effort },
+            { kind: "planned", value: Math.max(0, week.plannedMin - effort) },
+          ]}
+        />
 
-      {ms && (
-        <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-[13px]">
-          <Flag className={cn("size-3.5 shrink-0", overdue ? "text-bad" : "text-ink-3")} />
-          <span className="min-w-0 truncate text-ink-2">{ms.title}</span>
-          {ms.dueDate && (
-            <span className={cn("tnum ml-auto shrink-0", overdue ? "font-medium text-bad" : "text-ink-3")}>
-              {formatMonthDay(ms.dueDate)}
-            </span>
+        {ms && (
+          <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-[13px]">
+            <Flag className={cn("size-3.5 shrink-0", overdue ? "text-bad" : "text-ink-3")} />
+            <span className="min-w-0 truncate text-ink-2">{ms.title}</span>
+            {ms.dueDate && (
+              <span className={cn("tnum ml-auto shrink-0", overdue ? "font-medium text-bad" : "text-ink-3")}>
+                {overdue ? "Overdue · " : ""}
+                {formatMonthDay(ms.dueDate)}
+              </span>
+            )}
+          </div>
+        )}
+      </Link>
+
+      {(rescue || rec) && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">
+          {rescue ? (
+            <AskTimi prompt={GUIDE.rescueGoal(goal.title)} label="Find a fix with Timi" />
+          ) : (
+            rec && <CoachAction rec={rec} ctx={ctx} goalTitle={goal.title} compact />
           )}
         </div>
       )}
-    </Link>
+    </div>
   );
 }

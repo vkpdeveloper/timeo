@@ -1,12 +1,11 @@
 import { Check, Minus, X } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { ProgressBar, ProgressRing } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { colorVar, softVar } from "@/lib/colors";
 import { WEEKDAY_LETTER, dayOfMonth } from "@/lib/dates";
 import type { DayStatus, TrainingDay } from "@/lib/fitness";
 import { fmtCompact, type MacroTotals } from "@/lib/fitness-math";
+import { Bar, Ring } from "./charts";
 
 // Server-safe building blocks used across the Fitness screens.
 
@@ -32,7 +31,7 @@ export function StatusChip({ status, className }: { status: DayStatus; className
 /** Mon–Sun strip with plan vs actual per day. */
 export function WeekStrip({ days, href }: { days: TrainingDay[]; href?: (d: TrainingDay) => string | null }) {
   return (
-    <div className="grid grid-cols-7 gap-1">
+    <div className="stagger grid grid-cols-7 gap-1">
       {days.map((d) => {
         const link = href?.(d) ?? null;
         const inner = (
@@ -135,109 +134,61 @@ function SwapMark() {
   );
 }
 
-/** Ring for calories and three thin bars for macros. */
-export function MacroSummary({
-  totals,
-  target,
-  compact,
-}: {
-  totals: MacroTotals;
-  target: MacroTotals | null;
-  compact?: boolean;
-}) {
-  const ringSize = compact ? 92 : 112;
-  const left = target ? target.calories - totals.calories : null;
+type Macro = { key: string; label: string; unit: string; value: number; target: number | null; color: string };
+
+function macros(totals: MacroTotals, target: MacroTotals | null): Macro[] {
+  return [
+    { key: "kcal", label: "kcal", unit: "", value: totals.calories, target: target?.calories ?? null, color: "var(--c-amber)" },
+    { key: "p", label: "Protein", unit: "g", value: totals.proteinG, target: target?.proteinG ?? null, color: "var(--c-rose)" },
+    { key: "c", label: "Carbs", unit: "g", value: totals.carbsG, target: target?.carbsG ?? null, color: "var(--c-sky)" },
+    { key: "f", label: "Fat", unit: "g", value: totals.fatG, target: target?.fatG ?? null, color: "var(--c-teal)" },
+  ];
+}
+
+/** Four small rings: kcal, protein, carbs, fat. For the hub. */
+export function MacroRings({ totals, target }: { totals: MacroTotals; target: MacroTotals | null }) {
   return (
-    <div className="flex items-center gap-5">
-      <ProgressRing
-        value={target ? totals.calories / Math.max(1, target.calories) : 0}
-        size={ringSize}
-        stroke={compact ? 8 : 9}
-        color={totals.calories === 0 || !target ? "transparent" : left != null && left < 0 ? "var(--warn)" : "var(--c-amber)"}
-      >
-        <div className="text-center leading-none">
-          <div className={cn("tnum font-semibold tracking-tight text-ink", compact ? "text-[20px]" : "text-[24px]")}>
-            {fmtCompact(totals.calories)}
+    <div className="grid grid-cols-4 gap-1">
+      {macros(totals, target).map((m, i) => {
+        const over = m.target != null && m.value > m.target * 1.05;
+        return (
+          <div key={m.key} className="flex min-w-0 flex-col items-center">
+            <Ring value={m.target ? m.value / m.target : 0} size={58} stroke={5} color={over ? "var(--warn)" : m.color} delay={i * 0.06}>
+              <span className="tnum text-[13.5px] font-semibold tracking-tight text-ink">{fmtCompact(m.value)}</span>
+            </Ring>
+            <div className="mt-1.5 text-[12px] font-medium text-ink-2">{m.label}</div>
+            <div className="tnum text-[11.5px] text-ink-3">{m.target != null ? `of ${fmtCompact(m.target)}${m.unit ? ` ${m.unit}` : ""}` : "no target"}</div>
           </div>
-          <div className="mt-1 text-[11px] font-medium text-ink-3">
-            {target ? `of ${fmtCompact(target.calories)}` : "kcal"}
-          </div>
-        </div>
-      </ProgressRing>
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <MacroBar label="Protein" value={totals.proteinG} target={target?.proteinG} color="var(--c-rose)" />
-        <MacroBar label="Carbs" value={totals.carbsG} target={target?.carbsG} color="var(--c-sky)" />
-        <MacroBar label="Fat" value={totals.fatG} target={target?.fatG} color="var(--c-teal)" />
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-function MacroBar({ label, value, target, color }: { label: string; value: number; target?: number; color: string }) {
+/** Protein, carbs and fat as labelled meters with what is left. For the nutrition screen. */
+export function MacroMeters({ totals, target }: { totals: MacroTotals; target: MacroTotals | null }) {
   return (
-    <div>
-      <div className="mb-1 flex items-baseline justify-between text-[12.5px]">
-        <span className="font-medium text-ink-2">{label}</span>
-        <span className="tnum text-ink-3">
-          <span className="font-semibold text-ink">{value}</span>
-          {target ? ` / ${target} g` : " g"}
-        </span>
-      </div>
-      <ProgressBar value={target ? value / target : 0} color={color} />
+    <div className="grid grid-cols-3 gap-4">
+      {macros(totals, target)
+        .slice(1)
+        .map((m, i) => {
+          const left = m.target != null ? m.target - m.value : null;
+          return (
+            <div key={m.key} className="min-w-0">
+              <div className="text-[12.5px] font-medium text-ink-3">{m.label}</div>
+              <div className="tnum mt-0.5 truncate text-[16px] font-semibold tracking-tight text-ink">
+                {m.value}
+                <span className="text-[12.5px] font-medium text-ink-3">{m.target != null ? ` / ${m.target} g` : " g"}</span>
+              </div>
+              <Bar value={m.target ? m.value / m.target : 0} color={m.color} className="mt-1.5" delay={0.1 + i * 0.06} />
+              {left != null && (
+                <div className={cn("tnum mt-1 text-[12px]", left < 0 ? "text-warn" : "text-ink-3")}>
+                  {left >= 0 ? `${left} g left` : `${-left} g over`}
+                </div>
+              )}
+            </div>
+          );
+        })}
     </div>
-  );
-}
-
-/** Tiny trend line; values are plotted evenly spaced. */
-export function Sparkline({
-  values,
-  width = 120,
-  height = 36,
-  color = "var(--c-sage)",
-  className,
-}: {
-  values: number[];
-  width?: number;
-  height?: number;
-  color?: string;
-  className?: string;
-}) {
-  if (values.length < 2) return null;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const pad = 3;
-  const pts = values.map((v, i) => [
-    pad + (i / (values.length - 1)) * (width - pad * 2),
-    pad + (1 - (v - min) / span) * (height - pad * 2),
-  ]);
-  const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-  const last = pts[pts.length - 1];
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className={className} aria-hidden>
-      <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={last[0]} cy={last[1]} r={3.5} fill={color} stroke="var(--surface)" strokeWidth={2} />
-    </svg>
-  );
-}
-
-export function StatTile({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
-  return (
-    <div className="min-w-0 px-4 py-3.5">
-      <div className="text-[12px] font-medium text-ink-3">{label}</div>
-      <div className="tnum mt-0.5 text-[22px] font-semibold tracking-tight text-ink">{value}</div>
-      {sub && <div className="mt-0.5 truncate text-[11.5px] text-ink-3">{sub}</div>}
-    </div>
-  );
-}
-
-export function IconBadge({ color, children }: { color: string; children: ReactNode }) {
-  return (
-    <span
-      className="grid size-9 shrink-0 place-items-center rounded-xl [&_svg]:size-[18px]"
-      style={{ background: `color-mix(in oklab, ${color} 14%, var(--surface))`, color }}
-    >
-      {children}
-    </span>
   );
 }

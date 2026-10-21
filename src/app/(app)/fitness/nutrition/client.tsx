@@ -1,10 +1,12 @@
 "use client";
 
 import { Check, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useOptimistic, useState, useTransition } from "react";
 import { deleteMealLog, logPlannedMeal } from "@/actions/health";
 import { MealSheet } from "@/components/forms/sheets";
 import { Button } from "@/components/ui/button";
+import { listItem } from "@/components/ui/motion";
 import { Sheet } from "@/components/ui/sheet";
 import type { DietPlanMeal, MealLog } from "@/db/schema";
 import { cn } from "@/lib/cn";
@@ -19,7 +21,7 @@ export function LogMealButton({ today }: { today: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button variant="secondary" size="lg" onClick={() => setOpen(true)}>
+      <Button variant="accent" size="lg" onClick={() => setOpen(true)}>
         <Plus className="size-4" /> Log a meal
       </Button>
       <MealSheet open={open} onClose={() => setOpen(false)} today={today} />
@@ -31,18 +33,20 @@ export function PlanMeals({ meals, logged, today }: { meals: DietPlanMeal[]; log
   const [done, add] = useOptimistic(logged, (list, id: string) => [...list, id]);
   const [, start] = useTransition();
   return (
-    <div className="card overflow-hidden">
+    <div className="card card-list stagger overflow-hidden">
       {meals.map((m) => {
         const ate = done.includes(m.id);
         return (
-          <div key={m.id} className="flex items-start gap-3 border-b border-line px-4 py-3.5 last:border-0">
-            <div className="tnum w-14 shrink-0 pt-0.5 text-[12.5px] font-medium text-ink-3">
+          <div key={m.id} className="flex min-h-[52px] items-center gap-3 px-4 py-2.5">
+            <div className="tnum w-11 shrink-0 text-[12.5px] font-medium text-ink-3">
               {m.timeMin != null ? formatMin(m.timeMin, true) : ""}
             </div>
             <div className="min-w-0 flex-1">
-              <div className={cn("text-[15px] font-semibold", ate ? "text-ink-3" : "text-ink")}>{m.name}</div>
-              {m.items && <div className="mt-0.5 text-[13px] leading-snug whitespace-pre-line text-ink-2">{m.items}</div>}
-              <div className="tnum mt-1 text-[12px] text-ink-3">{macroLine(m)}</div>
+              <div className={cn("truncate text-[15px] font-medium transition-colors", ate ? "text-ink-3" : "text-ink")}>{m.name}</div>
+              {m.items && (
+                <div className="line-clamp-1 text-[13px] text-ink-3">{m.items.split("\n").filter(Boolean).join(" · ")}</div>
+              )}
+              <div className="tnum text-[12px] text-ink-3">{macroLine(m)}</div>
             </div>
             <button
               type="button"
@@ -53,14 +57,14 @@ export function PlanMeals({ meals, logged, today }: { meals: DietPlanMeal[]; log
                 })
               }
               className={cn(
-                "tap inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-semibold",
+                "tap inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-semibold transition-colors",
                 ate ? "bg-ok-soft text-ok" : "bg-sunken text-ink",
               )}
               aria-label={ate ? `Log ${m.name} again` : `Log ${m.name}`}
             >
               {ate ? (
                 <>
-                  <Check className="size-3.5" strokeWidth={3} /> Ate
+                  <Check className="size-3.5 animate-pop" strokeWidth={3} /> Ate
                 </>
               ) : (
                 "Ate this"
@@ -76,30 +80,33 @@ export function PlanMeals({ meals, logged, today }: { meals: DietPlanMeal[]; log
 export function LoggedMeals({ meals }: { meals: MealLog[] }) {
   const [list, remove] = useOptimistic(meals, (l, id: string) => l.filter((m) => m.id !== id));
   const [, start] = useTransition();
-  if (!list.length) return <div className="card px-4 py-5 text-[14px] text-ink-3">Nothing logged yet today.</div>;
+  if (!list.length)
+    return <div className="card px-4 py-5 text-[14px] text-ink-3">Nothing logged yet. Tap Ate this on a planned meal, or log one above.</div>;
   return (
-    <div className="card overflow-hidden">
-      {list.map((m) => (
-        <div key={m.id} className="flex items-center gap-3 border-b border-line py-3 pr-2 pl-4 last:border-0">
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[15px] font-medium text-ink">{m.name}</div>
-            <div className="tnum text-[12.5px] text-ink-3">{macroLine(m)}</div>
-          </div>
-          <button
-            type="button"
-            aria-label={`Delete ${m.name}`}
-            onClick={() =>
-              start(async () => {
-                remove(m.id);
-                await deleteMealLog(m.id);
-              })
-            }
-            className="tap grid size-11 shrink-0 place-items-center rounded-full text-ink-3"
-          >
-            <Trash2 className="size-4" />
-          </button>
-        </div>
-      ))}
+    <div className="card card-list overflow-hidden">
+      <AnimatePresence initial={false}>
+        {list.map((m) => (
+          <motion.div key={m.id} {...listItem} className="flex min-h-[52px] items-center gap-3 py-1.5 pr-1.5 pl-4">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[15px] font-medium text-ink">{m.name}</div>
+              <div className="tnum truncate text-[12.5px] text-ink-3">{macroLine(m)}</div>
+            </div>
+            <button
+              type="button"
+              aria-label={`Delete ${m.name}`}
+              onClick={() =>
+                start(async () => {
+                  remove(m.id);
+                  await deleteMealLog(m.id);
+                })
+              }
+              className="tap grid size-11 shrink-0 place-items-center rounded-full text-ink-3"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import { addDays, diffDays, formatMonthDay } from "@/lib/dates";
+import { addDays, diffDays, formatDuration, formatMonthDay } from "@/lib/dates";
 import type { GoalStatus } from "./data";
 
 const DOT: Record<GoalStatus, string> = { on_track: "bg-ok", adjust: "bg-warn", off_track: "bg-bad" };
@@ -35,4 +35,10 @@ export function StatusDots({
       ))}
     </span>
   );
+}
+
+/** Minutes to the nearest quarter hour for summaries ("14h 30m"); zero reads "0h". */
+export function roundedTime(min: number) {
+  if (min <= 0) return "0h";
+  return formatDuration(Math.round(min / 15) * 15 || Math.round(min));
 }

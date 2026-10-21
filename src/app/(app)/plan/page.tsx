@@ -1,13 +1,17 @@
 import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { PageTransition } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
-import { addDays, isValidISODate, nowMinIn, startOfWeek, weekDays, weekday } from "@/lib/dates";
+import { addDays, isValidISODate, nowMinIn, relativeDay, startOfWeek, weekDays, weekday } from "@/lib/dates";
 import { getActiveSeason, getGoalOptions, seasonProgress } from "@/lib/queries";
-import { findFreeSlot } from "@/lib/schedule";
-import { DayView } from "./_components/day-view";
+import { coveredMinutes, findFreeSlot } from "@/lib/schedule";
+import { dayBounds, dayCapacity } from "../today-headline";
+import type { Capacity } from "./_components/capacity";
+import { CapacityBar, LightWeekHint } from "./_components/capacity";
+import { AddBlockButton, DayView } from "./_components/day-view";
 import { PlanHeader } from "./_components/plan-header";
 import { PlanProvider } from "./_components/plan-provider";
 import type { Ghost, GoalInfo, PlanBlock, PlanView, UnscheduledTask } from "./_components/types";
@@ -26,11 +30,12 @@ export default function PlanPage(props: PageProps<"/plan">) {
 
 function PlanSkeleton() {
   return (
-    <div className="pt-6">
-      <Skeleton className="h-4 w-24" />
-      <Skeleton className="mt-3 h-10 w-44" />
-      <Skeleton className="mt-6 h-16 w-full" />
-      <Skeleton className="mt-6 h-[60dvh] w-full" />
+    <div className="pt-5 lg:pt-10">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="mt-2.5 h-9 w-40" />
+      <Skeleton className="mt-4 h-[62px] w-full" />
+      <Skeleton className="mt-4 h-12 w-full" />
+      <Skeleton className="mt-4 h-[60dvh] w-full" />
     </div>
   );
 }
@@ -105,7 +110,11 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/plan">[
 
   // ── Goals and colours ──
   const goalById = new Map(goalRows.map((g) => [g.id, g]));
-  const goals: GoalInfo[] = goalRows.map((g) => ({ id: g.id, title: g.title, color: g.color }));
+  const goals: GoalInfo[] = goalRows.map((g) => ({
+    id: g.id,
+    title: g.title,
+    color: g.color,
+  }));
   const scheduleByWeekday = new Map(scheduleRows.map((s) => [s.weekday, s]));
   const routineColor = new Map(scheduleRows.map((s) => [s.name, s.color]));
 
@@ -124,7 +133,15 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/plan">[
     const s = scheduleByWeekday.get(weekday(d));
     if (!s || loggedDays.has(d) || d < user.today) return [];
     if (blocks.some((b) => b.date === d && b.kind === "workout")) return [];
-    return [{ date: d, name: s.name, color: s.color, startMin: s.startMin, durationMin: s.durationMin }];
+    return [
+      {
+        date: d,
+        name: s.name,
+        color: s.color,
+        startMin: s.startMin,
+        durationMin: s.durationMin,
+      },
+    ];
   });
 
   // ── Unscheduled tasks for the selected day ──
@@ -148,9 +165,16 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/plan">[
       : [],
   );
   const dayBlocks = blocks.filter((b) => b.date === date && !b.skippedAt);
-  const busy = dayBlocks.map((b) => ({ startMin: b.startMin, endMin: b.endMin }));
+  const busy = dayBlocks.map((b) => ({
+    startMin: b.startMin,
+    endMin: b.endMin,
+  }));
   const dayGhost = ghosts.find((g) => g.date === date) ?? null;
-  if (dayGhost?.startMin != null) busy.push({ startMin: dayGhost.startMin, endMin: dayGhost.startMin + dayGhost.durationMin });
+  if (dayGhost?.startMin != null)
+    busy.push({
+      startMin: dayGhost.startMin,
+      endMin: dayGhost.startMin + dayGhost.durationMin,
+    });
   const nowRounded = date === user.today ? Math.ceil(nowMinIn(user.timezone) / 15) * 15 : 0;
   // mornings first, but not before 8am unless the day itself starts later
   const slotStart = Math.max(user.dayStartMin, 8 * 60, nowRounded);
@@ -183,7 +207,77 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/plan">[
     plannedMin: plannedByGoal.get(g.id) ?? 0,
   }));
 
-  const eyebrow = season ? `Week ${seasonProgress(season, date).week} · ${season.name}` : String(Number(date.slice(0, 4)));
+  const progress = season ? seasonProgress(season, date) : null;
+  const eyebrow =
+    progress && progress.week >= 1 && progress.week <= 12 ? `Week ${progress.week} of 12` : String(Number(date.slice(0, 4)));
+
+  // ── Capacity: done / still planned / free, per day and for the week ──
+  const nowMin = nowMinIn(user.timezone);
+  const capacityOf = (d: string): Capacity => {
+    const list = blocks.filter((b) => b.date === d);
+    const live = list.filter((b) => !b.skippedAt);
+    const bounds = dayBounds(user.dayStartMin, user.dayEndMin, live);
+    const plannedTotal = coveredMinutes(live);
+    // past days have no free time left; today counts from now
+    if (d < user.today) {
+      const doneMin = coveredMinutes(live.filter((b) => b.doneAt));
+      return {
+        plannedTotal,
+        doneMin,
+        plannedMin: plannedTotal - doneMin,
+        freeMin: 0,
+        past: true,
+        done: live.filter((b) => b.doneAt).length,
+        count: live.length,
+      };
+    }
+    const cap = dayCapacity({
+      blocks: list,
+      nowMin: d === user.today ? nowMin : 0,
+      bounds,
+    });
+    return {
+      plannedTotal,
+      ...cap,
+      past: false,
+      done: live.filter((b) => b.doneAt).length,
+      count: live.length,
+    };
+  };
+  const dayCaps = new Map(days.map((d) => [d, capacityOf(d)]));
+  const weekCap: Capacity = [...dayCaps.values()].reduce(
+    (a, c) => ({
+      plannedTotal: a.plannedTotal + c.plannedTotal,
+      doneMin: a.doneMin + c.doneMin,
+      plannedMin: a.plannedMin + c.plannedMin,
+      freeMin: a.freeMin + c.freeMin,
+      past: a.past && c.past,
+      done: a.done + c.done,
+      count: a.count + c.count,
+    }),
+    {
+      plannedTotal: 0,
+      doneMin: 0,
+      plannedMin: 0,
+      freeMin: 0,
+      past: true,
+      done: 0,
+      count: 0,
+    },
+  );
+  // a light week (still ahead): goal time well short of the targets, or little planned at all
+  const goalTarget = summary.reduce((s, g) => s + g.targetMin, 0);
+  const goalPlanned = summary.reduce((s, g) => s + g.plannedMin, 0);
+  const lightWeek = weekEnd >= user.today && (goalTarget > 0 ? goalPlanned < goalTarget * 0.75 : weekCap.plannedTotal < 10 * 60);
+
+  // load dots: one per ~2h planned (max 4), coloured by the longest blocks
+  const loadDots = (d: string) => {
+    const live = blocks
+      .filter((b) => b.date === d && !b.skippedAt)
+      .sort((a, b) => b.endMin - b.startMin - (a.endMin - a.startMin));
+    const n = Math.min(4, Math.ceil((dayCaps.get(d)?.plannedTotal ?? 0) / 120));
+    return Array.from({ length: n }, (_, i) => live[i % live.length]?.color ?? "neutral");
+  };
 
   // Visible hour range for the timeline: the user's day, stretched to fit any blocks.
   const span = (list: { startMin: number; endMin: number }[]) => {
@@ -193,7 +287,10 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/plan">[
       lo = Math.min(lo, s.startMin);
       hi = Math.max(hi, s.endMin);
     }
-    return { start: Math.max(0, Math.floor(lo / 60) * 60), end: Math.min(24 * 60, Math.ceil(hi / 60) * 60) };
+    return {
+      start: Math.max(0, Math.floor(lo / 60) * 60),
+      end: Math.min(24 * 60, Math.ceil(hi / 60) * 60),
+    };
   };
   const ghostSpans = (list: Ghost[]) =>
     list.flatMap((g) => (g.startMin != null ? [{ startMin: g.startMin, endMin: g.startMin + g.durationMin }] : []));
@@ -205,42 +302,49 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/plan">[
         today={user.today}
         view={view}
         eyebrow={eyebrow}
-        dots={Object.fromEntries(
-          days.map((d) => [
-            d,
-            blocks
-              .filter((b) => b.date === d && !b.skippedAt)
-              .slice(0, 3)
-              .map((b) => b.color ?? "neutral"),
-          ]),
-        )}
+        dots={Object.fromEntries(days.map((d) => [d, loadDots(d)]))}
+        summary={
+          view === "day" ? (
+            <CapacityBar
+              label={relativeDay(date, user.today)}
+              capacity={dayCaps.get(date)!}
+              action={<AddBlockButton date={date} />}
+            />
+          ) : (
+            <CapacityBar label={weekStart === startOfWeek(user.today) ? "This week" : "Week"} capacity={weekCap} />
+          )
+        }
       />
-      {view === "day" ? (
-        <>
-          <UnscheduledTray date={date} tasks={unscheduled} goals={goals} />
-          <DayView
-            key={date}
-            date={date}
-            today={user.today}
-            timezone={user.timezone}
-            range={span([...blocks.filter((b) => b.date === date), ...ghostSpans(dayGhost ? [dayGhost] : [])])}
-            blocks={blocks.filter((b) => b.date === date)}
-            ghost={dayGhost}
-          />
-        </>
-      ) : (
-        <>
-          <WeekSummary goals={summary} />
-          <WeekView
-            days={days}
-            today={user.today}
-            timezone={user.timezone}
-            range={span([...blocks, ...ghostSpans(ghosts)])}
-            blocks={blocks}
-            ghosts={ghosts}
-          />
-        </>
-      )}
+      <PageTransition key={view === "day" ? `day:${date}` : `week:${weekStart}`}>
+        {lightWeek && <LightWeekHint className="mt-4" goalPlanned={goalPlanned} goalTarget={goalTarget} />}
+        {view === "day" ? (
+          <>
+            <UnscheduledTray date={date} tasks={unscheduled} goals={goals} />
+            <DayView
+              key={date}
+              date={date}
+              today={user.today}
+              timezone={user.timezone}
+              range={span([...blocks.filter((b) => b.date === date), ...ghostSpans(dayGhost ? [dayGhost] : [])])}
+              blocks={blocks.filter((b) => b.date === date)}
+              ghost={dayGhost}
+            />
+          </>
+        ) : (
+          <>
+            <WeekSummary goals={summary} />
+            <WeekView
+              days={days}
+              today={user.today}
+              timezone={user.timezone}
+              range={span([...blocks, ...ghostSpans(ghosts)])}
+              blocks={blocks}
+              ghosts={ghosts}
+              caps={Object.fromEntries(dayCaps)}
+            />
+          </>
+        )}
+      </PageTransition>
     </PlanProvider>
   );
 }

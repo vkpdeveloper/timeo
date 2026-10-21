@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { removePushSubscription, saveNotifyPrefs, savePushSubscription, sendTestPush } from "@/actions/push";
 import { Button } from "@/components/ui/button";
 import { TimePicker } from "@/components/ui/pickers";
-import { Card, Section } from "@/components/ui/primitives";
+import { Card, RowIcon, Section } from "@/components/ui/primitives";
 import { toTimeInput, parseTime } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { currentSubscription, pushSupport, subscribePush, unsubscribePush, type PushSupport } from "@/lib/push/client";
@@ -85,28 +85,28 @@ export function NotificationSettings({
   };
 
   return (
-    <div className="pt-6">
-      <Card className="p-5">
-        <div className="flex items-start gap-4">
-          <span className={cn("grid size-12 shrink-0 place-items-center rounded-2xl", enabledHere ? "bg-ok-soft text-ok" : "bg-sunken text-ink-2")}>
-            {enabledHere ? <Bell className="size-5" /> : <BellOff className="size-5" />}
-          </span>
+    <div className="pt-4">
+      <Card className="p-4">
+        <div className="flex items-center gap-3">
+          <RowIcon color={enabledHere ? "sage" : undefined} className="size-10! rounded-[12px]!">
+            {enabledHere ? <Bell /> : <BellOff />}
+          </RowIcon>
           <div className="min-w-0 flex-1">
-            <div className="text-[17px] font-semibold tracking-tight text-ink">{enabledHere ? "On for this device" : "Off on this device"}</div>
-            <p className="mt-0.5 text-[13.5px] leading-relaxed text-ink-3">
+            <div className="text-[16px] font-semibold tracking-tight text-ink">{enabledHere ? "On for this device" : "Off on this device"}</div>
+            <p className="text-[13px] leading-snug text-ink-3">
               {endpoints.length > 0
                 ? `${endpoints.length} device${endpoints.length > 1 ? "s" : ""} get reminders.`
-                : "Get a nudge before blocks, workouts and check-ins."}
+                : "A nudge before blocks, workouts and check-ins."}
             </p>
           </div>
         </div>
 
         {!configured ? (
-          <p className="mt-4 rounded-xl bg-warn-soft px-3.5 py-2.5 text-[13.5px] font-medium text-warn">
+          <p className="mt-3.5 rounded-xl bg-warn-soft px-3.5 py-2.5 text-[13.5px] font-medium text-warn">
             Push isn&apos;t configured on the server yet (VAPID keys missing).
           </p>
         ) : support === "needs-install" ? (
-          <div className="mt-4 rounded-2xl bg-sunken p-4 text-[14px] leading-relaxed text-ink-2">
+          <div className="mt-3.5 rounded-2xl bg-sunken p-3.5 text-[14px] leading-relaxed text-ink-2">
             On iPhone, notifications work once Timeo is on your Home Screen:
             <ol className="mt-2 space-y-1.5">
               <li className="flex items-center gap-2">
@@ -119,80 +119,81 @@ export function NotificationSettings({
             </ol>
           </div>
         ) : support === "unsupported" ? (
-          <p className="mt-4 text-[13.5px] text-ink-3">This browser doesn&apos;t support push notifications.</p>
+          <p className="mt-3.5 text-[13.5px] text-ink-3">This browser doesn&apos;t support push notifications.</p>
         ) : support === "denied" ? (
-          <p className="mt-4 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">
+          <p className="mt-3.5 rounded-xl bg-bad-soft px-3.5 py-2.5 text-[13.5px] font-medium text-bad">
             Notifications are blocked for this site. Allow them in browser settings, then come back.
           </p>
-        ) : (
-          <div className="mt-5 flex gap-2.5">
-            {enabledHere ? (
-              <>
-                <Button variant="secondary" className="flex-1" loading={pending} onClick={() => start(async () => {
+        ) : enabledHere ? (
+          <div className="mt-4 flex gap-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              loading={pending}
+              onClick={() =>
+                start(async () => {
                   const { reached } = await sendTestPush();
                   setNote(reached ? "Sent. Check your notifications." : "Nothing arrived. Try turning it off and on.");
-                })}>
-                  Send test
-                </Button>
-                <Button variant="ghost" onClick={disable} disabled={pending}>
-                  Turn off
-                </Button>
-              </>
-            ) : (
-              <Button size="lg" onClick={enable} loading={pending}>
-                Turn on notifications
-              </Button>
-            )}
+                })
+              }
+            >
+              Send test
+            </Button>
+            <Button variant="ghost" onClick={disable} disabled={pending}>
+              Turn off
+            </Button>
           </div>
+        ) : (
+          <Button variant="accent" size="lg" className="mt-4" onClick={enable} loading={pending}>
+            Turn on notifications
+          </Button>
         )}
-        {note && <p className="mt-3 text-[13px] text-ink-3">{note}</p>}
+        {note && <p className="mt-3 animate-rise text-[13px] text-ink-3">{note}</p>}
       </Card>
 
-      <Section title="Remind me about">
-        <Card className="overflow-hidden">
-          {ITEMS.map((item) => {
-            const on = prefs[item.key] as boolean;
-            return (
-              <div key={item.key} className="flex items-center gap-3 px-4 py-3.5 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-                <div className="min-w-0 flex-1">
-                  <div className="text-[15px] font-medium text-ink">{item.title}</div>
-                  <div className="text-[12.5px] text-ink-3">{item.hint}</div>
-                </div>
-                {on && item.time && (
-                  <TimePicker
-                    aria-label={`${item.title} time`}
-                    value={toTimeInput(prefs[item.time] as number)}
-                    onChange={(v) => {
-                      const m = parseTime(v);
-                      if (m != null) update({ [item.time!]: m } as Partial<NotifyPrefs>);
-                    }}
-                    step={900}
-                    className="min-h-10 w-[128px] shrink-0 py-2 text-[15px]"
-                  />
-                )}
-                {on && item.lead && (
-                  <select
-                    aria-label="Minutes before"
-                    value={prefs.blockLeadMin}
-                    onChange={(e) => update({ blockLeadMin: Number(e.target.value) })}
-                    className="field w-[104px] py-2 text-[15px]"
-                  >
-                    {[0, 5, 10, 15, 30].map((m) => (
-                      <option key={m} value={m}>
-                        {m === 0 ? "At start" : `${m} min`}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <Toggle checked={on} onChange={(v) => update({ [item.key]: v } as Partial<NotifyPrefs>)} label={item.title} />
+      <Section title="Remind me about" card stagger>
+        {ITEMS.map((item) => {
+          const on = prefs[item.key] as boolean;
+          return (
+            <div key={item.key} className="flex min-h-[60px] items-center gap-3 px-4 py-2.5">
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-medium text-ink">{item.title}</div>
+                <div className="text-[12.5px] leading-snug text-ink-3">{item.hint}</div>
               </div>
-            );
-          })}
-        </Card>
-        <p className="mt-2.5 px-1 text-[12.5px] leading-relaxed text-ink-3">
-          Nothing is sent outside your planner day, except blocks you scheduled. The assistant also tells you when a background task finishes.
-        </p>
+              {on && item.time && (
+                <TimePicker
+                  aria-label={`${item.title} time`}
+                  value={toTimeInput(prefs[item.time] as number)}
+                  onChange={(v) => {
+                    const m = parseTime(v);
+                    if (m != null) update({ [item.time!]: m } as Partial<NotifyPrefs>);
+                  }}
+                  step={900}
+                  className="min-h-10 w-[118px] shrink-0 py-2 text-[15px]"
+                />
+              )}
+              {on && item.lead && (
+                <select
+                  aria-label="Minutes before"
+                  value={prefs.blockLeadMin}
+                  onChange={(e) => update({ blockLeadMin: Number(e.target.value) })}
+                  className="field w-[104px] py-2 text-[15px]"
+                >
+                  {[0, 5, 10, 15, 30].map((m) => (
+                    <option key={m} value={m}>
+                      {m === 0 ? "At start" : `${m} min`}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Toggle checked={on} onChange={(v) => update({ [item.key]: v } as Partial<NotifyPrefs>)} label={item.title} />
+            </div>
+          );
+        })}
       </Section>
+      <p className="mt-2.5 px-1 text-[12.5px] leading-relaxed text-ink-3">
+        Nothing is sent outside your planner day, except blocks you scheduled. Timi also tells you when a background task finishes.
+      </p>
     </div>
   );
 }
@@ -205,11 +206,11 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className={cn("tap relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors", checked ? "bg-ok" : "bg-line-strong")}
+      className={cn("tap relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors duration-200", checked ? "bg-ok" : "bg-line-strong")}
     >
       <span
         className={cn(
-          "absolute top-[3px] left-[3px] size-6 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.2)] transition-transform duration-200",
+          "absolute top-[3px] left-[3px] size-6 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.2)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
           checked && "translate-x-5",
         )}
       />

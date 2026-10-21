@@ -1,7 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { springs } from "@/components/ui/motion";
 
 type RestState = { end: number; total: number } | null;
 
@@ -92,61 +93,74 @@ export type RestTimer = ReturnType<typeof useRestTimer>;
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-/** Bottom bar with the rest countdown. */
-export function RestBar({ rest }: { rest: RestTimer }) {
+/** Floating bottom bar with the rest countdown and what comes next. */
+export function RestBar({ rest, next }: { rest: RestTimer; next?: string }) {
   const show = rest.active || rest.finished;
   const pct = rest.total ? rest.remaining / rest.total : 0;
+  const reduce = useReducedMotion();
   return (
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ y: 120, opacity: 0 }}
+          initial={reduce ? { opacity: 0 } : { y: 120, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 120, opacity: 0 }}
-          transition={{ type: "spring", damping: 32, stiffness: 380 }}
+          exit={reduce ? { opacity: 0 } : { y: 120, opacity: 0 }}
+          transition={springs.sheet}
           className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(10px,var(--safe-bottom))] lg:left-60"
         >
-          <div className="mx-auto max-w-[620px] overflow-hidden rounded-[26px] border border-line bg-surface shadow-float">
+          <div className="mx-auto max-w-[620px] overflow-hidden rounded-[24px] border border-line bg-surface shadow-float">
             {rest.active ? (
               <>
                 <div className="h-1 bg-sunken">
                   <div className="h-full bg-tint transition-[width] duration-300 ease-linear" style={{ width: `${pct * 100}%` }} />
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2.5">
-                  <button
-                    type="button"
-                    onClick={() => rest.adjust(-15)}
-                    className="tap h-12 w-16 rounded-2xl bg-sunken text-[15px] font-semibold text-ink"
-                  >
-                    −15
-                  </button>
-                  <div className="flex-1 text-center" aria-live="polite">
-                    <div className="text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Rest</div>
-                    <div className="tnum-live text-[28px] leading-none font-semibold tracking-tight text-ink">{mmss(rest.remaining)}</div>
+                <div className="flex items-center gap-2 px-3 pt-3">
+                  <div className="flex min-w-0 flex-1 items-baseline gap-2 pl-1" aria-live="polite">
+                    <span className="tnum-live text-[34px] leading-none font-semibold tracking-tight text-ink">{mmss(rest.remaining)}</span>
+                    <span className="text-[12px] font-semibold tracking-wide text-ink-3 uppercase">Rest</span>
                   </div>
                   <button
                     type="button"
+                    onClick={() => rest.adjust(-15)}
+                    aria-label="15 seconds less"
+                    className="tap tnum h-12 w-[52px] shrink-0 rounded-2xl bg-sunken text-[15px] font-semibold text-ink"
+                  >
+                    −15
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => rest.adjust(15)}
-                    className="tap h-12 w-16 rounded-2xl bg-sunken text-[15px] font-semibold text-ink"
+                    aria-label="15 seconds more"
+                    className="tap tnum h-12 w-[52px] shrink-0 rounded-2xl bg-sunken text-[15px] font-semibold text-ink"
                   >
                     +15
                   </button>
                   <button
                     type="button"
                     onClick={rest.skip}
-                    className="tap h-12 rounded-2xl bg-ink px-4 text-[15px] font-semibold text-bg"
+                    className="tap h-12 shrink-0 rounded-2xl bg-ink px-4 text-[15px] font-semibold text-bg"
                   >
                     Skip
                   </button>
+                </div>
+                <div className="truncate px-4 pt-1.5 pb-3 text-[13px] text-ink-3">
+                  {next ? (
+                    <>
+                      Next <span className="font-medium text-ink-2">{next}</span>
+                    </>
+                  ) : (
+                    "\u00a0"
+                  )}
                 </div>
               </>
             ) : (
               <button
                 type="button"
                 onClick={rest.dismiss}
-                className="flex h-16 w-full items-center justify-center text-[16px] font-semibold text-ok"
+                className="flex min-h-16 w-full flex-col items-center justify-center px-4 py-2.5 text-center"
               >
-                Rest over. Next set.
+                <span className="text-[16px] font-semibold text-ok">Rest over</span>
+                {next && <span className="mt-0.5 max-w-full truncate text-[13px] text-ink-2">{next}</span>}
               </button>
             )}
           </div>
