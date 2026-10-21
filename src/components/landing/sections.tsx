@@ -13,7 +13,7 @@ import weekDark from "../../../public/landing/shots/week-dark.webp";
 import weekLight from "../../../public/landing/shots/week-light.webp";
 import { Cta } from "./cta";
 import { Reveal } from "./reveal";
-import { Timeline, TimelineStep } from "./timeline";
+import { WeekScroll } from "./week-scroll";
 import { Wordmark } from "./wordmark";
 
 const h2 = "text-[32px] leading-[1.08] font-semibold tracking-[-0.03em] text-balance text-ink sm:text-[44px]";
@@ -37,16 +37,14 @@ type Shot = { light: StaticImageData; dark: StaticImageData };
 /**
  * One week, told in the app's own terms: a time, what happens, and the screen
  * you would see. Crops come from /tmp/timeo-shot/landing-crops.mjs.
- * `align` places a crop in its panel: crops that run past their bottom edge sit on the panel's bottom.
  */
-const week: { day: string; time: string; text: string; shot: Shot; alt: string; align: "center" | "end" }[] = [
+const week: { day: string; time: string; text: string; shot: Shot; alt: string }[] = [
   {
     day: "Sunday",
     time: "19:00",
     text: "Give each goal its hours for the week. Every day shows how full it already is, so you know what fits before Monday.",
     shot: { light: weekLight, dark: weekDark },
     alt: "The Week screen: seven days with how full each one is, the hours planned and free, and the day's time blocks.",
-    align: "end",
   },
   {
     day: "Monday",
@@ -54,7 +52,6 @@ const week: { day: string; time: string; text: string; shot: Shot; alt: string; 
     text: "Open Timeo and it shows one thing: the block you are in and how long is left.",
     shot: { light: nowLight, dark: nowDark },
     alt: "The Now screen: the block in progress, a large countdown of the time left and a bar from its start to its end.",
-    align: "center",
   },
   {
     day: "Monday",
@@ -62,7 +59,6 @@ const week: { day: string; time: string; text: string; shot: Shot; alt: string; 
     text: "Start a session. The screen goes quiet: the task, a timer, and a line from start to end.",
     shot: { light: focusLight, dark: focusDark },
     alt: "A focus session: the task with its goal colour, a large timer and a progress line with the start and end times.",
-    align: "center",
   },
   {
     day: "Tuesday",
@@ -70,7 +66,6 @@ const week: { day: string; time: string; text: string; shot: Shot; alt: string; 
     text: "Something came up. Tell Timi, typed or spoken. It moves the block, adds the task and tells you what still fits.",
     shot: { light: askLight, dark: askDark },
     alt: "The Ask sheet: a box to type or say anything to Timi, suggestions, and quick actions to add a task, block, focus, meal or weigh-in.",
-    align: "end",
   },
   {
     day: "Wednesday",
@@ -78,7 +73,6 @@ const week: { day: string; time: string; text: string; shot: Shot; alt: string; 
     text: "Training and food live next to the plan. The gym gets a block like everything else, and meals are one tap.",
     shot: { light: bodyLight, dark: bodyDark },
     alt: "Today's food: calories against the target, protein and water, and a button to log a meal.",
-    align: "center",
   },
   {
     day: "Friday",
@@ -86,15 +80,14 @@ const week: { day: string; time: string; text: string; shot: Shot; alt: string; 
     text: "See the hours each goal actually got, then review the week in five minutes and adjust the next one.",
     shot: { light: seasonLight, dark: seasonDark },
     alt: "The Season screen: hours toward goals this week, the weekly review, and goals with progress and status.",
-    align: "end",
   },
 ];
 
-/** One crop per mode; CSS shows the one that matches the page (data-mode, else the system setting). */
-function ShotPanel({ shot, alt, align }: { shot: Shot; alt: string; align: "center" | "end" }) {
-  const img = "mx-auto h-auto w-full max-w-[390px]";
+/** One crop per mode; CSS shows the one that matches the page (data-mode, else the system setting). Tall crops are cut at the stage's bottom edge. */
+function ShotPanel({ shot, alt }: { shot: Shot; alt: string }) {
+  const img = "h-auto w-full";
   return (
-    <div className={`l-panel flex justify-center ${align === "end" ? "items-end" : "items-center"}`}>
+    <div className="l-panel max-h-full w-full max-w-[420px]">
       <Image src={shot.light} alt={alt} unoptimized className={`${img} dark:hidden`} />
       <Image src={shot.dark} alt={alt} unoptimized className={`${img} hidden dark:block`} />
     </div>
@@ -103,25 +96,17 @@ function ShotPanel({ shot, alt, align }: { shot: Shot; alt: string; align: "cent
 
 export function Week() {
   return (
-    <section id="week" className="mx-auto max-w-6xl px-6 pb-16 sm:pb-28">
-      <Reveal className="max-w-[44rem]">
-        <h2 className={h2}>A week with Timeo.</h2>
-      </Reveal>
-      <Timeline>
-        {week.map((m) => (
-          <TimelineStep
-            key={m.day + m.time}
-            when={
-              <p className="flex items-baseline gap-2 md:flex-col md:gap-1">
-                <span className="text-[15px] font-medium text-ink">{m.day}</span>
-                <span className="font-mono text-[15px] text-ink-3 tabular-nums">{m.time}</span>
-              </p>
-            }
-            text={<p className="max-w-[30rem] text-[17px] leading-[1.6] text-pretty text-ink-2 md:text-[18px]">{m.text}</p>}
-            panel={<ShotPanel shot={m.shot} alt={m.alt} align={m.align} />}
-          />
-        ))}
-      </Timeline>
+    <section id="week" className="pb-16 sm:pb-28">
+      <WeekScroll
+        title={<h2 className={h2}>A week with Timeo.</h2>}
+        moments={week.map((m) => ({
+          id: m.day + m.time,
+          day: m.day,
+          time: m.time,
+          text: m.text,
+          panel: <ShotPanel shot={m.shot} alt={m.alt} />,
+        }))}
+      />
     </section>
   );
 }
