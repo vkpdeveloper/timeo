@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowUp, Check, Loader2, Mic } from "lucide-react";
+import { ArrowUp, Loader2, Mic } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Timi } from "@/components/ai/timi";
 import { startRun } from "@/lib/ai/runs-client";
 import { cn } from "@/lib/cn";
-import { Timi } from "./timi";
 import { useClientValue } from "@/lib/hooks";
 
 const HINTS = [
@@ -39,8 +39,24 @@ function getRecognition(): SpeechRec | null {
 /**
  * Type (or say) anything; it's sent to the assistant and runs in the
  * background. You can keep using the app; a card appears when it's done.
+ * `suggestions` adds small chips under the input that send a ready prompt.
  */
-export function CommandBar({ className, onSent }: { className?: string; onSent?: () => void }) {
+export function CommandBar({
+  className,
+  onSent,
+  placeholder: fixedPlaceholder,
+  suggestions,
+  autoFocus,
+}: {
+  className?: string;
+  /** Called after a message is handed to Timi. */
+  onSent?: () => void;
+  /** A fixed placeholder instead of the rotating examples. */
+  placeholder?: string;
+  /** Chips under the input, e.g. GUIDE_SUGGESTIONS. */
+  suggestions?: { label: string; prompt: string }[];
+  autoFocus?: boolean;
+}) {
   const [text, setText] = useState("");
   const [hint, setHint] = useState(0);
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -49,9 +65,10 @@ export function CommandBar({ className, onSent }: { className?: string; onSent?:
   const recRef = useRef<SpeechRec | null>(null);
 
   useEffect(() => {
+    if (fixedPlaceholder) return;
     const id = setInterval(() => setHint((h) => (h + 1) % HINTS.length), 3500);
     return () => clearInterval(id);
-  }, []);
+  }, [fixedPlaceholder]);
 
   const send = async (value = text) => {
     const v = value.trim();
@@ -99,63 +116,84 @@ export function CommandBar({ className, onSent }: { className?: string; onSent?:
     rec.start();
   };
 
-  const placeholder = listening ? "Listening…" : state === "sent" ? "Sent. Timi is on it." : state === "error" ? "Couldn't send. Try again." : HINTS[hint];
+  const placeholder = listening
+    ? "Listening…"
+    : state === "sent"
+      ? "Sent. Timi is on it."
+      : state === "error"
+        ? "Couldn't send. Try again."
+        : (fixedPlaceholder ?? HINTS[hint]);
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        send();
-      }}
-      className={cn("card focus-shell flex items-center gap-2 rounded-[22px] p-1.5 pl-4", className)}
-    >
-      {state === "sent" ? (
-        <Check className="size-[18px] shrink-0 text-ok" strokeWidth={2.4} />
-      ) : (
-        <Link href="/assistant" aria-label="Open Timi" className="tap -my-1 -ml-3 grid size-10 shrink-0 place-items-center rounded-full">
-          <Timi size={24} mood={state === "sending" ? "thinking" : state === "error" ? "error" : "idle"} />
+    <div className={className}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+        className="focus-shell flex items-center gap-1 rounded-[14px] border border-line-strong bg-surface p-1 pl-1"
+      >
+        <Link href="/app/assistant" aria-label="Open chat with Timi" className="tap grid size-10 shrink-0 place-items-center rounded-[10px]">
+          <Timi size={30} mood={state === "sending" ? "thinking" : state === "sent" ? "happy" : state === "error" ? "error" : "idle"} />
         </Link>
+        <div className="relative min-w-0 flex-1">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            aria-label="Ask Timi"
+            enterKeyHint="send"
+            autoFocus={autoFocus}
+            className="block h-10 w-full bg-transparent text-[16px] text-ink outline-none"
+          />
+          {!text && (
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center overflow-hidden text-[16px] text-ink-3">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={placeholder}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className={cn("truncate", state === "sent" && "text-accent", state === "error" && "text-warn")}
+                >
+                  {placeholder}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+        {text.trim() ? (
+          <button type="submit" aria-label="Send" disabled={state === "sending"} className="tap grid size-10 shrink-0 place-items-center rounded-[10px] bg-accent text-accent-ink">
+            {state === "sending" ? <Loader2 className="size-[18px] animate-spin" /> : <ArrowUp className="size-[18px]" strokeWidth={2.4} />}
+          </button>
+        ) : canListen ? (
+          <button
+            type="button"
+            onClick={toggleMic}
+            aria-label={listening ? "Stop listening" : "Speak"}
+            className={cn("tap relative grid size-10 shrink-0 place-items-center rounded-[10px]", listening ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-sunken")}
+          >
+            {listening && <span className="absolute inset-0 animate-ping rounded-[10px] bg-accent/30" />}
+            <Mic className="relative size-[18px]" />
+          </button>
+        ) : null}
+      </form>
+      {suggestions && suggestions.length > 0 && (
+        <div className="no-scrollbar -mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4 py-1">
+          {suggestions.map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              disabled={state === "sending"}
+              onClick={() => send(s.prompt)}
+              title={s.prompt}
+              className="tap h-9 shrink-0 rounded-full border border-line-strong bg-surface px-3.5 text-[13.5px] font-medium whitespace-nowrap text-ink-2 hover:text-ink disabled:opacity-50"
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       )}
-      <div className="relative min-w-0 flex-1">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          aria-label="Ask Timi"
-          enterKeyHint="send"
-          className="block h-10 w-full bg-transparent text-[16px] text-ink outline-none"
-        />
-        {!text && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center overflow-hidden text-[16px] text-ink-3">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={placeholder}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.25 }}
-                className={cn("truncate", state === "sent" && "text-ok", state === "error" && "text-bad")}
-              >
-                {placeholder}
-              </motion.span>
-            </AnimatePresence>
-          </div>
-        )}
-      </div>
-      {text.trim() ? (
-        <button type="submit" aria-label="Send" disabled={state === "sending"} className="tap grid size-10 shrink-0 place-items-center rounded-full bg-ink text-bg">
-          {state === "sending" ? <Loader2 className="size-[18px] animate-spin" /> : <ArrowUp className="size-[18px]" strokeWidth={2.4} />}
-        </button>
-      ) : canListen ? (
-        <button
-          type="button"
-          onClick={toggleMic}
-          aria-label={listening ? "Stop listening" : "Speak"}
-          className={cn("tap relative grid size-10 shrink-0 place-items-center rounded-full", listening ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-sunken")}
-        >
-          {listening && <span className="absolute inset-0 animate-ping rounded-full bg-accent/40" />}
-          <Mic className="relative size-[18px]" />
-        </button>
-      ) : null}
-    </form>
+    </div>
   );
 }

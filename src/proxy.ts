@@ -7,7 +7,8 @@ const PUBLIC = ["/login", "/signup", "/forgot-password", "/reset-password"];
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has(SESSION_COOKIE);
-  const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // "/" is the landing page. Matched exactly: as a prefix it would make every path public.
+  const isPublic = pathname === "/" || PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   if (!hasSession && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));

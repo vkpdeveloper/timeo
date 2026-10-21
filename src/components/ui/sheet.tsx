@@ -1,11 +1,12 @@
 "use client";
 
-import { AnimatePresence, motion, useDragControls, type PanInfo } from "motion/react";
+import { AnimatePresence, motion, useDragControls, useMotionValue, useTransform, type PanInfo } from "motion/react";
 import { X } from "lucide-react";
 import { useEffect, useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { useIsClient, useMediaQuery } from "@/lib/hooks";
+import { springs } from "./motion";
 
 type SheetProps = {
   open: boolean;
@@ -29,6 +30,12 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
   const titleId = useId();
   const mounted = useIsClient();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  // Backdrop fades as the sheet is dragged down
+  const dragY = useMotionValue(0);
+  const backdrop = useTransform(() => {
+    const v: unknown = dragY.get();
+    return typeof v === "number" && v > 0 ? Math.max(0.25, 1 - v / 520) : 1;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -43,7 +50,7 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
   }, [open, onClose]);
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.y > 120 || info.velocity.y > 600) onClose();
+    if (info.offset.y > 110 || info.velocity.y > 500) onClose();
   };
 
   if (!mounted) return null;
@@ -52,28 +59,31 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
-          <motion.div
-            className="absolute inset-0 bg-black/35 backdrop-blur-[2px] dark:bg-black/60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            onClick={onClose}
-          />
+          <motion.div className="absolute inset-0" style={{ opacity: backdrop }}>
+            <motion.div
+              className="absolute inset-0 bg-black/30 dark:bg-black/60"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              onClick={onClose}
+            />
+          </motion.div>
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
             className={cn(
               "relative flex w-full flex-col overflow-hidden bg-surface shadow-float",
-              "rounded-t-[28px] md:max-w-lg md:rounded-[28px]",
+              "rounded-t-[20px] border-t border-line md:max-w-lg md:rounded-[20px] md:border",
               tall ? "h-[92dvh] md:h-[80dvh]" : "max-h-[92dvh] md:max-h-[85dvh]",
               className,
             )}
             initial={isDesktop ? { opacity: 0, scale: 0.96, y: 8 } : { y: "100%" }}
             animate={isDesktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
             exit={isDesktop ? { opacity: 0, scale: 0.97, y: 8 } : { y: "100%" }}
-            transition={{ type: "spring", damping: 34, stiffness: 380, mass: 0.9 }}
+            transition={springs.sheet}
+            style={isDesktop ? undefined : { y: dragY }}
             drag={isDesktop ? false : "y"}
             dragControls={controls}
             dragListener={false}
@@ -85,12 +95,12 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
               className="shrink-0 touch-none cursor-grab px-5 pt-2.5 active:cursor-grabbing"
               onPointerDown={(e) => controls.start(e)}
             >
-              <div className="mx-auto mb-3 h-[5px] w-10 rounded-full bg-line-strong md:hidden" />
+              <div className="mx-auto mb-2.5 h-[5px] w-9 rounded-full bg-line-strong md:hidden" />
               {(title || description) && (
                 <div className="flex items-start justify-between gap-4 pb-3 md:pt-3">
                   <div className="min-w-0">
                     {title && (
-                      <h2 id={titleId} className="text-[19px] font-semibold tracking-tight text-ink">
+                      <h2 id={titleId} className="text-[18px] leading-tight font-semibold tracking-[-0.015em] text-ink">
                         {title}
                       </h2>
                     )}
@@ -100,7 +110,7 @@ export function Sheet({ open, onClose, title, description, children, footer, cla
                     type="button"
                     onClick={onClose}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className="tap -mr-1 grid size-8 shrink-0 place-items-center rounded-full bg-sunken text-ink-2"
+                    className="tap relative -mt-0.5 -mr-1 grid size-8 shrink-0 place-items-center rounded-full bg-sunken text-ink-2 before:absolute before:-inset-1.5 before:content-[''] hover:text-ink"
                     aria-label="Close"
                   >
                     <X className="size-4" strokeWidth={2.2} />

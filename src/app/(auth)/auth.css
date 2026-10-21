@@ -1,0 +1,32 @@
+/* Auth screens: flat surfaces, a quiet entrance. */
+
+.auth-fade {
+  animation: auth-fade 500ms 80ms ease-out backwards;
+}
+
+.auth-panel {
+  animation: auth-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.auth-showcase {
+  animation: auth-fade 700ms 120ms ease-out backwards;
+}
+
+@keyframes auth-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-panel {
+    animation-name: auth-fade;
+  }
+}

@@ -14,9 +14,9 @@ import { addDays, formatMin, parseTime, toTimeInput, type ISODate } from "@/lib/
  */
 
 const trigger =
-  "field flex min-h-12 items-center gap-2 text-left text-[16px] data-[state=open]:border-(--focus) data-[state=open]:bg-surface data-[state=open]:shadow-[inset_0_0_0_1px_var(--focus)]";
+  "field flex min-h-12 items-center gap-2 text-left text-[16px] data-[state=open]:border-accent data-[state=open]:shadow-[inset_0_0_0_1px_var(--accent)]";
 // above the bottom Sheet (z-60)
-const panel = "z-[80] rounded-[22px] border-line bg-surface p-0 shadow-float";
+const panel = "z-[80] rounded-[16px] border-line bg-surface p-0 shadow-float";
 
 /* ─────────────────────────── Date ─────────────────────────── */
 

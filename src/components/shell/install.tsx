@@ -2,8 +2,8 @@
 
 import { Check, Download, Share, SquarePlus, X } from "lucide-react";
 import { useState } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/ui/primitives";
 import { useClientValue } from "@/lib/hooks";
 import { useInstall } from "@/lib/pwa";
 
@@ -14,7 +14,7 @@ export function InstallRow() {
 
   return (
     <div className="flex items-center gap-3 px-4 py-3.5 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-sunken text-ink-2">
         {installed ? <Check className="size-[18px]" /> : <Download className="size-[18px]" />}
       </span>
       <div className="min-w-0 flex-1">
@@ -73,8 +73,10 @@ export function InstallBanner() {
   };
 
   return (
-    <div className="card fade-up mt-5 flex items-center gap-3 p-3.5 pl-4">
-      <Image src="/icon-192.png" alt="" width={40} height={40} className="size-10 shrink-0 rounded-[11px]" />
+    <div className="card rise mt-5 flex items-center gap-3 p-3.5 pl-4">
+      <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-sunken">
+        <LogoMark size={24} />
+      </span>
       <div className="min-w-0 flex-1">
         <div className="text-[14.5px] font-semibold text-ink">Get the app</div>
         <div className="text-[12.5px] text-ink-3">

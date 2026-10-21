@@ -5,10 +5,10 @@ import { db, t } from "@/db";
 import type { AiAction, AiPart } from "@/db/schema";
 import type { CurrentUser } from "@/lib/auth";
 import { sendToUser } from "@/lib/push/send";
-import { findModel, type Effort } from "./catalog";
+import { getAssistantModel } from "./catalog";
 import { languageModel } from "./provider";
 import { buildAllTools, buildInstructions } from "./run";
-import { DEFAULT_AI_MODEL, type AssistantRun } from "./shared";
+import { DEFAULT_AI_EFFORT, DEFAULT_AI_MODEL, type AssistantRun } from "./shared";
 
 /*
  * Background assistant runs. A run is created as an ai_commands row with
@@ -53,14 +53,14 @@ function stepParts(step: StepResult<ToolSet>): AiPart[] {
   return parts;
 }
 
+/** Every run uses the one fixed model and effort; users.ai_model / ai_effort are ignored. */
 export async function createRun(userId: string, input: string, id: string = crypto.randomUUID()) {
-  const settings = await db.select({ aiModel: t.users.aiModel, aiEffort: t.users.aiEffort }).from(t.users).where(eq(t.users.id, userId)).get();
   await db.insert(t.aiCommands).values({
     id,
     userId,
     input,
-    model: settings?.aiModel ?? DEFAULT_AI_MODEL,
-    effort: settings?.aiEffort ?? "low",
+    model: DEFAULT_AI_MODEL,
+    effort: DEFAULT_AI_EFFORT,
     status: "running",
     seenAt: Date.now(),
   });
@@ -71,7 +71,7 @@ export async function executeRun(user: CurrentUser, runId: string) {
   const run = await db.select().from(t.aiCommands).where(and(eq(t.aiCommands.id, runId), eq(t.aiCommands.userId, user.id))).get();
   if (!run || run.status !== "running") return;
 
-  const effort = run.effort as Effort;
+  const effort = DEFAULT_AI_EFFORT;
   const actions: AiAction[] = [];
   const parts: AiPart[] = [];
   const started = Date.now();
@@ -82,7 +82,7 @@ export async function executeRun(user: CurrentUser, runId: string) {
   try {
     const settings = await db.select({ trainingNotes: t.users.trainingNotes }).from(t.users).where(eq(t.users.id, user.id)).get();
     const [model, instructions, past] = await Promise.all([
-      findModel(run.model),
+      getAssistantModel(),
       buildInstructions(user, settings?.trainingNotes ?? null),
       history(user.id, runId),
     ]);
@@ -117,9 +117,9 @@ export async function executeRun(user: CurrentUser, runId: string) {
     await sendToUser(user.id, {
       title: error ? "Timi couldn't finish" : saved.length ? `Done · ${saved.length} saved` : "Timi",
       body: error ? run.input.slice(0, 120) : reply || saved.map((a) => a.label).slice(0, 3).join(" · ") || "Done.",
-      url: `/assistant#${runId}`,
+      url: `/app/assistant#${runId}`,
       tag: `assistant-${runId}`,
-      icon: "/mascots/timi-avatar.png",
+      icon: "/mascots/timi-avatar-sky.png",
     }).catch(() => 0);
   }
 }

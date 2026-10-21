@@ -4,7 +4,8 @@ import { Check, Minus, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { PALETTE, colorVar } from "@/lib/colors";
+import { DEFAULT_COLOR, PALETTE, colorVar, resolveColor } from "@/lib/colors";
+import { springs } from "./motion";
 
 export function Label({ children, hint, htmlFor }: { children: ReactNode; hint?: ReactNode; htmlFor?: string }) {
   return (
@@ -68,7 +69,7 @@ export function Segmented<T extends string>({
   const current = value ?? inner;
   const layoutId = useId();
   return (
-    <div className={cn("relative flex rounded-[14px] bg-sunken p-1", className)}>
+    <div className={cn("relative flex rounded-[12px] bg-sunken p-[3px]", className)}>
       {name && <input type="hidden" name={name} value={current} />}
       {options.map((o) => {
         const active = o.value === current;
@@ -81,16 +82,16 @@ export function Segmented<T extends string>({
               onChange?.(o.value);
             }}
             className={cn(
-              "relative z-10 flex-1 rounded-[10px] font-semibold transition-colors",
-              size === "sm" ? "h-8 text-[12.5px]" : "h-9 text-[13.5px]",
-              active ? "text-ink" : "text-ink-3",
+              "relative z-10 flex-1 rounded-[9px] font-medium transition-colors",
+              size === "sm" ? "h-8 text-[13px]" : "h-9 text-[14px]",
+              active ? "text-ink" : "text-ink-3 hover:text-ink-2",
             )}
           >
             {active && (
               <motion.span
                 layoutId={layoutId}
-                className="absolute inset-0 -z-10 rounded-[10px] bg-surface shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
-                transition={{ type: "spring", damping: 30, stiffness: 420 }}
+                className="absolute inset-0 -z-10 rounded-[9px] border border-line bg-surface"
+                transition={springs.snappy}
               />
             )}
             {o.label}
@@ -133,8 +134,8 @@ export function PillPicker<T extends string>({
               onChange?.(o.value);
             }}
             className={cn(
-              "tap inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13.5px] font-medium",
-              active ? "border-ink bg-ink text-bg" : "border-line bg-surface-2 text-ink-2",
+              "tap inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-medium",
+              active ? "border-ink bg-ink text-bg" : "border-line-strong bg-surface text-ink-2",
             )}
           >
             {o.color && <span className="size-2 rounded-full" style={{ background: o.color }} />}
@@ -146,8 +147,9 @@ export function PillPicker<T extends string>({
   );
 }
 
-export function ColorPicker({ name, defaultValue = "coral" }: { name: string; defaultValue?: string }) {
-  const [value, setValue] = useState(defaultValue);
+/** The 7 goal colours. A legacy stored key (e.g. "violet") shows as, and saves as, its new colour. */
+export function ColorPicker({ name, defaultValue = DEFAULT_COLOR }: { name: string; defaultValue?: string }) {
+  const [value, setValue] = useState<string>(resolveColor(defaultValue));
   return (
     <div className="flex flex-wrap gap-2.5">
       <input type="hidden" name={name} value={value} />
@@ -156,11 +158,12 @@ export function ColorPicker({ name, defaultValue = "coral" }: { name: string; de
           key={c}
           type="button"
           aria-label={c}
+          aria-pressed={value === c}
           onClick={() => setValue(c)}
           className="tap grid size-9 place-items-center rounded-full"
           style={{ background: colorVar(c) }}
         >
-          {value === c && <Check className="size-4 text-white" strokeWidth={3} />}
+          {value === c && <Check className="size-4 text-accent-ink" strokeWidth={3} />}
         </button>
       ))}
     </div>
@@ -189,12 +192,12 @@ export function Stepper({
 }) {
   const clamp = (v: number) => Math.max(min, Math.min(max, Math.round(v * 100) / 100));
   return (
-    <div className={cn("flex items-center justify-between gap-2 rounded-2xl bg-sunken p-1", className)}>
+    <div className={cn("flex items-center justify-between gap-2 rounded-[12px] bg-sunken p-1", className)}>
       {name && <input type="hidden" name={name} value={value} />}
       <button
         type="button"
         onClick={() => onChange(clamp(value - step))}
-        className="tap grid size-10 place-items-center rounded-xl bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.06)]"
+        className="tap grid size-11 place-items-center rounded-[9px] border border-line bg-surface text-ink"
         aria-label="Decrease"
       >
         <Minus className="size-4" strokeWidth={2.4} />
@@ -203,7 +206,7 @@ export function Stepper({
       <button
         type="button"
         onClick={() => onChange(clamp(value + step))}
-        className="tap grid size-10 place-items-center rounded-xl bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.06)]"
+        className="tap grid size-11 place-items-center rounded-[9px] border border-line bg-surface text-ink"
         aria-label="Increase"
       >
         <Plus className="size-4" strokeWidth={2.4} />
@@ -256,7 +259,7 @@ export function CheckCircle({
         transition={{ duration: 0.28 }}
       >
         <motion.span initial={false} animate={{ opacity: checked ? 1 : 0, scale: checked ? 1 : 0.5 }} transition={{ duration: 0.18 }}>
-          <Check className="text-white" style={{ width: size * 0.58, height: size * 0.58 }} strokeWidth={3.2} />
+          <Check className="text-accent-ink" style={{ width: size * 0.58, height: size * 0.58 }} strokeWidth={3.2} />
         </motion.span>
       </motion.span>
     </button>

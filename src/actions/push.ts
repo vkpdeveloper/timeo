@@ -36,7 +36,7 @@ export async function sendTestPush() {
   const reached = await sendToUser(user.id, {
     title: "Timeo",
     body: "Notifications are on. You'll hear from us when it matters.",
-    url: "/settings/notifications",
+    url: "/app/settings/notifications",
     tag: "test",
   });
   return { reached };

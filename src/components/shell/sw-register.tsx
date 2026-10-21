@@ -11,7 +11,7 @@ import { capturePwaEvents, SW_URL } from "@/lib/pwa";
 type SwMessage = { type: "timeo:fresh" | "timeo:reload" | "timeo:offline"; url: string; changed?: boolean };
 
 // Screens with their own scrolling or gestures: no pull-to-refresh there.
-const NO_PULL = [/^\/assistant/, /^\/focus/, /^\/fitness\/workout\//, /^\/login/, /^\/signup/];
+const NO_PULL = [/^\/app\/assistant/, /^\/app\/focus/, /^\/app\/fitness\/workout\//, /^\/login/, /^\/signup/];
 
 const ago = (ms: number) => {
   const m = Math.round(ms / 60000);

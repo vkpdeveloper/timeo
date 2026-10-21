@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 
 // Two 3x3 sprite sheets (built with the page-mascot skill, sources in characters/timi).
-const DIRECTIONS_SRC = "/mascots/timi-directions.webp";
-const REACTIONS_SRC = "/mascots/timi-reactions.webp";
+// globals.css picks the copy tinted for the current accent.
+const DIRECTIONS_SRC = "var(--timi-directions)";
+const REACTIONS_SRC = "var(--timi-reactions)";
 
 const DIRECTIONS = ["up-left", "up", "up-right", "left", "center", "right", "down-left", "down", "down-right"] as const;
 const REACTIONS = ["blink", "heart", "sparkle", "surprised", "wink", "bashful", "sleepy", "dizzy", "delighted"] as const;
@@ -155,12 +156,12 @@ export function Timi({ mood = "idle", size = 24, interactive = false, className 
     <span ref={squashRef} className="relative block size-full origin-[50%_78%]">
       <span
         className={cn(layer, face && "opacity-0")}
-        style={{ backgroundImage: `url(${DIRECTIONS_SRC})`, ...cellStyle(DIRECTIONS.indexOf(direction), size) }}
+        style={{ backgroundImage: DIRECTIONS_SRC, ...cellStyle(DIRECTIONS.indexOf(direction), size) }}
       />
       {/* always mounted so the sheet loads up front */}
       <span
         className={cn(layer, !face && "opacity-0")}
-        style={{ backgroundImage: `url(${REACTIONS_SRC})`, ...cellStyle(REACTIONS.indexOf(face ?? "blink"), size) }}
+        style={{ backgroundImage: REACTIONS_SRC, ...cellStyle(REACTIONS.indexOf(face ?? "blink"), size) }}
       />
     </span>
   );

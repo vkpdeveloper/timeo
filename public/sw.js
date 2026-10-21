@@ -5,15 +5,15 @@
 // - Static assets: cache first (hashed, immutable).
 // - Web Push: show notifications, open the right screen on tap.
 
-const VERSION = "timeo-v5";
+const VERSION = "timeo-v6";
 const OFFLINE_URL = "/offline.html";
 // registered as /sw.js?dev=1 by `next dev`: no snapshots, no asset caching
 const IS_DEV = new URL(self.location.href).searchParams.get("dev") === "1";
 const SNAPSHOT_MAX_AGE = 7 * 86_400_000;
-// never snapshot these (auth screens, API, files)
-const NO_SNAPSHOT = [/^\/login/, /^\/signup/, /^\/forgot-password/, /^\/reset-password/, /^\/api\//, /^\/offline/, /\.[a-z0-9]+$/i];
+// never snapshot these (landing, auth screens, API, files)
+const NO_SNAPSHOT = [/^\/$/, /^\/login/, /^\/signup/, /^\/forgot-password/, /^\/reset-password/, /^\/api\//, /^\/offline/, /\.[a-z0-9]+$/i];
 // live screens: always the network copy, the snapshot only when offline
-const NETWORK_FIRST = [/^\/fitness\/workout\//];
+const NETWORK_FIRST = [/^\/app\/fitness\/workout\//];
 
 // ─────────────────────────── IndexedDB ───────────────────────────
 
@@ -75,7 +75,7 @@ const lastServed = new Map();
 
 async function fetchAndStore(url, key) {
   const res = await fetch(url, { credentials: "include", headers: { accept: "text/html" }, cache: "no-store" });
-  const loggedOut = res.redirected && /\/(login|signup)/.test(new URL(res.url).pathname);
+  const loggedOut = res.redirected && /^\/(login|signup)/.test(new URL(res.url).pathname);
   if (loggedOut) {
     await clearSnapshots();
     return { status: "logged-out" };
@@ -95,8 +95,12 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  // Saved pages are keyed by URL; a new version may have moved routes (v6 moved the app to /app), so start clean.
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))),
+    Promise.all([
+      caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))),
+      clearSnapshots(),
+    ]),
   );
   self.clients.claim();
 });
@@ -174,7 +178,7 @@ async function handleNavigation(event) {
   try {
     const res = await fetch(request);
     const isHtml = (res.headers.get("content-type") || "").includes("text/html");
-    const loggedOut = res.redirected && /\/(login|signup)/.test(new URL(res.url).pathname);
+    const loggedOut = res.redirected && /^\/(login|signup)/.test(new URL(res.url).pathname);
     if (loggedOut) event.waitUntil(clearSnapshots());
     else if (res.ok && isHtml && !res.redirected) {
       const copy = res.clone();
@@ -214,7 +218,7 @@ self.addEventListener("push", (event) => {
       badge: "/badge.png",
       tag: data.tag || undefined,
       renotify: !!data.tag,
-      data: { url: data.url || "/" },
+      data: { url: data.url || "/app" },
     }),
   );
 });
@@ -223,9 +227,9 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   // Push payloads are data, not navigation authority: keep taps on-origin.
   // Rebuilding from the pathname is not enough ("//evil.com" re-parses off-origin), so check the parsed origin.
-  let target = "/";
+  let target = "/app";
   try {
-    const parsed = new URL(event.notification.data?.url || "/", self.location.origin);
+    const parsed = new URL(event.notification.data?.url || "/app", self.location.origin);
     if (parsed.origin === self.location.origin) target = parsed.href;
   } catch {}
   event.waitUntil(

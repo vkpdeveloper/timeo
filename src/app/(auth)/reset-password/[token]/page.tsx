@@ -9,13 +9,20 @@ export const metadata: Metadata = { title: "New password", referrer: "no-referre
 
 export default function ResetPasswordPage(props: PageProps<"/reset-password/[token]">) {
   return (
-    <>
-      <h1 className="display text-[44px] text-ink">Choose a new password</h1>
-      <p className="mt-3 mb-8 text-[15px] leading-relaxed text-ink-2">At least 8 characters. You&apos;ll be signed in right after.</p>
-      <Suspense fallback={<Skeleton className="h-[52px] w-full" />}>
-        <ResetContent params={props.params} />
-      </Suspense>
-    </>
+    <Suspense fallback={<ResetSkeleton />}>
+      <ResetContent params={props.params} />
+    </Suspense>
+  );
+}
+
+function ResetSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="mb-8 h-[92px] w-full" />
+      <Skeleton className="h-[78px] w-full" />
+      <Skeleton className="h-[78px] w-full" />
+      <Skeleton className="h-12 w-full" />
+    </div>
   );
 }
 

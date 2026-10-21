@@ -52,7 +52,7 @@ export const GYM_PRESETS: GymPreset[] = [
       {
         name: "Upper A",
         focus: "Chest · Back · Shoulders · Arms",
-        color: "coral",
+        color: "sand",
         estimatedMin: 60,
         exercises: [
           { name: "Barbell bench press", sets: 3, reps: [5, 8], restSec: 150 },
@@ -125,7 +125,7 @@ export const GYM_PRESETS: GymPreset[] = [
       {
         name: "Full body A",
         focus: "Squat · Press · Row",
-        color: "indigo",
+        color: "sky",
         estimatedMin: 55,
         exercises: [
           { name: "Barbell squat", sets: 3, reps: [5, 8], restSec: 150 },
@@ -138,7 +138,7 @@ export const GYM_PRESETS: GymPreset[] = [
       {
         name: "Full body B",
         focus: "Hinge · Pull · Press",
-        color: "violet",
+        color: "olive",
         estimatedMin: 55,
         exercises: [
           { name: "Romanian deadlift", sets: 3, reps: [6, 10], restSec: 150 },
@@ -170,7 +170,7 @@ export const GYM_PRESETS: GymPreset[] = [
       {
         name: "Push",
         focus: "Chest · Shoulders · Triceps",
-        color: "coral",
+        color: "sand",
         estimatedMin: 65,
         exercises: [
           { name: "Barbell bench press", sets: 4, reps: [5, 8], restSec: 150 },

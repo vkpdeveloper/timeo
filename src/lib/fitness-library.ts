@@ -83,7 +83,7 @@ export const STARTER_ROUTINES: RoutineSeed[] = [
   {
     name: "Push A",
     focus: "Chest · Shoulders · Triceps",
-    color: "coral",
+    color: "sand",
     estimatedMin: 55,
     exercises: [
       { name: "Incline dumbbell press", sets: 3, reps: [6, 10], restSec: 150 },
@@ -95,7 +95,7 @@ export const STARTER_ROUTINES: RoutineSeed[] = [
   {
     name: "Pull B",
     focus: "Back · Biceps · Forearms",
-    color: "indigo",
+    color: "sky",
     estimatedMin: 55,
     exercises: [
       { name: "Seated cable row", sets: 3, reps: [8, 12], restSec: 120 },
@@ -108,7 +108,7 @@ export const STARTER_ROUTINES: RoutineSeed[] = [
   {
     name: "Push B",
     focus: "Shoulders · Chest · Triceps",
-    color: "rose",
+    color: "stone",
     estimatedMin: 60,
     exercises: [
       { name: "Machine / dumbbell shoulder press", sets: 3, reps: [8, 12], restSec: 120 },

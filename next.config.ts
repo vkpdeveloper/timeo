@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The app moved under /app (the landing page took "/"). Old links, shortcuts and sent notifications still land.
+  async redirects() {
+    return [
+      { source: "/welcome", destination: "/", permanent: false },
+      ...["plan", "goals", "fitness", "review", "settings", "focus", "assistant"].flatMap((p) => [
+        { source: `/${p}`, destination: `/app/${p}`, permanent: false },
+        { source: `/${p}/:path*`, destination: `/app/${p}/:path*`, permanent: false },
+      ]),
+    ];
+  },
   async headers() {
     return [
       {

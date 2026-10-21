@@ -1,8 +1,13 @@
 // Client-safe AI types and labels.
 
-/** Fast, cheap and good at tool use on OpenCode Go. */
-export const DEFAULT_AI_MODEL = "claude-haiku-5-5";
-export const DEFAULT_AI_EFFORT = "low";
+/**
+ * The only model Timi runs on (OpenCode Go), for every user and feature.
+ * Fixed by the server owner; the users.ai_model column is ignored.
+ */
+export const DEFAULT_AI_MODEL = "deepseek-v4.1-flash";
+export const AI_MODEL_NAME = "DeepSeek V4.1 Flash";
+/** Fixed reasoning effort. The model accepts low / high / max; low keeps tool loops fast. */
+export const DEFAULT_AI_EFFORT: Effort = "low";
 
 export type Protocol = "chat" | "responses" | "anthropic" | "google";
 export type Effort = "auto" | "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
@@ -10,35 +15,12 @@ export type Effort = "auto" | "none" | "minimal" | "low" | "medium" | "high" | "
 export type CatalogModel = {
   id: string;
   name: string;
-  /** "go" = included in the OpenCode Go plan; "zen" = pay-as-you-go credits */
-  tier: "go" | "zen";
+  /** Always "go": included in the OpenCode Go plan */
+  tier: "go";
   protocol: Protocol;
-  free: boolean;
-  toolCall: boolean;
   /** Efforts the model accepts. ["auto"] means it has no reasoning control. */
   efforts: Effort[];
-  inputCost: number | null;
-  outputCost: number | null;
   context: number | null;
-  description: string | null;
-};
-
-export type CommandResult = {
-  id: string;
-  reply: string;
-  actions: { table: string; id: string; label: string; icon?: string }[];
-  model: string;
-  effort: string;
-  ms: number;
-  error?: string;
-};
-
-export type AssistantMetadata = {
-  commandId: string;
-  model: string;
-  ms?: number;
-  /** number of rows the command saved (so the client can refresh and offer undo) */
-  saved?: number;
 };
 
 /** What a write tool returns alongside its own result: the rows it saved. */
@@ -57,15 +39,4 @@ export type AssistantRun = {
   model: string;
   ms: number | null;
   createdAt: number;
-};
-
-export const EFFORT_LABEL: Record<Effort, string> = {
-  auto: "Auto",
-  none: "Off",
-  minimal: "Minimal",
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  xhigh: "Extra high",
-  max: "Max",
 };

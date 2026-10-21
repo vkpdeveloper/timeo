@@ -52,7 +52,7 @@ export async function signup(_: AuthState, formData: FormData): Promise<AuthStat
   await db.insert(t.users).values({ id, name, email, passwordHash: await hashPassword(password), timezone, aiModel: DEFAULT_AI_MODEL });
   await seedNewUser(id);
   await createSession(id);
-  redirect("/goals/setup");
+  redirect("/app/welcome");
 }
 
 export async function login(_: AuthState, formData: FormData): Promise<AuthState> {
@@ -74,7 +74,7 @@ export async function login(_: AuthState, formData: FormData): Promise<AuthState
     await db.update(t.users).set({ timezone }).where(eq(t.users.id, user.id));
   }
   await createSession(user.id);
-  redirect("/");
+  redirect("/app");
 }
 
 export async function logout() {
@@ -132,5 +132,5 @@ export async function resetPassword(_: ResetState, formData: FormData): Promise<
     db.delete(t.sessions).where(eq(t.sessions.userId, reset.userId)),
   ]);
   await createSession(reset.userId);
-  redirect("/");
+  redirect("/app");
 }

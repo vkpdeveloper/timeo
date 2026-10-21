@@ -36,15 +36,15 @@ export function resetPasswordEmail({ name, url, minutes }: { name: string; url: 
 
   const html = `<!doctype html>
 <html>
-  <body style="margin:0;padding:0;background:#f6f5f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1917;">
+  <body style="margin:0;padding:0;background:#f5f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111318;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
       <tr><td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background:#ffffff;border:1px solid #e8e6e0;border-radius:20px;padding:32px 28px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background:#ffffff;border:1px solid #e6e7e4;border-radius:16px;padding:32px 28px;">
           <tr><td>
             <p style="margin:0 0 20px;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#8a867e;">Timeo</p>
             <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;font-weight:600;letter-spacing:-0.01em;">Reset your password</h1>
             <p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#55524c;">Hi ${escape(name)}, tap the button to choose a new password. The link works once and expires in ${minutes} minutes.</p>
-            <a href="${escape(url)}" style="display:inline-block;background:#1a1917;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 22px;border-radius:14px;">Choose a new password</a>
+            <a href="${escape(url)}" style="display:inline-block;background:#1f6fe5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 22px;border-radius:12px;">Choose a new password</a>
             <p style="margin:24px 0 0;font-size:13px;line-height:1.55;color:#8a867e;">If you didn't ask for this, ignore this email. Your password stays the same.</p>
             <p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#a8a49c;word-break:break-all;">${escape(url)}</p>
           </td></tr>
