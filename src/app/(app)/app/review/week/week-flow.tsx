@@ -143,13 +143,6 @@ export function WeekFlow({
         back={back.href}
         backLabel={back.label}
         title={`${title} review`}
-        action={
-          step.kind !== "done" ? (
-            <span className="tnum text-[13px] font-medium text-ink-3">
-              {index + 1} of {total}
-            </span>
-          ) : undefined
-        }
       />
       <div
         className="flex items-center justify-center gap-1.5 pt-2"
@@ -306,7 +299,7 @@ function Intro({
       </StatStrip>
 
       {goals.length > 0 ? (
-        <Section title="One check per goal" count={goals.length} hint="Then two short questions." card>
+        <Section title="One check per goal" hint="Then two short questions." card>
           {goals.map((g) => (
             <Row
               key={g.id}
@@ -368,7 +361,7 @@ function GoalStep({ goal, value, onChange }: { goal: GoalWeek; value: Assessment
             goal.skipped ? `${goal.skipped} skipped` : null,
           ]
             .filter(Boolean)
-            .join(" · ")}
+            .join(", ")}
         </p>
         {hint && <p className="mt-2.5 border-t border-line pt-2.5 text-[13.5px] text-ink-2">{hint}</p>}
       </Card>

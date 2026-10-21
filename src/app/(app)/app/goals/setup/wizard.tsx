@@ -194,9 +194,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
               />
             ))}
           </div>
-          <div className="tnum w-10 shrink-0 text-right text-[13px] font-medium text-ink-3">
-            {stepIndex + 1} of {STEPS.length}
-          </div>
+          <div className="w-10 shrink-0" aria-hidden />
         </div>
       </div>
 
@@ -211,7 +209,7 @@ export function SeasonWizard({ today, currentSeason }: { today: string; currentS
           >
             {step === "season" && (
               <>
-                <StepTitle title="Name your season" body="Twelve weeks to move what matters. A name makes it real." />
+                <StepTitle title="Name your season" body="It sits at the top of Season for the next twelve weeks." />
                 <Field label="Season name">
                   <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Autumn build" maxLength={80} autoFocus className="!py-3.5 !text-[18px] font-medium" />
                 </Field>
@@ -571,7 +569,7 @@ function MilestonesStep({
 
   return (
     <>
-      <StepTitle title="Add checkpoints" body="A dated milestone or two per goal keeps you honest. Optional." />
+      <StepTitle title="Add checkpoints" body="A dated milestone or two per goal, so you can tell early if it slips. Optional." />
       <div className="flex flex-col gap-3">
         {goals.map((g) => (
           <div key={g.key} className="card overflow-hidden">

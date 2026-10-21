@@ -31,7 +31,7 @@ function useFormAction(fn: (fd: FormData) => Promise<unknown>, done: () => void)
         await fn(fd);
         done();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(e instanceof Error ? e.message : "That didn't save. Try again.");
       }
     },
   };

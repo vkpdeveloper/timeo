@@ -9,6 +9,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
 import { clearDayMark, markDay, startWorkout } from "../actions";
+import { listText } from "@/lib/text";
 
 export type RoutineOption = { id: string; name: string; focus: string | null; color: string; exerciseCount: number };
 
@@ -24,7 +25,7 @@ function useAction(fn: (fd: FormData) => Promise<unknown>, done: () => void) {
         await fn(fd);
         done();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(e instanceof Error ? e.message : "That didn't save. Try again.");
       }
     },
   };
@@ -207,7 +208,7 @@ export function StartOtherButton({ routines, date, label = "Other routine" }: { 
                   </RowIcon>
                 }
                 title={r.name}
-                subtitle={`${r.focus ? `${r.focus} · ` : ""}${r.exerciseCount} exercises`}
+                subtitle={`${r.focus ? `${listText(r.focus)}. ` : ""}${r.exerciseCount} exercises`}
                 value={pending && which === r.id ? "Starting…" : undefined}
                 chevron={!(pending && which === r.id)}
               />

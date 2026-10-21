@@ -14,8 +14,8 @@ type Mode = "login" | "signup";
 
 const COPY: Record<Mode, { title: string; body: string; submit: string; pending: string; path: string; doc: string }> = {
   login: {
-    title: "Welcome back",
-    body: "Sign in to pick up where you left off.",
+    title: "Sign in to Timeo",
+    body: "Use the email you signed up with.",
     submit: "Sign in",
     pending: "Signing in",
     path: "/login",
@@ -258,7 +258,7 @@ export function AuthForm({ mode: initialMode }: { mode: Mode }) {
                 <AuthInput
                   id={`${ids}-name`}
                   name="name"
-                  placeholder="What should we call you?"
+                  placeholder="Your first name"
                   autoComplete="given-name"
                   value={name}
                   invalid={where === "name"}

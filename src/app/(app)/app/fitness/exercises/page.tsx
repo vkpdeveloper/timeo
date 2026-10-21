@@ -74,7 +74,7 @@ async function ExerciseList() {
         />
       </Section>
       {groups.map((g, gi) => (
-        <Section key={g.value} title={g.label} count={g.items.length} card stagger={gi < 2}>
+        <Section key={g.value} title={g.label} card stagger={gi < 2}>
           {g.items.map((e) => (
             <Row
               key={e.id}

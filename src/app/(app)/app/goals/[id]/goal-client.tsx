@@ -305,14 +305,14 @@ function MilestoneSheet({
   );
 }
 
-/** "Oct 28 · in 7 days", "Overdue · Oct 10", "Done". */
+/** "Oct 28, in 7 days", "Overdue since Oct 10", "Done". */
 function milestoneWhen(m: Milestone, done: boolean, today: string) {
   if (done) return "Done";
   if (!m.dueDate) return "No date";
-  if (m.dueDate < today) return `Overdue · ${formatMonthDay(m.dueDate)}`;
+  if (m.dueDate < today) return `Overdue since ${formatMonthDay(m.dueDate)}`;
   const days = diffDays(m.dueDate, today);
   if (days <= 1) return relativeDay(m.dueDate, today);
-  return `${formatMonthDay(m.dueDate)} · ${days < 14 ? `in ${days} days` : `in ${Math.round(days / 7)} weeks`}`;
+  return `${formatMonthDay(m.dueDate)}, ${days < 14 ? `in ${days} days` : `in ${Math.round(days / 7)} weeks`}`;
 }
 
 function MilestoneNode({
@@ -366,7 +366,7 @@ function MilestoneNode({
           {m.title}
         </span>
         <span className={cn("tnum mt-0.5 text-[12.5px]", overdue ? "font-medium text-warn" : "text-ink-3")}>
-          {next && !overdue && <span className="font-medium text-ink-2">Next · </span>}
+          {next && !overdue && <span className="font-medium text-ink-2">Next, </span>}
           {milestoneWhen(m, done, today)}
         </span>
       </button>
@@ -424,7 +424,7 @@ export function CheckInButton({ goalId, suggested }: { goalId: string; suggested
       <button type="button" onClick={() => setOpen(true)} className="tap -my-2 inline-flex h-11 items-center gap-1 px-1 text-[13px] font-medium text-ink-2 hover:text-ink">
         <Plus className="size-3.5" strokeWidth={2.6} /> Check in
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Check in" description="An honest read on this goal today.">
+      <Sheet open={open} onClose={() => setOpen(false)} title="Check in" description="How this goal is going, in a word and a line.">
         <form action={action}>
           <input type="hidden" name="goalId" value={goalId} />
           <Field label="Status">

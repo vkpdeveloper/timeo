@@ -21,7 +21,7 @@ import { requireUser } from "@/lib/auth";
 import { getGoalHealth, getPlanStrength, type GoalHealth } from "@/lib/coach";
 import { cn } from "@/lib/cn";
 import { colorVar, tint } from "@/lib/colors";
-import { addDays, formatMonthDay, relativeDay, startOfWeek, weekday } from "@/lib/dates";
+import { formatMonthDay, relativeDay, startOfWeek, weekday } from "@/lib/dates";
 import { getActiveSeason, seasonProgress } from "@/lib/queries";
 import { fmtMin } from "./_components/meta";
 import { AddGoalRow, SeasonMenu } from "./_components/overview-client";
@@ -101,7 +101,7 @@ async function SeasonContent() {
     ? `Starts ${relativeDay(season.startDate, user.today).toLowerCase()}`
     : ended
       ? `Ended ${endLabel}`
-      : `Week ${progress.week} of ${weeks} · ${weeksLeft > 0 ? `${plural(weeksLeft, "week")} left` : `${plural(progress.daysLeft, "day")} left`}`;
+      : `Week ${progress.week} of ${weeks}, ${weeksLeft > 0 ? `${plural(weeksLeft, "week")} left` : `${plural(progress.daysLeft, "day")} left`}`;
 
   // Timi helps with the goal drifting most: one line, one action.
   const rescue = [...health]
@@ -111,7 +111,7 @@ async function SeasonContent() {
   return (
     <div className="page-enter">
       <PageHeader
-        eyebrow={`Season · ends ${endLabel}`}
+        eyebrow={`Season ends ${endLabel}`}
         title={season.name}
         subtitle={subtitle}
         action={<SeasonMenu season={season} strength={strength} endDateLabel={endLabel} />}
@@ -138,7 +138,6 @@ async function SeasonContent() {
           <ThisWeek
             health={health}
             weekNo={progress.week}
-            weekStart={weekStart}
             today={user.today}
             reviewed={reviewed != null}
           />
@@ -155,7 +154,7 @@ async function SeasonContent() {
           timiLabel="What fits?"
         />
       ) : (
-        <Section title="Goals" count={health.length} className="mt-8" card stagger>
+        <Section title="Goals" className="mt-8" card stagger>
           {health.map((h) => (
             <GoalRow key={h.goal.id} h={h} today={user.today} />
           ))}
@@ -173,7 +172,7 @@ async function SeasonContent() {
       )}
 
       {completed.length > 0 && (
-        <Section title="Completed" count={completed.length} className="mt-8" card>
+        <Section title="Completed" className="mt-8" card>
           {completed.map((g) => (
             <Row
               key={g.id}
@@ -194,13 +193,11 @@ async function SeasonContent() {
 function ThisWeek({
   health,
   weekNo,
-  weekStart,
   today,
   reviewed,
 }: {
   health: GoalHealth[];
   weekNo: number;
-  weekStart: string;
   today: string;
   reviewed: boolean;
 }) {
@@ -209,7 +206,6 @@ function ThisWeek({
   const planned = health.reduce((s, h) => s + Math.max(h.week.plannedMin, Math.max(h.week.doneMin, h.week.focusMin)), 0);
   const onTrack = health.filter((h) => h.autoStatus === "on_track").length;
   const daysLeft = 6 - weekday(today);
-  const range = `${formatMonthDay(weekStart)} – ${formatMonthDay(addDays(weekStart, 6))}`;
 
   const facts = [
     planned > effort ? `${fmtMin(planned - effort)} more blocked` : null,
@@ -243,20 +239,20 @@ function ThisWeek({
                 },
               ]}
             />
-            {facts.length > 0 && <p className="tnum mt-2 text-[13px] text-ink-3">{facts.join(" · ")}</p>}
+            {facts.length > 0 && <p className="tnum mt-2 text-[13px] text-ink-3">{facts.join(", ")}</p>}
           </div>
         )}
         <div className="flex min-h-[64px] items-center gap-3 py-3 pr-3 pl-4">
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-medium text-ink">
-              Week {weekNo} review <span className="font-normal text-ink-3">· 5 min</span>
+              Week {weekNo} review
             </div>
             <div className="tnum truncate text-[13px] text-ink-3">
               {reviewed
                 ? "Done. You can still change it."
                 : daysLeft <= 2
-                  ? "Each goal, one honest check"
-                  : `${range} · best at the weekend`}
+                  ? "Five minutes, one check per goal"
+                  : "Five minutes, best at the weekend"}
             </div>
           </div>
           <ButtonLink href="/app/review/week" variant={reviewed ? "outline" : "accent"} size="sm" className="px-4">
@@ -298,7 +294,7 @@ function GoalRow({ h, today }: { h: GoalHealth; today: string }) {
           <span className={cn("font-medium", drifting || overdue ? "text-warn" : "text-ok")}>
             {overdue && !drifting ? "Milestone overdue" : STATUS_WORD[h.autoStatus]}
           </span>
-          {detail && <> · {detail}</>}
+          {detail && <>. {detail}</>}
         </p>
       </div>
     </Link>

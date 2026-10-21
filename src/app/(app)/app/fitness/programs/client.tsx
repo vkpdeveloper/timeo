@@ -10,6 +10,7 @@ import { colorVar } from "@/lib/colors";
 import { WEEKDAY_LETTER } from "@/lib/dates";
 import { ErrorNote } from "../_components/day-actions";
 import { deleteProgram, loadProgram, renameProgram, saveCurrentProgram } from "./actions";
+import { listText } from "@/lib/text";
 
 export type ProgramView = {
   kind: "preset" | "saved";
@@ -79,7 +80,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
               <div className="flex items-center gap-2">
                 <span className="size-2 rounded-full" style={{ background: colorVar(r.color) }} />
                 <span className="text-[14.5px] font-medium text-ink">{r.name}</span>
-                {r.focus && <span className="truncate text-[12.5px] text-ink-3">{r.focus}</span>}
+                {r.focus && <span className="truncate text-[12.5px] text-ink-3">{listText(r.focus)}</span>}
               </div>
               <ul className="tnum mt-1 pl-4 text-[13px] leading-relaxed text-ink-2">
                 {r.exercises.map((e, i) => (
@@ -154,7 +155,7 @@ export function ProgramCard({ program: p }: { program: ProgramView }) {
                 await renameProgram(fd);
                 setEdit(false);
               } catch (e) {
-                setError(e instanceof Error ? e.message : "Something went wrong");
+                setError(e instanceof Error ? e.message : "That didn't save. Try again.");
               }
             }}
           >
@@ -219,7 +220,7 @@ export function SaveCurrentButton({ suggestedName }: { suggestedName: string }) 
               await saveCurrentProgram(fd);
               setOpen(false);
             } catch (e) {
-              setError(e instanceof Error ? e.message : "Something went wrong");
+              setError(e instanceof Error ? e.message : "That didn't save. Try again.");
             }
           }}
         >

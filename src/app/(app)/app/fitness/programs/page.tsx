@@ -89,7 +89,7 @@ async function Programs() {
         </div>
       </Section>
 
-      <Section title="Presets" count={presetViews.length}>
+      <Section title="Presets">
         <div className="stagger flex flex-col gap-3">
           {presetViews.map((p) => (
             <ProgramCard key={p.id} program={p} />

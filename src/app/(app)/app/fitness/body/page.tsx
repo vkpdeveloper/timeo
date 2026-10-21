@@ -75,7 +75,6 @@ async function Body() {
           {points.length >= 2 && (
             <Section
               title="Trend"
-              count={`${points.length} weigh-ins`}
               action={
                 <span className="flex items-center gap-3 text-[12px] font-normal">
                   <span className="flex items-center gap-1.5">
@@ -99,7 +98,7 @@ async function Body() {
       )}
 
       {entries.length > 0 && (
-        <Section title="Recent entries" count={entries.length}>
+        <Section title="Recent entries">
           <BodyEntries entries={entries} />
         </Section>
       )}

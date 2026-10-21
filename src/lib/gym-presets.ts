@@ -51,7 +51,7 @@ export const GYM_PRESETS: GymPreset[] = [
     routines: [
       {
         name: "Upper A",
-        focus: "Chest · Back · Shoulders · Arms",
+        focus: "Chest, back, shoulders, arms",
         color: "sand",
         estimatedMin: 60,
         exercises: [
@@ -65,7 +65,7 @@ export const GYM_PRESETS: GymPreset[] = [
       },
       {
         name: "Lower A",
-        focus: "Quads · Hamstrings · Calves",
+        focus: "Quads, hamstrings, calves",
         color: "sage",
         estimatedMin: 60,
         exercises: [
@@ -78,7 +78,7 @@ export const GYM_PRESETS: GymPreset[] = [
       },
       {
         name: "Upper B",
-        focus: "Back · Chest · Shoulders · Arms",
+        focus: "Back, chest, shoulders, arms",
         color: "sky",
         estimatedMin: 60,
         exercises: [
@@ -92,7 +92,7 @@ export const GYM_PRESETS: GymPreset[] = [
       },
       {
         name: "Lower B",
-        focus: "Glutes · Quads · Hamstrings",
+        focus: "Glutes, quads, hamstrings",
         color: "teal",
         estimatedMin: 55,
         exercises: [
@@ -124,7 +124,7 @@ export const GYM_PRESETS: GymPreset[] = [
     routines: [
       {
         name: "Full body A",
-        focus: "Squat · Press · Row",
+        focus: "Squat, press, row",
         color: "sky",
         estimatedMin: 55,
         exercises: [
@@ -137,7 +137,7 @@ export const GYM_PRESETS: GymPreset[] = [
       },
       {
         name: "Full body B",
-        focus: "Hinge · Pull · Press",
+        focus: "Hinge, pull, press",
         color: "olive",
         estimatedMin: 55,
         exercises: [
@@ -169,7 +169,7 @@ export const GYM_PRESETS: GymPreset[] = [
     routines: [
       {
         name: "Push",
-        focus: "Chest · Shoulders · Triceps",
+        focus: "Chest, shoulders, triceps",
         color: "sand",
         estimatedMin: 65,
         exercises: [
@@ -183,7 +183,7 @@ export const GYM_PRESETS: GymPreset[] = [
       },
       {
         name: "Pull",
-        focus: "Back · Biceps · Rear delts",
+        focus: "Back, biceps, rear delts",
         color: "sky",
         estimatedMin: 65,
         exercises: [
@@ -197,7 +197,7 @@ export const GYM_PRESETS: GymPreset[] = [
       },
       {
         name: "Legs",
-        focus: "Quads · Hamstrings · Glutes · Calves",
+        focus: "Quads, hamstrings, glutes, calves",
         color: "sage",
         estimatedMin: 70,
         exercises: [

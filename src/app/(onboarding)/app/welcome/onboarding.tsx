@@ -198,7 +198,7 @@ export function Onboarding({
               Hi {firstName}. I&apos;m Timi.
             </h1>
             <p className="mt-3 max-w-[40ch] text-[16.5px] leading-relaxed text-pretty text-ink-2">
-              I&apos;ll help you point your hours at what matters. Three quick questions, then your first week.
+              I turn your goals into time on your calendar. Three questions, then your first week.
             </p>
           </div>
         );
@@ -248,7 +248,7 @@ export function Onboarding({
       case "goals":
         return (
           <>
-            <StepTitle mood={mood} title="What do you want to move?" body="Pick up to three. Fewer goals, more done." />
+            <StepTitle mood={mood} title="What do you want to move?" body="Pick up to three. You can change them later." />
             <GoalPicker goals={goals} onAdd={addGoal} onRemove={removeGoal} onPatch={patchGoal} />
           </>
         );
@@ -334,7 +334,7 @@ export function Onboarding({
 
   return (
     <div className="flex min-h-full flex-col">
-      {/* Top: back, progress, step count */}
+      {/* Top: back and progress */}
       <header className="sticky top-0 z-30 bg-bg pt-safe">
         <div className="mx-auto flex h-16 w-full max-w-[560px] items-center gap-3 px-3 lg:h-20">
           <button
@@ -350,9 +350,7 @@ export function Onboarding({
             <ChevronLeft className="size-[22px]" strokeWidth={2} />
           </button>
           <Progress index={index} count={STEPS.length} />
-          <span className="tnum w-11 shrink-0 text-center text-[13px] font-medium text-ink-3">
-            {index + 1}/{STEPS.length}
-          </span>
+          <span className="w-11 shrink-0" aria-hidden />
         </div>
       </header>
 
@@ -483,7 +481,7 @@ function ZoneRow({ value, device, onChange }: { value: string; device: string; o
         }}
         className="tap-row mt-7 -mx-2 flex min-h-14 w-[calc(100%+16px)] items-center gap-3 rounded-[12px] px-2 text-left"
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sunken text-ink-2">
+        <span className="grid size-6 shrink-0 place-items-center text-ink-3">
           <Globe className="size-[17px]" strokeWidth={1.8} />
         </span>
         <span className="min-w-0 flex-1">
@@ -635,7 +633,7 @@ function WeekStrip({ start, end, today }: { start: string; end: string; today: s
         })}
       </div>
       <div className="tnum mt-2.5 flex justify-between text-[13.5px] text-ink-3">
-        <span>Week 1 · {dayLabel(start)}</span>
+        <span>Week 1 starts {dayLabel(start)}</span>
         <span>Ends {dayLabel(end)}</span>
       </div>
     </div>
@@ -763,9 +761,8 @@ function GoalPicker({
                 key={idea.title}
                 type="button"
                 onClick={() => onAdd(idea.title, idea.area)}
-                className="tap inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line-strong bg-surface px-4 text-[14.5px] font-medium text-ink-2 hover:text-ink"
+                className="tap inline-flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-4 text-[14.5px] font-medium text-ink-2 hover:text-ink"
               >
-                <Plus className="size-3.5 text-ink-3" strokeWidth={2.4} />
                 {idea.title}
               </button>
             ))}

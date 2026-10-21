@@ -24,6 +24,7 @@ import { StatusChip, WeekStrip } from "./_components/bits";
 import { FoodCard, WeightRow } from "./_components/body-hub";
 import { MarkDayButtons, StartOtherButton, UndoMarkButton, type RoutineOption } from "./_components/day-actions";
 import { WorkoutClockText } from "./_components/workout-clock";
+import { listText } from "@/lib/text";
 
 export default function BodyPage() {
   return (
@@ -124,7 +125,7 @@ async function Hub() {
         title="This week"
         count={
           week.planned
-            ? `${week.done} of ${week.planned}${streak > 1 ? ` · ${streak}-week streak` : ""}`
+            ? `${week.done} of ${week.planned}${streak > 1 ? `, ${streak}-week streak` : ""}`
             : undefined
         }
         action={<SectionLink href="/app/fitness/schedule">Split</SectionLink>}
@@ -172,9 +173,9 @@ function Meta({ routine }: { routine: RoutineSummary }) {
   const parts = [
     `${routine.exerciseCount} ${routine.exerciseCount === 1 ? "exercise" : "exercises"}`,
     `${routine.setCount} sets`,
-    `~${routine.estimatedMin} min`,
+    `about ${routine.estimatedMin} min`,
   ];
-  return <p className="tnum mt-1.5 text-[15px] text-ink-2">{parts.join(" · ")}</p>;
+  return <p className="tnum mt-1.5 text-[15px] text-ink-2">{parts.join(", ")}</p>;
 }
 
 function Eyebrow({ color, children }: { color?: string; children: ReactNode }) {
@@ -289,7 +290,7 @@ function TodaySession({ day, routines, next }: { day: TrainingDay; routines: Rou
           Today
           {s.startMin != null && (
             <>
-              {" · "}
+              {" at "}
               <span className="mono">{toTimeInput(s.startMin)}</span>
             </>
           )}
@@ -302,7 +303,7 @@ function TodaySession({ day, routines, next }: { day: TrainingDay; routines: Rou
         </Link>
       </div>
       <h2 className="display mt-2 text-[34px] text-ink">{r.name}</h2>
-      {r.focus && <p className="mt-0.5 text-[15px] text-ink-2">{r.focus}</p>}
+      {r.focus && <p className="mt-0.5 text-[15px] text-ink-2">{listText(r.focus)}</p>}
       <Meta routine={r} />
       {s.notes && <p className="mt-2 text-[14px] text-ink-3">{s.notes}</p>}
       <form action={startWorkout.bind(null, r.id, day.date)} className="mt-6">

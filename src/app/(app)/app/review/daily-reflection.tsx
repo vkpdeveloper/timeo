@@ -9,9 +9,9 @@ import type { Reflection } from "@/db/schema";
 import { saveDailyReflection } from "./actions";
 
 const PROMPTS = [
-  { key: "wins", label: "What moved?", placeholder: "One thing that went forward" },
-  { key: "slipped", label: "What slipped?", placeholder: "No judgement, just notice" },
-  { key: "next", label: "Tomorrow's one thing", placeholder: "The thing that matters most" },
+  { key: "wins", label: "What moved?", placeholder: "e.g. Finished the draft" },
+  { key: "slipped", label: "What slipped?", placeholder: "e.g. Skipped the run" },
+  { key: "next", label: "Tomorrow's one thing", placeholder: "e.g. Send the beta invites" },
 ] as const;
 
 /** One row: label, then five tappable steps filled up to the chosen value. */
@@ -91,14 +91,12 @@ export function DailyReflection({
     return (
       <div className="card card-list animate-pop overflow-hidden">
         <div className="flex min-h-[52px] items-center gap-3 py-2 pr-2 pl-4">
-          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-ok-soft text-ok">
-            <Check className="size-[17px]" strokeWidth={2.6} />
-          </span>
+          <Check className="size-5 shrink-0 text-ok" strokeWidth={2.2} />
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-medium text-ink">Checked in</div>
             {(saved.mood || saved.energy) && (
               <div className="tnum text-[13px] text-ink-3">
-                {[saved.mood && `Mood ${saved.mood}/5`, saved.energy && `Energy ${saved.energy}/5`].filter(Boolean).join(" · ")}
+                {[saved.mood && `Mood ${saved.mood}/5`, saved.energy && `Energy ${saved.energy}/5`].filter(Boolean).join(", ")}
               </div>
             )}
           </div>

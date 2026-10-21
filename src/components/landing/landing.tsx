@@ -2,7 +2,7 @@ import { Cta } from "./cta";
 import { Hero } from "./hero";
 import { LandingNav } from "./nav";
 import { LandingMotion } from "./reveal";
-import { Features, FinalCta, Footer, HowItWorks, WhyFocus } from "./sections";
+import { FinalCta, Footer, Week, WhyFocus } from "./sections";
 import "./landing.css";
 
 /** The public landing page. The route file only wraps this, so it can move between paths. */
@@ -16,8 +16,7 @@ export function Landing() {
         <main>
           <Hero />
           <WhyFocus />
-          <Features />
-          <HowItWorks />
+          <Week />
           <FinalCta />
         </main>
         <Footer />

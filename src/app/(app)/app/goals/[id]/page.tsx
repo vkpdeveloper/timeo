@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 import { tint } from "@/lib/colors";
 import { formatMonthDay, relativeDay, startOfWeek, todayIn } from "@/lib/dates";
 import { getGoalOptions } from "@/lib/queries";
-import { areaLabel, fmtHours, fmtMin, tierLabel } from "../_components/meta";
+import { areaLabel, fmtHours, fmtMin, TIERS, tierLabel } from "../_components/meta";
 import { CheckInButton, CoachAction, GoalMenu, MilestoneList, TaskList } from "./goal-client";
 
 export default function GoalPage(props: PageProps<"/app/goals/[id]">) {
@@ -88,7 +88,7 @@ async function GoalContent({ params }: { params: PageProps<"/app/goals/[id]">["p
       <header className="page-enter pt-4 pb-5">
         <div className="eyebrow flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-tint" />
-          {tierLabel(goal.tier)} · {areaLabel(goal.area)}
+          {areaLabel(goal.area)} goal, {(TIERS.find((x) => x.value === goal.tier)?.heading ?? tierLabel(goal.tier)).toLowerCase()}
         </div>
         <h1 className={cn("display mt-1.5 text-[26px] text-balance text-ink lg:text-[28px]", done && "text-ink-3 line-through decoration-line-strong")}>
           {goal.title}
@@ -138,14 +138,14 @@ async function GoalContent({ params }: { params: PageProps<"/app/goals/[id]">["p
       </Section>
 
       {otherTasks.length > 0 && (
-        <Section title="Other open tasks" count={otherTasks.length}>
+        <Section title="Other open tasks">
           <TaskList tasks={otherTasks} ctx={ctx} goalId={goal.id} />
         </Section>
       )}
 
-      <Section title="Check-ins" count={updates.length || undefined} action={!done && <CheckInButton goalId={goal.id} suggested={health?.autoStatus ?? goal.status} />}>
+      <Section title="Check-ins" action={!done && <CheckInButton goalId={goal.id} suggested={health?.autoStatus ?? goal.status} />}>
         {updates.length === 0 ? (
-          <Card className="px-4 py-4 text-[13.5px] text-ink-3">No check-ins yet. One honest read a week builds the trend.</Card>
+          <Card className="px-4 py-4 text-[13.5px] text-ink-3">No check-ins yet. Check in once a week to see a trend.</Card>
         ) : (
           <Card className="px-4 py-1.5">
             <ol>
@@ -164,7 +164,7 @@ async function GoalContent({ params }: { params: PageProps<"/app/goals/[id]">["p
                     <div className="flex items-center justify-between gap-2">
                       <StatusPill status={u.status} />
                       <span className="tnum text-[12.5px] text-ink-3">
-                        {u.confidence != null && <span className="font-medium text-ink-2">{u.confidence}% · </span>}
+                        {u.confidence != null && <span className="font-medium text-ink-2">{u.confidence}% sure, </span>}
                         {relativeDay(u.date, user.today)}
                       </span>
                     </div>
@@ -220,7 +220,7 @@ function ThisWeek({
           { kind: "free", value: unblocked, label: unblocked > 0 ? `${fmtMin(unblocked)} not blocked` : undefined },
         ]}
       />
-      {facts.length > 0 && <p className="tnum mt-1.5 text-[12.5px] text-ink-3">{facts.join(" · ")}</p>}
+      {facts.length > 0 && <p className="tnum mt-1.5 text-[12.5px] text-ink-3">{facts.join(", ")}</p>}
       {(h.recommendation || drifting) && (
         <div className="mt-4 flex flex-col items-stretch gap-2.5">
           {h.recommendation && <CoachAction rec={h.recommendation} ctx={ctx} goalTitle={title} />}

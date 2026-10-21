@@ -47,7 +47,7 @@ function useSubmit(action: (fd: FormData) => Promise<unknown>, onDone: () => voi
           await action(fd);
           onDone();
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Something went wrong");
+          setError(err instanceof Error ? err.message : "That didn't save. Try again.");
         }
       });
     },

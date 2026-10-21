@@ -129,7 +129,7 @@ async function Exercise({ params }: { params: PageProps<"/app/fitness/exercises/
             </Section>
           )}
 
-          <Section title="Recent sessions" count={sessions.length}>
+          <Section title="Recent sessions">
             <div className="card card-list stagger overflow-hidden">
               {sessions.slice(0, 20).map((s) => {
                 const working = s.sets.filter((x) => !x.warmup);

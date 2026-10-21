@@ -24,6 +24,7 @@ import {
   updateRoutine,
   updateRoutineExercise,
 } from "../actions";
+import { listText } from "@/lib/text";
 
 type Item = {
   id: string;
@@ -85,12 +86,12 @@ export function RoutineEditor({
         <button type="button" onClick={() => setDetails(true)} className="tap block w-full text-left">
           <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
             <span className="size-2 rounded-full" style={{ background: colorVar(routine.color) }} />
-            {days.length ? days.join(" · ") : "Not scheduled"}
+            {days.length ? days.join(", ") : "Not scheduled"}
           </div>
           <h1 className="display mt-1.5 text-[28px] text-ink">{routine.name}</h1>
-          {routine.focus && <p className="mt-1 text-[15px] text-ink-2">{routine.focus}</p>}
+          {routine.focus && <p className="mt-1 text-[15px] text-ink-2">{listText(routine.focus)}</p>}
           <p className="tnum mt-2 text-[13px] text-ink-3">
-            {list.length} exercises · {totalSets} sets · ~{routine.estimatedMin} min ·{" "}
+            {list.length} exercises, {totalSets} sets, about {routine.estimatedMin} min.{" "}
             <span className="font-medium text-ink underline decoration-line-strong underline-offset-4">Edit</span>
           </p>
         </button>
@@ -107,7 +108,7 @@ export function RoutineEditor({
         </Button>
       </header>
 
-      <Section title="Exercises" count={list.length} hint="Tap one to change its sets, reps and rest." card>
+      <Section title="Exercises" hint="Tap one to change its sets, reps and rest." card>
         {list.map((it, i) => (
           <motion.div key={it.id} layout transition={springs.smooth} className="flex items-center">
             <button type="button" onClick={() => setEditing(it)} className="tap-row flex min-h-[60px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left">
@@ -190,7 +191,7 @@ function useFormAction(fn: (fd: FormData) => Promise<unknown>, done: () => void)
         await fn(fd);
         done();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(e instanceof Error ? e.message : "That didn't save. Try again.");
       }
     },
   };
@@ -206,7 +207,7 @@ function DetailsSheet({ open, onClose, routine }: { open: boolean; onClose: () =
           <Input name="name" defaultValue={routine.name === "New routine" ? "" : routine.name} placeholder="e.g. Push A" required />
         </Field>
         <Field label="Focus" hint="optional">
-          <Input name="focus" defaultValue={routine.focus ?? ""} placeholder="e.g. Chest · Shoulders · Triceps" />
+          <Input name="focus" defaultValue={routine.focus ?? ""} placeholder="e.g. Chest, shoulders, triceps" />
         </Field>
         <Field label="Colour">
           <ColorPicker name="color" defaultValue={routine.color} />

@@ -121,7 +121,6 @@ export function UpNext({
     <section className="mt-12">
       <h2 className="flex items-baseline gap-2 text-[15px] font-semibold tracking-tight text-ink">
         Up next
-        {open.length > 0 && <span className="tnum text-[13px] font-medium text-ink-3">{open.length}</span>}
       </h2>
       <LayoutGroup>
         <div className="mt-2">
@@ -159,7 +158,7 @@ export function UpNext({
                 className="tap -mx-2 flex min-h-11 items-center gap-1.5 rounded-full px-2 text-[13.5px] font-medium text-ink-3"
               >
                 <span className="tnum">
-                  {doneCount} done{missedCount > 0 && ` · ${missedCount} missed`}
+                  {doneCount} done{missedCount > 0 && `, ${missedCount} missed`}
                 </span>
                 <ChevronDown className={cn("size-4 transition-transform duration-200", showDone && "rotate-180")} />
               </button>

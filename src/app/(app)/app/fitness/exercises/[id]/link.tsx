@@ -54,7 +54,7 @@ export function LinkLibrary({ exerciseId, name, linked }: { exerciseId: string; 
         await linkCatalog(exerciseId, catalogId, rename && catalogId != null);
         close();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(e instanceof Error ? e.message : "That didn't save. Try again.");
       }
     });
 

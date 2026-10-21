@@ -20,7 +20,7 @@ export function useSubmit(action: (fd: FormData) => Promise<unknown>, onDone: ()
         await action(fd);
         onDone();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(e instanceof Error ? e.message : "That didn't save. Try again.");
       }
     },
   };
