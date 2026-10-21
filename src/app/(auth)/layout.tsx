@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/ui/primitives";
-import { AuthShowcase } from "./showcase";
+import { ObjectsLook } from "./objects";
 import "./auth.css";
 
 /**
  * Sign in, sign up and password reset. Mobile: one full-screen form.
- * Desktop: the form on the left, a live moment from the app on the right.
+ * Desktop: the form on the left, floating objects on the right.
  */
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
@@ -24,7 +24,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
 
       <aside className="hidden flex-1 p-3 pl-0 lg:flex" aria-label="A look at Timeo">
         <div className="auth-showcase relative flex flex-1 overflow-hidden rounded-[24px] border border-line bg-accent-soft">
-          <AuthShowcase />
+          <ObjectsLook />
         </div>
       </aside>
     </main>

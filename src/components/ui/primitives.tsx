@@ -668,23 +668,17 @@ export function DayLine({
   );
 }
 
-/** The Timeo mark, flat: a ring three quarters closed and a dot. Follows the accent. */
+/**
+ * The Timeo mark, Hour Wing: two clock hands at ten past ten folded into a bird. Follows the accent.
+ * scripts/icons.mjs renders the app icons from the same path.
+ */
 export function LogoMark({ size = 28, className }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className={cn("shrink-0", className)}>
-      <circle cx="16" cy="16" r="11" fill="none" stroke="var(--line-strong)" strokeWidth="4" />
-      <circle
-        cx="16"
-        cy="16"
-        r="11"
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeDasharray={`${2 * Math.PI * 11 * 0.72} ${2 * Math.PI * 11}`}
-        transform="rotate(-90 16 16)"
+    <svg width={size} height={size} viewBox="0 -22.07 100 100" aria-hidden className={cn("shrink-0", className)}>
+      <path
+        fill="var(--accent)"
+        d="M0.33 10.23A1.55 1.55 0 0 1 2.05 7.82L30.49 17.64A6.32 6.32 0 0 1 33.33 19.62L45 33.96A0.42 0.42 0 0 0 45.64 33.99L63.13 15.21A6.32 6.32 0 0 1 65.35 13.68L98.45 0.08A1.12 1.12 0 0 1 99.71 1.88L55.35 50.68A15.87 15.87 0 0 1 31.08 49.75Z"
       />
-      <circle cx="16" cy="16" r="2.2" fill="var(--ink)" />
     </svg>
   );
 }
