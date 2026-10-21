@@ -59,7 +59,7 @@ async function dueFor(user: CurrentUser, prefs: NotifyPrefs, nowMin: number): Pr
       key: `block:${b.id}:${today}:${b.start}`,
       title: b.title,
       body: `${formatMin(b.start)}–${formatMin(b.end)}${b.goal ? ` · ${b.goal}` : ""}`,
-      url: isFocus ? `/focus?block=${b.id}` : b.kind === "workout" ? "/fitness" : `/plan?date=${today}`,
+      url: isFocus ? `/app/focus?block=${b.id}` : b.kind === "workout" ? "/app/fitness" : `/app/plan?date=${today}`,
       tag: `block-${b.id}`,
     });
   }
@@ -71,7 +71,7 @@ async function dueFor(user: CurrentUser, prefs: NotifyPrefs, nowMin: number): Pr
       key: `morning:${today}`,
       title: "Good morning",
       body: read ? [read.headline, read.detail].filter(Boolean).join(" ") : "Your day is ready.",
-      url: "/",
+      url: "/app",
       tag: "morning",
     });
   }
@@ -82,19 +82,19 @@ async function dueFor(user: CurrentUser, prefs: NotifyPrefs, nowMin: number): Pr
       key: `workout:${today}`,
       title: `${gym.routine} at ${formatMin(gym.start)}`,
       body: gym.estimatedMin ? `About ${gym.estimatedMin} min. Tap to start.` : "Tap to start.",
-      url: "/fitness",
+      url: "/app/fitness",
       tag: "workout",
     });
   }
 
   // Evening reflection
   if (prefs.evening && !reflection && inWindow(nowMin, prefs.eveningMin, prefs.eveningMin + 60)) {
-    out.push({ key: `evening:${today}`, title: "Evening check-in", body: "What moved today? One minute.", url: "/review", tag: "evening" });
+    out.push({ key: `evening:${today}`, title: "Evening check-in", body: "What moved today? One minute.", url: "/app/review", tag: "evening" });
   }
 
   // Sunday weekly review
   if (prefs.weekly && wd === 6 && !weekly && inWindow(nowMin, 19 * 60, 20 * 60)) {
-    out.push({ key: `weekly:${startOfWeek(today)}`, title: "Weekly review", body: "Five minutes. How did each goal do?", url: "/review/week", tag: "weekly" });
+    out.push({ key: `weekly:${startOfWeek(today)}`, title: "Weekly review", body: "Five minutes. How did each goal do?", url: "/app/review/week", tag: "weekly" });
   }
 
   // Water nudges at 11:00, 15:00, 18:00 when behind
@@ -108,7 +108,7 @@ async function dueFor(user: CurrentUser, prefs: NotifyPrefs, nowMin: number): Pr
           key: `water:${today}:${slot}`,
           title: "Water check",
           body: `${(had / 1000).toFixed(1)} of ${(target / 1000).toFixed(1)} L so far.`,
-          url: "/fitness/nutrition",
+          url: "/app/fitness/nutrition",
           tag: "water",
         });
       }

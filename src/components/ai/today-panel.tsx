@@ -30,7 +30,7 @@ export function TodayPanel({ today, nowMin, blocks, tasks, goals }: Props) {
           Today <span className="font-normal text-ink-3">· {formatWeekdayShort(today)}, {formatMonthDay(today)}</span>
         </div>
         <Link
-          href={`/plan?date=${today}`}
+          href={`/app/plan?date=${today}`}
           aria-label="Open plan"
           className="tap grid size-7 shrink-0 place-items-center rounded-lg text-ink-3 hover:bg-sunken hover:text-ink-2"
         >

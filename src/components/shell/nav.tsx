@@ -12,15 +12,15 @@ import { QuickAdd } from "./quick-add";
 type Tab = { href: string; label: string; icon: LucideIcon; match: (p: string) => boolean };
 
 const TABS: Tab[] = [
-  { href: "/", label: "Today", icon: Sun, match: (p) => p === "/" },
-  { href: "/plan", label: "Plan", icon: CalendarDays, match: (p) => p.startsWith("/plan") },
-  { href: "/goals", label: "Goals", icon: Target, match: (p) => p.startsWith("/goals") },
-  { href: "/fitness", label: "Fitness", icon: Dumbbell, match: (p) => p.startsWith("/fitness") },
-  { href: "/review", label: "Review", icon: LineChart, match: (p) => p.startsWith("/review") },
+  { href: "/app", label: "Today", icon: Sun, match: (p) => p === "/app" },
+  { href: "/app/plan", label: "Plan", icon: CalendarDays, match: (p) => p.startsWith("/app/plan") },
+  { href: "/app/goals", label: "Goals", icon: Target, match: (p) => p.startsWith("/app/goals") },
+  { href: "/app/fitness", label: "Fitness", icon: Dumbbell, match: (p) => p.startsWith("/app/fitness") },
+  { href: "/app/review", label: "Review", icon: LineChart, match: (p) => p.startsWith("/app/review") },
 ];
 
 // Screens that take over the whole display
-const IMMERSIVE = [/^\/fitness\/workout\//, /^\/goals\/setup/, /^\/review\/week/];
+const IMMERSIVE = [/^\/app\/fitness\/workout\//, /^\/app\/goals\/setup/, /^\/app\/review\/week/];
 
 function TabIcon({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
   return (
@@ -112,7 +112,7 @@ export function Sidebar() {
   const pathname = usePathname();
   return (
     <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-line px-3 py-6 lg:flex">
-      <Link href="/" className="mb-7 flex items-center gap-2.5 px-3">
+      <Link href="/app" className="mb-7 flex items-center gap-2.5 px-3">
         <Image src="/icon-192.png" alt="" width={26} height={26} className="rounded-[8px]" />
         <span className="display text-[23px] text-ink">Timeo</span>
       </Link>
@@ -122,7 +122,7 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="mt-auto flex flex-col gap-2">
-        <SideLink href="/settings" label="Settings" icon={Settings2} active={pathname.startsWith("/settings")} />
+        <SideLink href="/app/settings" label="Settings" icon={Settings2} active={pathname.startsWith("/app/settings")} />
         <QuickAdd variant="wide" />
       </div>
     </aside>

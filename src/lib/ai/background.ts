@@ -117,7 +117,7 @@ export async function executeRun(user: CurrentUser, runId: string) {
     await sendToUser(user.id, {
       title: error ? "Timi couldn't finish" : saved.length ? `Done · ${saved.length} saved` : "Timi",
       body: error ? run.input.slice(0, 120) : reply || saved.map((a) => a.label).slice(0, 3).join(" · ") || "Done.",
-      url: `/assistant#${runId}`,
+      url: `/app/assistant#${runId}`,
       tag: `assistant-${runId}`,
       icon: "/mascots/timi-avatar.png",
     }).catch(() => 0);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect } from "react";
-import { fetchAppearance } from "@/app/(app)/settings/appearance/actions";
+import { fetchAppearance } from "@/app/(app)/app/settings/appearance/actions";
 import {
   LOCAL_CHANGE_KEY,
   applyAppearance,

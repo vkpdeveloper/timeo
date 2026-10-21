@@ -64,7 +64,7 @@ export function QuickAdd({ variant = "fab" }: { variant?: "fab" | "wide" }) {
                 onClick={() => {
                   if (it.key === "focus") {
                     close();
-                    router.push("/focus");
+                    router.push("/app/focus");
                   } else if (it.key === "water") {
                     setWaterAdded(true);
                     start(async () => {

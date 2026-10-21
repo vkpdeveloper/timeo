@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Timeo",
     short_name: "Timeo",
     description: "Seasons, goals, focus, training and nutrition in one calm place.",
-    start_url: "/",
+    start_url: "/app",
     scope: "/",
     display: "standalone",
     // desktop: draw into the title bar where supported, else a normal app window
@@ -31,10 +31,10 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/screenshots/desktop.png", sizes: "2560x1600", type: "image/png", form_factor: "wide", label: "Timeo on desktop" },
     ],
     shortcuts: [
-      { name: "Ask Timi", url: "/assistant", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
-      { name: "Start focus", url: "/focus", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
-      { name: "Log workout", url: "/fitness", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
-      { name: "Plan", url: "/plan", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Ask Timi", url: "/app/assistant", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Start focus", url: "/app/focus", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Log workout", url: "/app/fitness", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Plan", url: "/app/plan", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
     ],
     launch_handler: { client_mode: ["navigate-existing", "auto"] },
   };

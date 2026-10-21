@@ -23,7 +23,7 @@ export function AssistantActivity() {
   const [undone, setUndone] = useState<string | null>(null);
 
   useEffect(() => {
-    const check = () => setOnAssistant(location.pathname.startsWith("/assistant"));
+    const check = () => setOnAssistant(location.pathname.startsWith("/app/assistant"));
     check();
     const id = setInterval(check, 800);
     return () => clearInterval(id);
@@ -94,7 +94,7 @@ export function AssistantActivity() {
               )}
               {undone === latest.id && <span className="inline-flex h-8 items-center px-2 text-[12.5px] text-ink-3">Undone</span>}
               <Link
-                href={`/assistant#${latest.id}`}
+                href={`/app/assistant#${latest.id}`}
                 onClick={() => dismissFinished(latest.id)}
                 className="tap inline-flex h-8 items-center gap-1 rounded-full bg-ink px-3 text-[12.5px] font-semibold text-bg"
               >
@@ -108,7 +108,7 @@ export function AssistantActivity() {
         {running.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
             <Link
-              href="/assistant"
+              href="/app/assistant"
               className="glass tap pointer-events-auto inline-flex h-9 items-center gap-2 rounded-full border border-line pr-3.5 pl-3 text-[12.5px] font-medium text-ink-2 shadow-soft"
             >
               <Timi size={22} mood="thinking" className="-ml-1" />

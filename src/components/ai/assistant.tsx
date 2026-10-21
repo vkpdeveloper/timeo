@@ -212,7 +212,7 @@ export function Assistant({ initialRuns, timezone, today }: Props) {
         <div className="mx-auto grid h-12 max-w-[760px] grid-cols-[1fr_auto_1fr] items-center gap-3">
           <button
             type="button"
-            onClick={() => (history.length > 1 ? router.back() : router.push("/"))}
+            onClick={() => (history.length > 1 ? router.back() : router.push("/app"))}
             className="tap inline-flex h-9 items-center justify-self-start rounded-full pr-3 pl-1.5 text-[15px] font-medium text-ink-2 hover:bg-sunken"
           >
             <ChevronLeft className="size-5" strokeWidth={2} />

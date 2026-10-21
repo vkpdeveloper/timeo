@@ -112,7 +112,7 @@ export function CommandBar({ className, onSent }: { className?: string; onSent?:
       {state === "sent" ? (
         <Check className="size-[18px] shrink-0 text-ok" strokeWidth={2.4} />
       ) : (
-        <Link href="/assistant" aria-label="Open Timi" className="tap -my-1 -ml-3 grid size-10 shrink-0 place-items-center rounded-full">
+        <Link href="/app/assistant" aria-label="Open Timi" className="tap -my-1 -ml-3 grid size-10 shrink-0 place-items-center rounded-full">
           <Timi size={24} mood={state === "sending" ? "thinking" : state === "error" ? "error" : "idle"} />
         </Link>
       )}

@@ -102,7 +102,7 @@ export function Hero({ cta }: { cta: React.ReactNode }) {
           <Chip scrollY={scrollY} i={1} className="top-[44%] -right-1 sm:right-0 lg:-right-4">
             <WeekRing />
             <span className="leading-tight">
-              <span className="tnum block font-semibold text-ink">Week 3 of 12</span>
+              <span className="tnum block font-semibold text-ink">Week 4 of 12</span>
               <span className="text-[12px] text-ok">On pace</span>
             </span>
           </Chip>
