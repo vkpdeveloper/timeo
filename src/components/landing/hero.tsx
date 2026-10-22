@@ -6,7 +6,7 @@ export function Hero() {
     <section className="relative flex min-h-svh items-center justify-center overflow-hidden px-6 pt-[calc(4rem+var(--safe-top,0px))] pb-16">
       <DotField />
       <div data-dots-clear className="relative mx-auto flex max-w-[58rem] flex-col items-center text-center">
-        <h1 className="l-in text-[44px] leading-[1.02] font-semibold tracking-[-0.04em] text-balance text-ink sm:text-[64px] lg:text-[76px]">
+        <h1 className="l-in font-display text-[44px] leading-[1.02] font-bold tracking-[-0.04em] text-balance text-ink sm:text-[64px] lg:text-[76px]">
           Put your hours where your goals are.
         </h1>
         <p

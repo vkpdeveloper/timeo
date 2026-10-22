@@ -1,4 +1,18 @@
-/* Auth screens: flat surfaces, a quiet entrance. */
+/*
+ * The showcase panel: Sky with white type, in both modes (a deeper Sky in dark
+ * so it doesn't glare). Local tokens let the app's own DayLine draw in white.
+ */
+.auth-sky {
+  --panel: light-dark(#1f6fe5, #1c58bd);
+  background: var(--panel);
+  color: #fff;
+
+  --surface: var(--panel);
+  --sunken: rgb(255 255 255 / 0.14);
+  --ink: #fff;
+  --ink-3: rgb(255 255 255 / 0.68);
+  --line-strong: rgb(255 255 255 / 0.4);
+}
 
 .auth-fade {
   animation: auth-fade 500ms 80ms ease-out backwards;
@@ -10,6 +24,13 @@
 
 .auth-showcase {
   animation: auth-fade 700ms 120ms ease-out backwards;
+}
+
+/* The headline's lines rise one after the other. */
+.auth-line {
+  display: block;
+  animation: auth-rise-far 900ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--d, 200ms);
 }
 
 @keyframes auth-fade {
@@ -25,28 +46,16 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .auth-panel {
-    animation-name: auth-fade;
-  }
-}
-
-/* Floating objects: a slow bob, each on its own clock. */
-.auth-float {
-  animation: auth-float 7s ease-in-out infinite alternate;
-}
-
-@keyframes auth-float {
+@keyframes auth-rise-far {
   from {
-    translate: 0 -10px;
-  }
-  to {
-    translate: 0 10px;
+    opacity: 0;
+    translate: 0 0.25em;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-float {
-    animation: none;
+  .auth-panel,
+  .auth-line {
+    animation-name: auth-fade;
   }
 }
