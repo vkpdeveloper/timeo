@@ -3,23 +3,17 @@
 import { useAppHotkeyList, useAppHotkeys, useCustomHotkeys, useHotkeyRecorder, type Hotkey, type HotkeySequence } from "@tanstack/react-hotkeys";
 import { Keyboard, RotateCcw } from "lucide-react";
 import { useState } from "react";
-import { Segmented } from "@/components/ui/controls";
-import { Kbd, Keycap, PLATFORM_NAME, useHasKeyboard, usePlatform, type Platform } from "@/components/ui/kbd";
+import { Kbd, Keycap, useHasKeyboard, usePlatform, type Platform } from "@/components/ui/kbd";
 import { Section } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import type { AppHotkeyId } from "@/lib/hotkeys";
 
-const PLATFORMS: Platform[] = ["mac", "windows", "linux"];
-
 /**
- * Every shortcut by group, in this device's notation (or another platform's,
- * to compare). Tap a row and press the new keys: a chord, or two steps like
+ * Every shortcut by group, in this device's notation. Tap a row and press the new keys: a chord, or two steps like
  * G then N. Backspace removes it, Escape cancels.
  */
 export function ShortcutSettings() {
-  const detected = usePlatform();
-  const [picked, setPicked] = useState<Platform | null>(null);
-  const platform = picked ?? detected;
+  const platform = usePlatform();
   const hasKeyboard = useHasKeyboard();
   const list = useAppHotkeyList();
   const ask = useAppHotkeys()["ask.open"];
@@ -90,24 +84,6 @@ export function ShortcutSettings() {
         </p>
       )}
 
-      <div className="mt-5 flex items-center justify-between gap-3 px-1">
-        <span className="text-[13px] text-ink-3">
-          {platform && detected && platform !== detected ? `Showing ${PLATFORM_NAME[platform]} keys` : "Keys for this device"}
-        </span>
-        {platform ? (
-          <Segmented<Platform>
-            size="sm"
-            className="w-[228px] shrink-0"
-            value={platform}
-            onChange={setPicked}
-            options={PLATFORMS.map((p) => ({ value: p, label: PLATFORM_NAME[p] }))}
-          />
-        ) : (
-          // Same footprint until the device's platform is known
-          <div className="h-[38px] w-[228px] shrink-0 rounded-[12px] bg-sunken" />
-        )}
-      </div>
-
       {[...groups].map(([group, items]) => (
         <Section key={group} title={group} card>
           {items.map(({ appHotkey, isCustom }) => {
@@ -134,7 +110,7 @@ export function ShortcutSettings() {
       ))}
 
       <div className="mt-6 flex items-center justify-between gap-4 px-1">
-        <p className="text-[13px] leading-snug text-ink-3">Saved on this device. Single keys pause while you type.</p>
+        <p className="text-[13px] leading-snug text-ink-3">Saved on this device. Most pause while you type.</p>
         {changed > 0 && (
           <button
             type="button"
