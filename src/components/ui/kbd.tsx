@@ -8,8 +8,6 @@ import type { AppHotkeyId } from "@/lib/hotkeys";
 
 export type Platform = "mac" | "windows" | "linux";
 
-export const PLATFORM_NAME: Record<Platform, string> = { mac: "Mac", windows: "Windows", linux: "Linux" };
-
 /** This device's keyboard platform; null while server rendering. */
 export function usePlatform(): Platform | null {
   return useClientValue<Platform | null>(detectPlatform, null);
