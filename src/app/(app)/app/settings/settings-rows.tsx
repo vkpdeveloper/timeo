@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, CalendarClock, Check, Globe, LocateFixed, Moon, Palette, Sun, Trash2, User } from "lucide-react";
-import { useId, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
+import { useEffect, useId, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Segmented, Select } from "@/components/ui/controls";
 import { TimePicker } from "@/components/ui/pickers";
@@ -11,7 +11,8 @@ import { useAccent, useColorMode } from "@/components/shell/theme";
 import { formatMin, toTimeInput } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { ACCENTS, DEFAULT_ACCENT, setAccent, setMode, type Accent, type ColorMode } from "@/lib/themes";
-import { deleteAccount, saveAccent, saveColorMode, updateDayHours, updateName, updateTimezone, type Result } from "./actions";
+import { GoogleMark } from "@/components/integrations/google-mark";
+import { deleteAccount, saveAccent, saveColorMode, unlinkGoogle, updateDayHours, updateName, updateTimezone, type Result } from "./actions";
 
 /** Sheet open state plus a submit handler that keeps the form's values when saving fails. */
 function useSheetForm(action: (fd: FormData) => Promise<Result>) {
@@ -169,6 +170,69 @@ export function DayHoursRow({ startMin, endMin }: { startMin: number; endMin: nu
               <TimePicker name="end" defaultValue={toTimeInput(endMin)} step={900} aria-label="Day ends" />
             </Field>
           </div>
+          <ErrorNote error={s.error} />
+        </form>
+      </Sheet>
+    </>
+  );
+}
+
+const GOOGLE_FLASH: Record<string, string> = {
+  linked: "Google sign-in is on.",
+  taken: "That Google account already signs in to another Timeo account.",
+  error: "Google sign-in didn't finish. Try again.",
+};
+
+/** "Continue with Google" for this account: set it up, or turn it off. */
+export function GoogleSignInRow({ linked, hasPassword, flash }: { linked: boolean; hasPassword: boolean; flash: string | null }) {
+  const s = useSheetForm(async () => unlinkGoogle());
+  const [message] = useState(() => (flash ? (GOOGLE_FLASH[flash] ?? null) : null));
+  useEffect(() => {
+    if (flash) window.history.replaceState(null, "", window.location.pathname);
+  }, [flash]);
+  const icon = (
+    <RowIcon>
+      <GoogleMark size={18} />
+    </RowIcon>
+  );
+  return (
+    <>
+      {linked ? (
+        <Row onClick={s.show} icon={icon} title="Google sign-in" value="On" />
+      ) : (
+        <a href="/api/auth/google?intent=link" className="tap-row flex min-h-[52px] w-full items-center gap-3 px-4 py-2.5 text-left">
+          {icon}
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-medium text-ink">Google sign-in</span>
+            <span className="block truncate text-[13px] text-ink-3">Sign in with your Google account</span>
+          </span>
+          <span className="text-[14px] text-ink-3">Set up</span>
+        </a>
+      )}
+      {message && (
+        <p role="status" className={cn("px-4 pb-3 text-[13px] leading-snug", flash === "linked" ? "text-ink-3" : "text-warn")}>
+          {message}
+        </p>
+      )}
+      <Sheet
+        open={s.open}
+        onClose={s.close}
+        title="Google sign-in"
+        description="Continue with Google signs you in to this account. Calendar access is separate, under Integrations."
+        footer={
+          hasPassword ? (
+            <SaveButton formId={s.formId} pending={s.pending} variant="danger">
+              Turn off
+            </SaveButton>
+          ) : undefined
+        }
+      >
+        <form id={s.formId} onSubmit={s.onSubmit}>
+          {!hasPassword && (
+            <p className="mb-4 px-1 text-[13.5px] leading-snug text-ink-3">
+              This account has no password, so Google is how you sign in. To turn it off, set a password with Forgot password on the sign-in page first.
+            </p>
+          )}
           <ErrorNote error={s.error} />
         </form>
       </Sheet>

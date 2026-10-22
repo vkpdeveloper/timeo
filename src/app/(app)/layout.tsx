@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { AskHost } from "@/components/shell/ask";
 import { Sidebar, TabBar } from "@/components/shell/nav";
+import { SyncOnOpen } from "@/components/shell/sync-on-open";
 import { ThemeSync } from "@/components/shell/theme";
 
 // AI commands can take a while on high reasoning effort
@@ -20,6 +21,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       </Suspense>
       <AskHost />
       <ThemeSync />
+      <SyncOnOpen />
     </div>
   );
 }

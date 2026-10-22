@@ -6,12 +6,14 @@ import { useOptimistic, useState, useTransition } from "react";
 import type { GoalOption } from "@/actions/context";
 import { setTaskDone } from "@/actions/tasks";
 import { BlockSheet, TaskSheet } from "@/components/forms/sheets";
+import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { CheckCircle } from "@/components/ui/controls";
 import { springs, useReducedMotion } from "@/components/ui/motion";
 import type { Block, Task } from "@/db/schema";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
 import { formatDuration, relativeDay, toTimeInput } from "@/lib/dates";
+import { sourceName } from "@/lib/integrations/catalog";
 
 type Goal = { title: string; color: string };
 
@@ -63,7 +65,8 @@ export function UpNext({
 
   const items: Item[] = [
     ...blocks
-      .filter((b) => b.id !== heroId)
+      // a calendar event that's over is simply over: no "missed"
+      .filter((b) => b.id !== heroId && !(b.integrationId && b.endMin <= nowMin && !b.doneAt && !b.skippedAt))
       .map((b): Item => ({
         key: `b${b.id}`,
         type: "block",
@@ -112,7 +115,13 @@ export function UpNext({
         today={today}
         nowMin={nowMin}
         onToggle={item.type === "task" ? () => toggle(item.task) : undefined}
-        onOpen={() => (item.type === "task" ? setEditingTask(item.task) : setEditingBlock(item.block))}
+        onOpen={() => {
+          if (item.type === "task") setEditingTask(item.task);
+          // calendar events are edited in their calendar
+          else if (item.block.integrationId) {
+            if (item.block.externalUrl) window.open(item.block.externalUrl, "_blank", "noopener,noreferrer");
+          } else setEditingBlock(item.block);
+        }}
       />
     </motion.div>
   );
@@ -213,12 +222,14 @@ function ItemRow({
   const overdue = item.type === "task" && item.state === "open" && item.task.dueDate != null && item.task.dueDate < today;
   const title = item.type === "task" ? item.task.title : item.block.title;
 
+  const source = item.type === "task" ? item.task.source : item.block.integrationId ? item.block.source : null;
   const meta: React.ReactNode[] = [];
   if (item.type === "block") {
     meta.push(formatDuration(item.block.endMin - item.block.startMin));
-    meta.push(item.goal?.title ?? KIND_NAME[item.block.kind]);
+    meta.push(sourceName(source) ?? item.goal?.title ?? KIND_NAME[item.block.kind]);
   } else {
     if (item.goal) meta.push(item.goal.title);
+    if (source && !item.goal) meta.push(sourceName(source));
     if (overdue)
       meta.push(
         <span key="due" className="font-medium text-warn">
@@ -262,7 +273,11 @@ function ItemRow({
           </span>
           {meta.length > 0 && (
             <span className={cn("tnum mt-0.5 flex min-w-0 items-center gap-1.5 text-[12.5px] text-ink-3", quiet && "opacity-70")}>
-              {item.type === "task" && color && <span className="size-1.5 shrink-0 rounded-full" style={{ background: color }} />}
+              {source ? (
+                <IntegrationLogo id={source} size={13} className="rounded-[3px]!" />
+              ) : (
+                item.type === "task" && color && <span className="size-1.5 shrink-0 rounded-full" style={{ background: color }} />
+              )}
               <span className="truncate">
                 {meta.map((m, i) => (
                   <span key={i}>

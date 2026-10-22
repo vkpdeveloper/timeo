@@ -28,6 +28,49 @@ export function nowMinIn(timezone: string, now = new Date()): number {
   return h * 60 + m;
 }
 
+/** The timezone when the runtime knows it, otherwise UTC. */
+export function validTimezone(tz: unknown): string {
+  if (typeof tz !== "string" || !tz) return "UTC";
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return tz;
+  } catch {
+    return "UTC";
+  }
+}
+
+const zoneFormats = new Map<string, Intl.DateTimeFormat>();
+
+/** An instant as the day and minute of the day it falls on in `timezone`. */
+export function zonedDayMin(ms: number, timezone: string): { date: ISODate; min: number } {
+  let f = zoneFormats.get(timezone);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    zoneFormats.set(timezone, f);
+  }
+  const p = Object.fromEntries(f.formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, min: Number(p.hour) * 60 + Number(p.minute) };
+}
+
+/** The instant a wall-clock day and minute happens in `timezone` (the later one when DST repeats it). */
+export function zonedInstant(date: ISODate, min: number, timezone: string): number {
+  const wall = toUTCDate(date).getTime() + min * 60_000;
+  const offsetAt = (ms: number) => {
+    const z = zonedDayMin(ms, timezone);
+    return toUTCDate(z.date).getTime() + z.min * 60_000 - (ms - (ms % 60_000));
+  };
+  const first = wall - offsetAt(wall);
+  return wall - offsetAt(first);
+}
+
 export function toUTCDate(d: ISODate): Date {
   const [y, m, day] = d.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, day));

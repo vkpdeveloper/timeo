@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { Bell, Download, Info, LogOut, Mail } from "lucide-react";
+import { Bell, Blocks, Download, Info, LogOut, Mail } from "lucide-react";
 import { Timi } from "@/components/ai/timi";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -9,17 +9,19 @@ import { PageHeader, Row, RowIcon, Section, Skeleton } from "@/components/ui/pri
 import { db, t } from "@/db";
 import { getAccent, getColorMode } from "@/lib/appearance";
 import { requireUser } from "@/lib/auth";
+import { googleSignInEnabled } from "@/lib/google-auth";
+import { sourceName } from "@/lib/integrations/catalog";
 import pkg from "../../../../../package.json";
-import { AccentRow, AppearanceRow, DayHoursRow, DeleteAccountRow, NameRow, TimezoneRow } from "./settings-rows";
+import { AccentRow, AppearanceRow, DayHoursRow, DeleteAccountRow, GoogleSignInRow, NameRow, TimezoneRow } from "./settings-rows";
 
 export const metadata: Metadata = { title: "Settings" };
 
-export default function SettingsPage() {
+export default function SettingsPage(props: PageProps<"/app/settings">) {
   return (
     <>
       <PageHeader title="Settings" />
       <Suspense fallback={<SettingsSkeleton />}>
-        <SettingsContent />
+        <SettingsContent searchParams={props.searchParams} />
       </Suspense>
     </>
   );
@@ -48,15 +50,23 @@ function SettingsSkeleton() {
 /** A full-width row that isn't a link or a plain button (form submit, download). */
 const actionRow = "tap-row flex min-h-[52px] w-full items-center gap-3 px-4 py-2.5 text-left";
 
-async function SettingsContent() {
+async function SettingsContent({ searchParams }: { searchParams: PageProps<"/app/settings">["searchParams"] }) {
   const user = await requireUser();
   const zones = Intl.supportedValuesOf("timeZone");
   const initial = user.name.trim().charAt(0).toUpperCase() || "?";
-  const [created, savedMode, savedAccent] = await Promise.all([
-    db.select({ createdAt: t.users.createdAt }).from(t.users).where(eq(t.users.id, user.id)).get(),
+  const [created, savedMode, savedAccent, connected, sp] = await Promise.all([
+    db
+      .select({ createdAt: t.users.createdAt, googleId: t.users.googleId, passwordHash: t.users.passwordHash })
+      .from(t.users)
+      .where(eq(t.users.id, user.id))
+      .get(),
     getColorMode(user.id),
     getAccent(user.id),
+    db.select({ provider: t.integrations.provider }).from(t.integrations).where(eq(t.integrations.userId, user.id)),
+    searchParams,
   ]);
+  const google = typeof sp.google === "string" ? sp.google : typeof sp.error === "string" && sp.error === "google" ? "error" : null;
+  const apps = connected.map((c) => sourceName(c.provider)).filter(Boolean);
   const since = created
     ? new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: user.timezone }).format(created.createdAt)
     : null;
@@ -76,6 +86,19 @@ async function SettingsContent() {
       <Section title="Account" card stagger>
         <NameRow name={user.name} />
         <Row icon={<Mail />} title="Email" value={user.email} />
+        {(googleSignInEnabled() || created?.googleId) && (
+          <GoogleSignInRow linked={!!created?.googleId} hasPassword={!!created?.passwordHash} flash={google} />
+        )}
+      </Section>
+
+      <Section title="Integrations" card stagger>
+        <Row
+          href="/app/settings/integrations"
+          icon={<Blocks />}
+          title="Connected apps"
+          subtitle={apps.length ? apps.join(", ") : "Calendars and task apps"}
+          value={apps.length ? apps.length : undefined}
+        />
       </Section>
 
       <Section title="Time" card stagger>

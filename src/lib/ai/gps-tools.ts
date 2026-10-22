@@ -351,7 +351,8 @@ export function buildGpsTools(user: CurrentUser, actions: ActionSink) {
         const candidates = await db
           .select({ id: t.blocks.id, name: t.blocks.title, date: t.blocks.date, startMin: t.blocks.startMin, endMin: t.blocks.endMin, rescheduleCount: t.blocks.rescheduleCount })
           .from(t.blocks)
-          .where(and(eq(t.blocks.userId, user.id), gte(t.blocks.date, from), lte(t.blocks.date, addDays(from, 6))));
+          // calendar events stay where their calendar puts them
+          .where(and(eq(t.blocks.userId, user.id), gte(t.blocks.date, from), lte(t.blocks.date, addDays(from, 6)), isNull(t.blocks.integrationId)));
         const b = bestMatch(candidates.filter((c) => c.date === from).concat(candidates), title);
         const s = parseTime(start);
         if (!b || s == null) return { ok: false, error: "Block not found" };

@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { layoutColumns } from "@/lib/calendar-layout";
 import { colorVar, softVar } from "@/lib/colors";
 import { formatDuration, nowMinIn, toTimeInput } from "@/lib/dates";
+import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { addScheduledWorkout, resizeBlock } from "../actions";
 import { blockVars, KIND_ICON } from "./block-style";
 import { usePlan } from "./plan-provider";
@@ -131,7 +132,8 @@ export function TimeGrid({
    * grid, and stays where it was dropped while the server saves it.
    */
   const beginDrag = (e: React.PointerEvent, b: PlanBlock, mode: Drag["mode"]) => {
-    if (e.button !== 0 || !colsRef.current) return;
+    // calendar events move in their own calendar
+    if (e.button !== 0 || !colsRef.current || b.integrationId) return;
     const pointerId = e.pointerId;
     const touch = e.pointerType !== "mouse";
     const x0 = e.clientX;
@@ -356,6 +358,7 @@ function BlockCard({
   onOpen: () => void;
 }) {
   const h = typeof style.height === "number" ? style.height : 40;
+  const synced = !!b.integrationId;
   const done = !!b.doneAt;
   const skipped = !!b.skippedAt;
   const Icon = KIND_ICON[b.kind];
@@ -384,7 +387,7 @@ function BlockCard({
         "ease-out",
         dragging
           ? "z-30 cursor-grabbing opacity-95 shadow-float transition-[top,height,left,width] duration-[90ms]"
-          : "cursor-pointer transition-[top,height,left,width,opacity] duration-200 pointer-fine:cursor-grab",
+          : cn("cursor-pointer transition-[top,height,left,width,opacity] duration-200", !synced && "pointer-fine:cursor-grab"),
         skipped ? "border border-dashed border-line-strong bg-transparent" : "bg-[var(--fill)]",
         done && !dragging && "opacity-55",
       )}
@@ -405,7 +408,8 @@ function BlockCard({
       >
         <span className={cn("flex min-w-0 items-center gap-1", oneLine && "gap-1.5")}>
           {done && <Check className="size-3.5 shrink-0 text-[var(--bar-ink)]" strokeWidth={2.6} />}
-          {!done && !b.color && !compact && <Icon className="size-3 shrink-0 text-ink-3" strokeWidth={2.2} />}
+          {!done && synced && b.source && !compact && <IntegrationLogo id={b.source} size={13} className="rounded-[3px]!" />}
+          {!done && !synced && !b.color && !compact && <Icon className="size-3 shrink-0 text-ink-3" strokeWidth={2.2} />}
           <span
             className={cn(
               "truncate font-semibold tracking-tight",
@@ -427,7 +431,7 @@ function BlockCard({
         )}
       </span>
       {/* resize: drag the bottom edge */}
-      {!skipped && h >= 30 && (
+      {!skipped && !synced && h >= 30 && (
         <span
           aria-hidden
           onPointerDown={(e) => {

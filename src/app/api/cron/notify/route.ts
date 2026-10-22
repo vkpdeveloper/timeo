@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { syncDue } from "@/lib/integrations/sync";
 import { isAuthorizedCron } from "@/lib/push/cron-auth";
 import { runReminders } from "@/lib/push/reminders";
 
@@ -8,6 +10,8 @@ export const maxDuration = 60;
 export async function GET(req: Request) {
   if (!(await isAuthorizedCron(req))) return new Response("Unauthorized", { status: 401 });
   const result = await runReminders();
+  // connected calendars and task apps, after the reminders have gone out
+  after(() => syncDue({ budgetMs: 35_000 }));
   return Response.json({ ok: true, ...result, at: new Date().toISOString() });
 }
 

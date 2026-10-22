@@ -46,7 +46,7 @@ function discover(): OwnedTable[] {
 let cached: OwnedTable[] | null = null;
 export const ownedTables = () => (cached ??= discover());
 
-/** Every row the user owns, keyed by table name. Sessions and the password hash are left out. */
+/** Every row the user owns, keyed by table name. Sessions, the password hash and app tokens are left out. */
 export async function exportUserData(userId: string) {
   const user = await db
     .select({
@@ -67,7 +67,9 @@ export async function exportUserData(userId: string) {
   const tables: Record<string, unknown[]> = {};
   for (const o of ownedTables()) {
     if (o.name === "sessions") continue;
-    tables[o.name] = await db.select().from(o.table).where(o.where(userId));
+    const rows = await db.select().from(o.table).where(o.where(userId));
+    // a connected app's token stays on the server
+    tables[o.name] = o.name === "integrations" ? rows.map((row) => ({ ...row, credentials: undefined })) : rows;
   }
   return { app: "Timeo", exportedAt: new Date().toISOString(), user, tables };
 }

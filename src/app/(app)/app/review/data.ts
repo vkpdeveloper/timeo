@@ -42,7 +42,8 @@ export async function getWeekStats(userId: string, weekStart: string, asOf?: str
         skippedAt: t.blocks.skippedAt,
       })
       .from(t.blocks)
-      .where(and(eq(t.blocks.userId, userId), gte(t.blocks.date, weekStart), lte(t.blocks.date, end))),
+      // calendar events aren't plans you kept or missed
+      .where(and(eq(t.blocks.userId, userId), gte(t.blocks.date, weekStart), lte(t.blocks.date, end), isNull(t.blocks.integrationId))),
     db
       .select({ status: t.workoutLogs.status })
       .from(t.workoutLogs)

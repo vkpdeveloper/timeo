@@ -51,11 +51,12 @@ export async function resizeBlock(id: string, rawEnd: number) {
   const user = await requireUser();
   if (typeof id !== "string" || !Number.isFinite(rawEnd)) throw new Error("Pick a valid time");
   const b = await db
-    .select({ startMin: t.blocks.startMin })
+    .select({ startMin: t.blocks.startMin, integrationId: t.blocks.integrationId })
     .from(t.blocks)
     .where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id)))
     .get();
   if (!b) throw new Error("Block not found");
+  if (b.integrationId) throw new Error("Change this event in its calendar");
   const endMin = Math.min(24 * 60, Math.max(b.startMin + 15, Math.round(rawEnd)));
   await db
     .update(t.blocks)

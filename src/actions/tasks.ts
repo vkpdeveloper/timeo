@@ -2,10 +2,12 @@
 
 import { and, eq } from "drizzle-orm";
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { db, t } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { startOfWeek } from "@/lib/dates";
 import { date, int, reqStr, str, time } from "@/lib/form";
+import { forgetTask, pushTaskChanges } from "@/lib/integrations/sync";
 import { ownGoalId, ownMilestoneId } from "@/lib/queries";
 
 export async function createTask(fd: FormData) {
@@ -46,15 +48,23 @@ export async function updateTask(fd: FormData) {
 
 export async function setTaskDone(id: string, done: boolean) {
   const user = await requireUser();
-  await db
+  const [task] = await db
     .update(t.tasks)
     .set({ doneAt: done ? Date.now() : null })
-    .where(and(eq(t.tasks.id, id), eq(t.tasks.userId, user.id)));
+    .where(and(eq(t.tasks.id, id), eq(t.tasks.userId, user.id)))
+    .returning({ integrationId: t.tasks.integrationId });
+  // checked off here, checked off in the app it came from
+  if (task?.integrationId) after(() => pushTaskChanges(user.id));
   refresh();
 }
 
 export async function deleteTask(id: string) {
   const user = await requireUser();
-  await db.delete(t.tasks).where(and(eq(t.tasks.id, id), eq(t.tasks.userId, user.id)));
+  const [task] = await db
+    .delete(t.tasks)
+    .where(and(eq(t.tasks.id, id), eq(t.tasks.userId, user.id)))
+    .returning({ integrationId: t.tasks.integrationId, externalId: t.tasks.externalId });
+  // an imported task stays deleted: the next sync mustn't bring it back
+  if (task) await forgetTask(user.id, task);
   refresh();
 }
