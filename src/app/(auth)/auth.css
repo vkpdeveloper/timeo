@@ -1,36 +1,17 @@
-/* Auth screens: warm paper, ink controls and one ember panel, whatever accent the device picked. */
+/*
+ * The showcase panel: Sky with white type, in both modes (a deeper Sky in dark
+ * so it doesn't glare). Local tokens let the app's own DayLine draw in white.
+ */
+.auth-sky {
+  --panel: light-dark(#1f6fe5, #1c58bd);
+  background: var(--panel);
+  color: #fff;
 
-:root {
-  --auth-bg: light-dark(#f2ede6, #100e0c);
-}
-
-/* The scrollbar gutter shows the page behind <main> */
-html:has(.auth-theme) {
-  background: var(--auth-bg);
-}
-
-.auth-theme {
-  --bg: var(--auth-bg);
-  --surface: light-dark(#faf7f2, #1a1714);
-  --surface-2: light-dark(#f6f2ec, #1f1b18);
-  --sunken: light-dark(#e8e2d9, #0b0a09);
-  --ink: light-dark(#1a1714, #f2ede6);
-  --ink-2: light-dark(#6b645c, #a59d94);
-  --ink-3: light-dark(#9a9289, #70685f);
-  --line: light-dark(rgb(26 23 20 / 0.1), rgb(255 248 240 / 0.08));
-  --line-strong: light-dark(rgb(26 23 20 / 0.15), rgb(255 248 240 / 0.13));
-  --accent: var(--ink);
-  --accent-ink: var(--bg);
-  --accent-soft: var(--sunken);
-
-  --ember: light-dark(#dc4b27, #c8431f);
-  --ember-ink: #f6ebe0;
-  --focus: color-mix(in oklab, var(--ember) 60%, transparent);
-}
-
-.auth-theme .field:focus {
-  border-color: var(--ember);
-  box-shadow: inset 0 0 0 1px var(--ember);
+  --surface: var(--panel);
+  --sunken: rgb(255 255 255 / 0.14);
+  --ink: #fff;
+  --ink-3: rgb(255 255 255 / 0.68);
+  --line-strong: rgb(255 255 255 / 0.4);
 }
 
 .auth-fade {

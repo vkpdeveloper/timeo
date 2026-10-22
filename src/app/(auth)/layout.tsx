@@ -2,17 +2,17 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { LogoMark } from "@/components/ui/primitives";
 import { AuthTopLink } from "./auth-form";
-import { NowPill, PanelClock } from "./panel";
+import { NowPill, PanelClock, PanelDay } from "./panel";
 import "./auth.css";
 
 /**
  * Sign in, sign up and password reset. Mobile: one full-screen form.
- * Desktop: the form on the left, an ember panel on the right with the block
- * you would be on right now.
+ * Desktop: the form on the left, a Sky panel on the right with the block you
+ * would be on right now and the day around it. Always Sky, like the landing page.
  */
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
-    <main className="auth-theme flex min-h-dvh bg-bg text-ink">
+    <main data-accent-lock="" className="flex min-h-dvh bg-bg text-ink">
       <section className="flex min-h-dvh w-full flex-col px-6 pt-safe pb-[max(16px,var(--safe-bottom))] sm:px-10 lg:w-[42%] lg:max-w-[620px] lg:shrink-0 lg:px-14">
         <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col lg:mx-0 lg:max-w-none">
           <header className="auth-fade flex h-16 items-center justify-between gap-4 lg:h-24">
@@ -37,7 +37,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       </section>
 
       <aside className="hidden flex-1 p-3 pl-0 lg:flex" aria-label="A look at Timeo">
-        <div className="auth-showcase @container flex flex-1 flex-col overflow-hidden rounded-[24px] bg-[var(--ember)] p-12 text-[var(--ember-ink)] xl:p-14">
+        <div className="auth-showcase auth-sky @container flex flex-1 flex-col overflow-hidden rounded-[24px] p-12 xl:p-14">
           <div aria-hidden className="mono flex items-center justify-between text-[12.5px] opacity-75">
             <span>timeo</span>
             <PanelClock />
@@ -55,6 +55,10 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
             <p className="max-w-[250px] text-[14.5px] leading-[1.45] text-pretty opacity-85">
               Timeo turns your goals into time on the calendar, then shows you what to do right now.
             </p>
+          </div>
+
+          <div aria-hidden className="mt-10">
+            <PanelDay />
           </div>
         </div>
       </aside>
