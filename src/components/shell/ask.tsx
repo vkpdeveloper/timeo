@@ -35,7 +35,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { GUIDE_SUGGESTIONS } from "@/lib/ai/guide";
 import { cn } from "@/lib/cn";
 import { colorVar, softVar, type PaletteColor } from "@/lib/colors";
-import { appHotkeys, type AppHotkeyId } from "@/lib/hotkeys";
+import { appHotkeys } from "@/lib/hotkeys";
 
 /*
  * The one entry point for creating anything: Timi's input on top, quick
@@ -67,30 +67,29 @@ type Item = {
   /** Palette colour for the icon tile; none is a neutral tile. */
   color?: PaletteColor;
   group: "Add" | "Go to" | "Ask Timi";
-  hotkey?: AppHotkeyId;
   action: Action;
 };
 
 const ADD: Item[] = [
-  { id: "task", label: "Task", keywords: "todo to-do new", icon: CircleCheck, color: "sky", group: "Add", hotkey: "add.task", action: { form: "task" } },
-  { id: "block", label: "Time block", keywords: "schedule calendar event plan", icon: CalendarPlus, color: "teal", group: "Add", hotkey: "add.block", action: { form: "block" } },
-  { id: "focus", label: "Focus session", keywords: "timer pomodoro deep work start", icon: Timer, color: "pine", group: "Add", hotkey: "add.focus", action: { href: "/app/focus" } },
+  { id: "task", label: "Task", keywords: "todo to-do new", icon: CircleCheck, color: "sky", group: "Add", action: { form: "task" } },
+  { id: "block", label: "Time block", keywords: "schedule calendar event plan", icon: CalendarPlus, color: "teal", group: "Add", action: { form: "block" } },
+  { id: "focus", label: "Focus session", keywords: "timer pomodoro deep work start", icon: Timer, color: "pine", group: "Add", action: { href: "/app/focus" } },
   { id: "workout", label: "Workout", keywords: "gym training exercise lift start log", icon: Dumbbell, color: "olive", group: "Add", action: { href: "/app/fitness" } },
-  { id: "meal", label: "Meal", keywords: "food eat log nutrition breakfast lunch dinner", icon: UtensilsCrossed, color: "sand", group: "Add", hotkey: "add.meal", action: { form: "meal" } },
-  { id: "water", label: "Water +250 ml", keywords: "drink glass hydration", icon: Droplet, color: "sky", group: "Add", hotkey: "add.water", action: { water: 250 } },
-  { id: "weight", label: "Weigh-in", keywords: "weight body scale kg", icon: Scale, color: "sage", group: "Add", hotkey: "add.weight", action: { form: "weight" } },
+  { id: "meal", label: "Meal", keywords: "food eat log nutrition breakfast lunch dinner", icon: UtensilsCrossed, color: "sand", group: "Add", action: { form: "meal" } },
+  { id: "water", label: "Water +250 ml", keywords: "drink glass hydration", icon: Droplet, color: "sky", group: "Add", action: { water: 250 } },
+  { id: "weight", label: "Weigh-in", keywords: "weight body scale kg", icon: Scale, color: "sage", group: "Add", action: { form: "weight" } },
   { id: "reflect", label: "Reflection", keywords: "journal day note review", icon: NotebookPen, color: "stone", group: "Add", action: { href: "/app/review" } },
 ];
 
 const GO: Item[] = [
-  { id: "now", label: "Now", keywords: "today home", icon: Clock, group: "Go to", hotkey: "nav.now", action: { href: "/app" } },
-  { id: "week", label: "Week", keywords: "plan calendar", icon: CalendarDays, group: "Go to", hotkey: "nav.week", action: { href: "/app/plan" } },
-  { id: "season", label: "Season", keywords: "goals", icon: Target, group: "Go to", hotkey: "nav.season", action: { href: "/app/goals" } },
-  { id: "body", label: "Body", keywords: "fitness health nutrition", icon: Activity, group: "Go to", hotkey: "nav.body", action: { href: "/app/fitness" } },
-  { id: "review", label: "Review", keywords: "stats progress", icon: LineChart, group: "Go to", hotkey: "nav.review", action: { href: "/app/review" } },
-  { id: "chat", label: "Chat", keywords: "timi assistant conversation history open", icon: MessagesSquare, group: "Go to", hotkey: "nav.chat", action: { href: "/app/assistant" } },
-  { id: "settings", label: "Settings", keywords: "preferences account", icon: Settings2, group: "Go to", hotkey: "nav.settings", action: { href: "/app/settings" } },
-  { id: "shortcuts", label: "Shortcuts", keywords: "keyboard keys hotkeys", icon: Keyboard, group: "Go to", hotkey: "shortcuts.open", action: { href: "/app/settings/shortcuts" } },
+  { id: "now", label: "Now", keywords: "today home", icon: Clock, group: "Go to", action: { href: "/app" } },
+  { id: "week", label: "Week", keywords: "plan calendar", icon: CalendarDays, group: "Go to", action: { href: "/app/plan" } },
+  { id: "season", label: "Season", keywords: "goals", icon: Target, group: "Go to", action: { href: "/app/goals" } },
+  { id: "body", label: "Body", keywords: "fitness health nutrition", icon: Activity, group: "Go to", action: { href: "/app/fitness" } },
+  { id: "review", label: "Review", keywords: "stats progress", icon: LineChart, group: "Go to", action: { href: "/app/review" } },
+  { id: "chat", label: "Chat", keywords: "timi assistant conversation history open", icon: MessagesSquare, group: "Go to", action: { href: "/app/assistant" } },
+  { id: "settings", label: "Settings", keywords: "preferences account", icon: Settings2, group: "Go to", action: { href: "/app/settings" } },
+  { id: "shortcuts", label: "Shortcuts", keywords: "keyboard keys hotkeys", icon: Keyboard, group: "Go to", action: { href: "/app/settings/shortcuts" } },
 ];
 
 const PROMPTS: Item[] = GUIDE_SUGGESTIONS.map((s) => ({
@@ -279,7 +278,6 @@ function AskMenu({ ready, waterAdded, onRun, onSent, onClose }: MenuProps) {
               item={item}
               active={active === i}
               disabled={disabled(item) || (item.group === "Ask Timi" && timi.state === "sending")}
-              showKeys={hasKeyboard}
               onHover={() => setActive(i)}
               onPick={() => pick(item)}
             />
@@ -311,7 +309,6 @@ function AskMenu({ ready, waterAdded, onRun, onSent, onClose }: MenuProps) {
                 active={active === i}
                 done={item.id === "water" && waterAdded}
                 disabled={disabled(item)}
-                showKeys={hasKeyboard}
                 onPick={() => pick(item)}
               />
             ))}
@@ -320,7 +317,7 @@ function AskMenu({ ready, waterAdded, onRun, onSent, onClose }: MenuProps) {
           <GroupTitle>Go to</GroupTitle>
           <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
             {GO.map((item, i) => (
-              <GoRow key={item.id} item={item} active={active === ADD.length + i} showKeys={hasKeyboard} onPick={() => pick(item)} />
+              <GoRow key={item.id} item={item} active={active === ADD.length + i} onPick={() => pick(item)} />
             ))}
           </div>
         </>
@@ -352,24 +349,18 @@ function ItemIcon({ item, done, size = "md" }: { item: Item; done?: boolean; siz
   );
 }
 
-function ItemKeys({ item }: { item: Item }) {
-  return item.hotkey ? <AppKbd id={item.hotkey} size="xs" /> : null;
-}
-
 /** The colourful square for an Add action, as before the redesign. */
 function Tile({
   item,
   active,
   done,
   disabled,
-  showKeys,
   onPick,
 }: {
   item: Item;
   active: boolean;
   done: boolean;
   disabled: boolean;
-  showKeys: boolean;
   onPick: () => void;
 }) {
   return (
@@ -379,23 +370,18 @@ function Tile({
       disabled={disabled}
       data-active={active}
       className={cn(
-        "tap relative flex h-[92px] flex-col items-start justify-between rounded-[16px] border border-line bg-surface-2 p-3 text-left",
+        "tap flex h-[92px] flex-col items-start justify-between rounded-[16px] border border-line bg-surface-2 p-3 text-left",
         "transition-colors hover:border-line-strong disabled:opacity-60",
         "data-[active=true]:border-accent data-[active=true]:shadow-[inset_0_0_0_1px_var(--accent)]",
       )}
     >
       <ItemIcon item={item} done={done} />
       <span className="text-[14px] leading-tight font-semibold text-ink">{done ? "+250 ml added" : item.label}</span>
-      {showKeys && (
-        <span className="absolute top-3 right-3">
-          <ItemKeys item={item} />
-        </span>
-      )}
     </button>
   );
 }
 
-function GoRow({ item, active, showKeys, onPick }: { item: Item; active: boolean; showKeys: boolean; onPick: () => void }) {
+function GoRow({ item, active, onPick }: { item: Item; active: boolean; onPick: () => void }) {
   const Icon = item.icon as LucideIcon;
   return (
     <button
@@ -406,12 +392,6 @@ function GoRow({ item, active, showKeys, onPick }: { item: Item; active: boolean
     >
       <Icon className="size-[18px] shrink-0 text-ink-3" strokeWidth={1.8} />
       <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-ink-2">{item.label}</span>
-      {/* Half-width rows on a narrow screen need the room for their label */}
-      {showKeys && (
-        <span className="hidden shrink-0 sm:flex">
-          <ItemKeys item={item} />
-        </span>
-      )}
     </button>
   );
 }
@@ -420,14 +400,12 @@ function ResultRow({
   item,
   active,
   disabled,
-  showKeys,
   onHover,
   onPick,
 }: {
   item: Item;
   active: boolean;
   disabled: boolean;
-  showKeys: boolean;
   onHover: () => void;
   onPick: () => void;
 }) {
@@ -445,7 +423,7 @@ function ResultRow({
       <ItemIcon item={item} size="sm" />
       <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">{item.label}</span>
       <span className="shrink-0 text-[12.5px] text-ink-3">{item.group}</span>
-      {showKeys && (item.hotkey ? <ItemKeys item={item} /> : active && <Keycap size="xs">↵</Keycap>)}
+      {active && <Keycap size="xs">↵</Keycap>}
     </button>
   );
 }
