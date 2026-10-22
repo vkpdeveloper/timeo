@@ -1,4 +1,37 @@
-/* Auth screens: flat surfaces, a quiet entrance. */
+/* Auth screens: warm paper, ink controls and one ember panel, whatever accent the device picked. */
+
+:root {
+  --auth-bg: light-dark(#f2ede6, #100e0c);
+}
+
+/* The scrollbar gutter shows the page behind <main> */
+html:has(.auth-theme) {
+  background: var(--auth-bg);
+}
+
+.auth-theme {
+  --bg: var(--auth-bg);
+  --surface: light-dark(#faf7f2, #1a1714);
+  --surface-2: light-dark(#f6f2ec, #1f1b18);
+  --sunken: light-dark(#e8e2d9, #0b0a09);
+  --ink: light-dark(#1a1714, #f2ede6);
+  --ink-2: light-dark(#6b645c, #a59d94);
+  --ink-3: light-dark(#9a9289, #70685f);
+  --line: light-dark(rgb(26 23 20 / 0.1), rgb(255 248 240 / 0.08));
+  --line-strong: light-dark(rgb(26 23 20 / 0.15), rgb(255 248 240 / 0.13));
+  --accent: var(--ink);
+  --accent-ink: var(--bg);
+  --accent-soft: var(--sunken);
+
+  --ember: light-dark(#dc4b27, #c8431f);
+  --ember-ink: #f6ebe0;
+  --focus: color-mix(in oklab, var(--ember) 60%, transparent);
+}
+
+.auth-theme .field:focus {
+  border-color: var(--ember);
+  box-shadow: inset 0 0 0 1px var(--ember);
+}
 
 .auth-fade {
   animation: auth-fade 500ms 80ms ease-out backwards;
@@ -10,6 +43,13 @@
 
 .auth-showcase {
   animation: auth-fade 700ms 120ms ease-out backwards;
+}
+
+/* The headline's lines rise one after the other. */
+.auth-line {
+  display: block;
+  animation: auth-rise-far 900ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--d, 200ms);
 }
 
 @keyframes auth-fade {
@@ -25,28 +65,16 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .auth-panel {
-    animation-name: auth-fade;
-  }
-}
-
-/* Floating objects: a slow bob, each on its own clock. */
-.auth-float {
-  animation: auth-float 7s ease-in-out infinite alternate;
-}
-
-@keyframes auth-float {
+@keyframes auth-rise-far {
   from {
-    translate: 0 -10px;
-  }
-  to {
-    translate: 0 10px;
+    opacity: 0;
+    translate: 0 0.25em;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-float {
-    animation: none;
+  .auth-panel,
+  .auth-line {
+    animation-name: auth-fade;
   }
 }

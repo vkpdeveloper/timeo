@@ -3,6 +3,7 @@
 import { CircleAlert, Eye, EyeOff, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useActionState, useId, useState, type ComponentProps, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { springs, useReducedMotion } from "@/components/ui/motion";
@@ -14,15 +15,15 @@ type Mode = "login" | "signup";
 
 const COPY: Record<Mode, { title: string; body: string; submit: string; pending: string; path: string; doc: string }> = {
   login: {
-    title: "Sign in to Timeo",
-    body: "Use the email you signed up with.",
+    title: "Sign in",
+    body: "Good to see you again.",
     submit: "Sign in",
     pending: "Signing in",
     path: "/login",
     doc: "Sign in · Timeo",
   },
   signup: {
-    title: "Start your first season",
+    title: "Create an account",
     body: "A few goals, twelve weeks, and the time to do them.",
     submit: "Create account",
     pending: "Creating account",
@@ -37,7 +38,7 @@ const COPY: Record<Mode, { title: string; body: string; submit: string; pending:
 export function AuthHeading({ title, body, id }: { title: string; body: ReactNode; id?: string }) {
   const reduce = useReducedMotion();
   return (
-    <div className="mb-8 min-h-[92px] lg:mb-9">
+    <div className="mb-8 min-h-[72px] lg:mb-9">
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={id ?? title}
@@ -45,8 +46,8 @@ export function AuthHeading({ title, body, id }: { title: string; body: ReactNod
           animate={{ opacity: 1, y: 0, transition: springs.smooth }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4, transition: { duration: 0.12 } }}
         >
-          <h1 className="text-[28px] leading-[1.12] font-semibold tracking-[-0.025em] text-balance text-ink lg:text-[30px]">{title}</h1>
-          <p className="mt-2.5 text-[15.5px] leading-relaxed text-pretty text-ink-2">{body}</p>
+          <h1 className="display text-[32px] text-balance text-ink lg:text-[34px]">{title}</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-pretty text-ink-2">{body}</p>
         </motion.div>
       </AnimatePresence>
     </div>
@@ -96,7 +97,7 @@ export function AuthField({
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between px-0.5">
-        <label htmlFor={htmlFor} className="text-[13.5px] font-medium text-ink-2">
+        <label htmlFor={htmlFor} className="text-[13.5px] font-medium text-ink">
           {label}
         </label>
         {aside}
@@ -141,12 +142,12 @@ export function PasswordInput({ className, invalid, ...props }: Omit<ComponentPr
   );
 }
 
-/** The one primary action: accent fill, spinner and a short word while it works. */
+/** The one primary action: an ink pill, spinner and a short word while it works. */
 export function AuthSubmit({ pending, label, pendingLabel }: { pending: boolean; label: string; pendingLabel: string }) {
   const reduce = useReducedMotion();
   const text = pending ? pendingLabel : label;
   return (
-    <Button type="submit" variant="accent" size="lg" disabled={pending} aria-busy={pending} className="h-12 disabled:opacity-100">
+    <Button type="submit" variant="primary" size="lg" disabled={pending} aria-busy={pending} className="h-12 !rounded-full disabled:opacity-100">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
           key={text}
@@ -164,27 +165,31 @@ export function AuthSubmit({ pending, label, pendingLabel }: { pending: boolean;
   );
 }
 
-/** Small line under a form: "New to Timeo? Create an account". */
-export function AuthSwitch({
-  text,
-  href,
-  label,
-  onClick,
-}: {
-  text: string;
-  href: string;
-  label: string;
-  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-}) {
+/**
+ * Top right of every auth screen: "New to Timeo? Create an account". Between
+ * sign in and sign up it swaps the URL in place, so the form keeps what was typed.
+ */
+export function AuthTopLink() {
+  const pathname = usePathname();
+  const onForm = pathname === "/login" || pathname === "/signup";
+  const to: Mode = pathname === "/login" ? "signup" : "login";
+  const text = pathname === "/login" ? "New to Timeo?" : pathname === "/signup" ? "Have an account?" : "Remembered it?";
+
   return (
-    <p className="flex items-center justify-center gap-1 text-[14.5px] text-ink-3">
-      {text}
+    <p className="flex items-center gap-1 text-[14px] text-ink-2">
+      <span className="max-[399px]:hidden">{text}</span>
       <Link
-        href={href}
-        onClick={onClick}
-        className="tap -my-2.5 inline-flex h-11 items-center px-1 font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink"
+        href={COPY[to].path}
+        onClick={(e) => {
+          if (!onForm) return;
+          e.preventDefault();
+          // null, not history.state: Next only syncs usePathname for state it doesn't own
+          window.history.replaceState(null, "", COPY[to].path);
+          document.title = COPY[to].doc;
+        }}
+        className="tap -mr-1 -my-2.5 inline-flex h-11 items-center px-1 font-medium text-ink underline decoration-transparent underline-offset-4 hover:decoration-ink"
       >
-        {label}
+        {to === "signup" ? "Create an account" : "Sign in"}
       </Link>
     </p>
   );
@@ -203,13 +208,13 @@ function fieldFor(error: string): FieldKey {
 }
 
 /**
- * Sign in and sign up in one form. Switching keeps what was typed, slides the
- * name field in or out and swaps the URL without a page load.
+ * Sign in and sign up in one form. The mode follows the URL, which AuthTopLink
+ * swaps without a page load: what was typed stays and the name field slides in or out.
  */
-export function AuthForm({ mode: initialMode }: { mode: Mode }) {
+export function AuthForm() {
   const reduce = useReducedMotion();
   const ids = useId();
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const mode: Mode = usePathname() === "/signup" ? "signup" : "login";
   const [loginState, loginAction, loginPending] = useActionState<AuthState, FormData>(login, undefined);
   const [signupState, signupAction, signupPending] = useActionState<AuthState, FormData>(signup, undefined);
   const timezone = useClientValue(() => Intl.DateTimeFormat().resolvedOptions().timeZone, "UTC");
@@ -230,18 +235,11 @@ export function AuthForm({ mode: initialMode }: { mode: Mode }) {
     if (where === k || where === "form") setDismissed(state);
   };
 
-  const switchTo = (next: Mode) => (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    setMode(next);
-    window.history.replaceState(window.history.state, "", COPY[next].path);
-    document.title = COPY[next].doc;
-  };
-
   return (
     <div className="flex flex-1 flex-col">
       <AuthHeading id={mode} title={copy.title} body={copy.body} />
 
-      <form action={mode === "login" ? loginAction : signupAction} noValidate className="flex flex-col gap-4">
+      <form action={mode === "login" ? loginAction : signupAction} noValidate className="flex flex-col gap-5">
         <input type="hidden" name="timezone" value={timezone} />
 
         <AnimatePresence initial={false}>
@@ -310,7 +308,7 @@ export function AuthForm({ mode: initialMode }: { mode: Mode }) {
                 >
                   <Link
                     href="/forgot-password"
-                    className="-my-3 inline-flex h-11 items-center px-1 text-[13.5px] font-medium text-ink-3 hover:text-ink"
+                    className="-my-3 inline-flex h-11 items-center px-1 text-[13.5px] text-ink-2 hover:text-ink"
                   >
                     Forgot password?
                   </Link>
@@ -322,7 +320,7 @@ export function AuthForm({ mode: initialMode }: { mode: Mode }) {
           <PasswordInput
             id={`${ids}-password`}
             name="password"
-            placeholder={mode === "signup" ? "Choose a password" : "Your password"}
+            placeholder={mode === "signup" ? "Choose a password" : "Enter your password"}
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
             invalid={where === "password"}
             onChange={clear("password")}
@@ -330,20 +328,12 @@ export function AuthForm({ mode: initialMode }: { mode: Mode }) {
           />
         </AuthField>
 
-        <FormError error={errorOn("form")} className="-mt-3" />
+        <FormError error={errorOn("form")} className="-mt-4" />
 
         <div className="pt-1">
           <AuthSubmit pending={pending} label={copy.submit} pendingLabel={copy.pending} />
         </div>
       </form>
-
-      <div className="mt-auto pt-10 lg:mt-7 lg:pt-0">
-        {mode === "login" ? (
-          <AuthSwitch text="New to Timeo?" href="/signup" label="Create an account" onClick={switchTo("signup")} />
-        ) : (
-          <AuthSwitch text="Have an account?" href="/login" label="Sign in" onClick={switchTo("login")} />
-        )}
-      </div>
     </div>
   );
 }

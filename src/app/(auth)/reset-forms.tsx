@@ -5,12 +5,8 @@ import { motion } from "motion/react";
 import { useActionState, useId, useState } from "react";
 import { ButtonLink, SubmitButton } from "@/components/ui/button";
 import { springs, useReducedMotion } from "@/components/ui/motion";
-import { AuthField, AuthHeading, AuthInput, AuthSubmit, AuthSwitch, FormError, PasswordInput } from "./auth-form";
+import { AuthField, AuthHeading, AuthInput, AuthSubmit, FormError, PasswordInput } from "./auth-form";
 import { requestPasswordReset, resetPassword, type ForgotState, type ResetState } from "./actions";
-
-function BackToSignIn() {
-  return <AuthSwitch text="Remembered it?" href="/login" label="Sign in" />;
-}
 
 export function ForgotForm() {
   const [state, action, pending] = useActionState<ForgotState, FormData>(requestPasswordReset, undefined);
@@ -34,21 +30,18 @@ export function ForgotForm() {
         />
         <form action={action}>
           <input type="hidden" name="email" value={state.email} />
-          <SubmitButton size="lg" variant="outline" className="h-12">
+          <SubmitButton size="lg" variant="outline" className="h-12 !rounded-full">
             Send again
           </SubmitButton>
           <p className="px-1 pt-3 text-center text-[13.5px] text-ink-3">Nothing after a minute? Check spam, or send it again.</p>
         </form>
-        <div className="mt-6">
-          <BackToSignIn />
-        </div>
       </motion.div>
     );
 
   return (
     <div className="flex flex-1 flex-col">
       <AuthHeading title="Reset your password" body="Enter your email and we’ll send a link to choose a new one." />
-      <form action={action} noValidate className="flex flex-col gap-4">
+      <form action={action} noValidate className="flex flex-col gap-5">
         <AuthField label="Email" htmlFor={`${ids}-email`} error={state?.error}>
           <AuthInput
             id={`${ids}-email`}
@@ -69,9 +62,6 @@ export function ForgotForm() {
           <AuthSubmit pending={pending} label="Send reset link" pendingLabel="Sending" />
         </div>
       </form>
-      <div className="mt-auto pt-10 lg:mt-7 lg:pt-0">
-        <BackToSignIn />
-      </div>
     </div>
   );
 }
@@ -98,7 +88,7 @@ export function ResetForm({ token }: { token: string }) {
           setTried(true);
           if (confirm !== password) e.preventDefault();
         }}
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-5"
       >
         <input type="hidden" name="token" value={token} />
         {/* lets password managers save the new password against the account */}
@@ -142,12 +132,9 @@ export function ExpiredLink() {
   return (
     <div className="flex flex-1 flex-col">
       <AuthHeading title="This link has expired" body="Reset links work once, for 10 minutes. Send yourself a fresh one." />
-      <ButtonLink href="/forgot-password" variant="accent" size="lg" className="h-12">
+      <ButtonLink href="/forgot-password" variant="primary" size="lg" className="h-12 !rounded-full">
         Send a new link
       </ButtonLink>
-      <div className="mt-auto pt-10 lg:mt-7 lg:pt-0">
-        <BackToSignIn />
-      </div>
     </div>
   );
 }
