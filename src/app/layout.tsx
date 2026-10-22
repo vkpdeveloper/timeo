@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/shell/sw-register";
 import { ThemeBoot } from "@/components/shell/theme";
 import { themeBootScript } from "@/lib/themes";
 import "./globals.css";
 
-// Geist for everything; Geist Mono only for clocks, timers and times of day
+// Geist for text, Archivo for headings and hero numbers, Geist Mono only for clocks, timers and times of day
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
+const archivo = Archivo({ variable: "--font-archivo", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geist.variable} ${geistMono.variable} antialiased`}
+      className={`${geist.variable} ${archivo.variable} ${geistMono.variable} antialiased`}
       // The boot script sets data-mode (light | dark) before paint
       suppressHydrationWarning
     >

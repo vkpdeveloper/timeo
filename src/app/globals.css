@@ -205,8 +205,8 @@
 
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* No serif any more: display text is Geist semibold */
-  --font-display: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  /* Headings and hero numbers: Archivo, heavy and tight */
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
 
   --radius-card: 16px;
   --radius-control: 12px;
@@ -345,11 +345,11 @@ button:disabled {
     border-radius: var(--radius-card);
   }
 
-  /* Big titles and hero numbers: Geist semibold, tight. */
+  /* Big titles and hero numbers: Archivo bold, tight. */
   .display {
-    font-family: var(--font-sans);
-    font-weight: 600;
-    letter-spacing: -0.025em;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.03em;
     line-height: 1.1;
   }
 

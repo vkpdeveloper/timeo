@@ -194,7 +194,7 @@ export function Onboarding({
         return (
           <div className="flex flex-col items-start pt-[6vh] lg:pt-0">
             <Timi size={112} mood={mood} interactive className="-ml-3" />
-            <h1 className="mt-6 text-[32px] leading-[1.08] font-semibold tracking-[-0.03em] text-balance text-ink lg:text-[36px]">
+            <h1 className="mt-6 font-display text-[32px] leading-[1.08] font-bold tracking-[-0.03em] text-balance text-ink lg:text-[36px]">
               Hi {firstName}. I&apos;m Timi.
             </h1>
             <p className="mt-3 max-w-[40ch] text-[16.5px] leading-relaxed text-pretty text-ink-2">
@@ -431,7 +431,7 @@ function StepTitle({ mood, title, body }: { mood: TimiMood; title: string; body:
   return (
     <div className="mb-7">
       <Timi size={52} mood={mood} className="-ml-1.5 mb-4" />
-      <h1 className="text-[28px] leading-[1.1] font-semibold tracking-[-0.025em] text-balance text-ink lg:text-[30px]">{title}</h1>
+      <h1 className="font-display text-[28px] leading-[1.1] font-bold tracking-[-0.03em] text-balance text-ink lg:text-[30px]">{title}</h1>
       {body && <p className="mt-2.5 max-w-[42ch] text-[15.5px] leading-relaxed text-pretty text-ink-2">{body}</p>}
     </div>
   );

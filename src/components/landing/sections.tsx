@@ -16,7 +16,7 @@ import { Reveal } from "./reveal";
 import { WeekScroll } from "./week-scroll";
 import { Wordmark } from "./wordmark";
 
-const h2 = "text-[32px] leading-[1.08] font-semibold tracking-[-0.03em] text-balance text-ink sm:text-[44px]";
+const h2 = "font-display text-[32px] leading-[1.08] font-bold tracking-[-0.03em] text-balance text-ink sm:text-[44px]";
 
 export function WhyFocus() {
   return (
