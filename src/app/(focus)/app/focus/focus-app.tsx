@@ -1,5 +1,6 @@
 "use client";
 
+import { useHotkeys } from "@tanstack/react-hotkeys";
 import { AlertCircle, Check, ChevronDown, Minus, Pause, Play, Plus, Square, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -13,6 +14,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
 import { formatDuration, formatMin } from "@/lib/dates";
+import { appHotkeys } from "@/lib/hotkeys";
 import {
   ENERGY_OPTIONS,
   FOCUS_MAX,
@@ -730,6 +732,11 @@ function RunningView({
     const pausedMs = run.pausedAt != null ? run.pausedMs + (t - run.pausedAt) : run.pausedMs;
     setRun({ ...run, pausedAt: null, pausedMs, endedAt: t, completed: false });
   };
+
+  useHotkeys([
+    { hotkey: appHotkeys["focus.toggle"], callback: toggle },
+    { hotkey: appHotkeys["focus.extend"], callback: extend },
+  ]);
 
   const endsAt = paused ? (now || run.pausedAt!) + remaining : to;
 

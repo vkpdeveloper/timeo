@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
-import { Bell, Download, Info, LogOut, Mail } from "lucide-react";
+import { Bell, Download, Info, Keyboard, LogOut, Mail } from "lucide-react";
 import { Timi } from "@/components/ai/timi";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { logout } from "@/app/(auth)/actions";
 import { InstallRow } from "@/components/shell/install";
+import { AppKbd } from "@/components/ui/kbd";
 import { PageHeader, Row, RowIcon, Section, Skeleton } from "@/components/ui/primitives";
 import { db, t } from "@/db";
 import { getAccent, getColorMode } from "@/lib/appearance";
@@ -87,6 +88,7 @@ async function SettingsContent() {
         <AppearanceRow saved={savedMode} />
         <AccentRow saved={savedAccent} />
         <Row href="/app/settings/notifications" icon={<Bell />} title="Notifications" value="This device" />
+        <Row href="/app/settings/shortcuts" icon={<Keyboard />} title="Keyboard shortcuts" value={<AppKbd id="ask.open" size="xs" />} />
         <Row icon={<Timi size={24} />} title="Assistant" value="DeepSeek V4.1 Flash" />
       </Section>
 

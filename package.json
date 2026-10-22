@@ -19,6 +19,7 @@
     "@ai-sdk/openai-compatible": "^3.0.70",
     "@libsql/client": "^0.18.0",
     "@radix-ui/react-use-controllable-state": "^1.3.0",
+    "@tanstack/react-hotkeys": "^0.16.0",
     "ai": "^7.0.142",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
