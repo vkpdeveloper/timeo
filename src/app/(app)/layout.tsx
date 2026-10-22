@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { AskHost } from "@/components/shell/ask";
+import { GlobalHotkeys } from "@/components/shell/hotkeys";
 import { Sidebar, TabBar } from "@/components/shell/nav";
 import { ThemeSync } from "@/components/shell/theme";
 
@@ -19,6 +20,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <TabBar />
       </Suspense>
       <AskHost />
+      <GlobalHotkeys />
       <ThemeSync />
     </div>
   );

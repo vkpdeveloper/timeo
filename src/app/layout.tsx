@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Geist, Geist_Mono } from "next/font/google";
+import { HotkeysRoot } from "@/components/shell/hotkeys";
 import { ServiceWorkerRegister } from "@/components/shell/sw-register";
 import { ThemeBoot } from "@/components/shell/theme";
 import { themeBootScript } from "@/lib/themes";
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         <ThemeBoot />
-        {children}
+        <HotkeysRoot>{children}</HotkeysRoot>
         <ServiceWorkerRegister />
       </body>
     </html>
