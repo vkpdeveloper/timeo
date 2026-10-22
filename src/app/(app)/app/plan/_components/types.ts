@@ -20,6 +20,8 @@ export type UnscheduledTask = {
   goalId: string | null;
   dueDate: string | null;
   estimateMin: number | null;
+  /** the connected app it came from */
+  source: string | null;
   overdue: boolean;
   slot: { start: number; end: number } | null;
 };

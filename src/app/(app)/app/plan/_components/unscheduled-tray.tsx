@@ -3,6 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { cn } from "@/lib/cn";
 import { colorVar } from "@/lib/colors";
 import { formatDuration, toTimeInput } from "@/lib/dates";
@@ -10,10 +11,13 @@ import { usePlan } from "./plan-provider";
 import type { GoalInfo, UnscheduledTask } from "./types";
 
 const KEY = "timeo.plan.tray";
+/** Rows shown before "Show more": a connected app can bring in dozens of undated tasks. */
+const SHOWN = 5;
 
 export function UnscheduledTray({ date, tasks, goals }: { date: string; tasks: UnscheduledTask[]; goals: GoalInfo[] }) {
   const { openNew } = usePlan();
   const [open, setOpen] = useState(true);
+  const [all, setAll] = useState(false);
 
   useEffect(() => {
     try {
@@ -53,15 +57,19 @@ export function UnscheduledTray({ date, tasks, goals }: { date: string; tasks: U
             className="overflow-hidden"
           >
             <ul className="border-t border-line">
-              {tasks.map((task) => {
+              {(all ? tasks : tasks.slice(0, SHOWN)).map((task) => {
                 const goal = task.goalId ? goalById.get(task.goalId) : undefined;
                 const minutes = task.estimateMin ?? 60;
                 return (
                   <li key={task.id} className="flex items-center gap-3 px-4 py-2.5 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-                    <span
-                      className="size-2 shrink-0 rounded-full"
-                      style={{ background: goal ? colorVar(goal.color) : "var(--line-strong)" }}
-                    />
+                    {task.source && !goal ? (
+                      <IntegrationLogo id={task.source} size={16} className="rounded-[4px]!" />
+                    ) : (
+                      <span
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ background: goal ? colorVar(goal.color) : "var(--line-strong)" }}
+                      />
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-medium text-ink">{task.title}</div>
                       <div className="tnum truncate text-[12px] text-ink-3">
@@ -96,6 +104,15 @@ export function UnscheduledTray({ date, tasks, goals }: { date: string; tasks: U
                 );
               })}
             </ul>
+            {tasks.length > SHOWN && (
+              <button
+                type="button"
+                onClick={() => setAll(!all)}
+                className="tap flex h-11 w-full items-center justify-center border-t border-line text-[13px] font-medium text-ink-2"
+              >
+                {all ? "Show fewer" : `Show ${tasks.length - SHOWN} more`}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

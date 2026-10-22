@@ -28,7 +28,8 @@ async function dueFor(user: CurrentUser, prefs: NotifyPrefs, nowMin: number): Pr
           .select({ id: t.blocks.id, title: t.blocks.title, kind: t.blocks.kind, start: t.blocks.startMin, end: t.blocks.endMin, goal: t.goals.title })
           .from(t.blocks)
           .leftJoin(t.goals, eq(t.goals.id, t.blocks.goalId))
-          .where(and(eq(t.blocks.userId, user.id), eq(t.blocks.date, today), isNull(t.blocks.doneAt), isNull(t.blocks.skippedAt)))
+          // calendar events are announced by their own calendar
+          .where(and(eq(t.blocks.userId, user.id), eq(t.blocks.date, today), isNull(t.blocks.doneAt), isNull(t.blocks.skippedAt), isNull(t.blocks.integrationId)))
       : [],
     db
       .select({ start: t.gymSchedule.startMin, routine: t.workoutTemplates.name, estimatedMin: t.workoutTemplates.estimatedMin })

@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/primitives";
@@ -100,16 +100,22 @@ async function PlanContent({ searchParams }: { searchParams: PageProps<"/app/pla
         goalId: t.tasks.goalId,
         dueDate: t.tasks.dueDate,
         estimateMin: t.tasks.estimateMin,
+        source: t.tasks.source,
       })
       .from(t.tasks)
       .where(
         and(
           eq(t.tasks.userId, user.id),
           isNull(t.tasks.doneAt),
-          date === user.today ? lte(t.tasks.dueDate, date) : eq(t.tasks.dueDate, date),
+          date === user.today
+            ? // today also offers undated tasks from connected apps
+              or(lte(t.tasks.dueDate, date), and(isNull(t.tasks.dueDate), isNotNull(t.tasks.integrationId)))
+            : eq(t.tasks.dueDate, date),
         ),
       )
-      .orderBy(asc(t.tasks.dueDate), asc(t.tasks.sortOrder), asc(t.tasks.createdAt)),
+      // undated last (NULLs sort first in SQLite)
+      .orderBy(asc(isNull(t.tasks.dueDate)), asc(t.tasks.dueDate), asc(t.tasks.sortOrder), asc(t.tasks.createdAt))
+      .limit(80),
   ]);
 
   // ── Goals and colours ──

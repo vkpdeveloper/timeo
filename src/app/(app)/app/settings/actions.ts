@@ -66,6 +66,15 @@ export async function updateDayHours(fd: FormData): Promise<Result> {
   refresh();
 }
 
+/** Turns off "Continue with Google" for the account. Needs a password to sign in with instead. */
+export async function unlinkGoogle(): Promise<Result> {
+  const user = await requireUser();
+  const row = await db.select({ passwordHash: t.users.passwordHash }).from(t.users).where(eq(t.users.id, user.id)).get();
+  if (!row?.passwordHash) return { error: "Set a password first, so you can still sign in" };
+  await db.update(t.users).set({ googleId: null }).where(eq(t.users.id, user.id));
+  refresh();
+}
+
 /** Permanently deletes the account and every row it owns. */
 export async function deleteAccount(fd: FormData): Promise<Result> {
   const user = await requireUser();

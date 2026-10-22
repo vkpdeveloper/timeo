@@ -1,15 +1,17 @@
 "use client";
 
-import { ArrowRight, Check, Loader2, Pencil, Play, RotateCcw, ShieldCheck, SkipForward, Trash2 } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, Loader2, Pencil, Play, RotateCcw, ShieldCheck, SkipForward, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { createContext, use, useCallback, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { deleteBlock, moveBlock, setBlockDone, skipBlock } from "@/actions/blocks";
 import type { GoalOption } from "@/actions/context";
 import { BlockSheet } from "@/components/forms/sheets";
+import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { buttonClass } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { addDays, formatDuration, relativeDay, toTimeInput } from "@/lib/dates";
+import { sourceName } from "@/lib/integrations/catalog";
 import { blockColors, KIND_ICON, KIND_LABEL } from "./block-style";
 import type { PlanBlock } from "./types";
 
@@ -103,6 +105,8 @@ function BlockDetail({
   const Icon = KIND_ICON[block.kind];
   const done = !!block.doneAt;
   const skipped = !!block.skippedAt;
+  // an event from a connected calendar: its time and title belong to that calendar
+  const from = block.integrationId ? sourceName(block.source) : null;
 
   // "Delete?" waits for a second tap, then quietly resets
   useEffect(() => {
@@ -134,6 +138,8 @@ function BlockDetail({
       fn: () => moveBlock(block.id, addDays(block.date, 1), block.startMin),
     },
   ];
+  // done and skip only: moving or editing it happens in its calendar
+  const buttons = from ? actions.slice(0, 2) : [...actions, { key: "edit", label: "Edit", icon: Pencil, fn: null }];
 
   const primary =
     block.kind === "workout"
@@ -143,15 +149,25 @@ function BlockDetail({
   return (
     <div className="pt-1">
       <div className="flex items-start gap-3.5">
-        <span
-          className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-[12px]"
-          style={{ background: colors.fill, color: colors.ink }}
-        >
-          <Icon className="size-5" strokeWidth={2} />
-        </span>
+        {from && block.source ? (
+          <IntegrationLogo id={block.source} size={44} className="mt-0.5" />
+        ) : (
+          <span
+            className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-[12px]"
+            style={{ background: colors.fill, color: colors.ink }}
+          >
+            <Icon className="size-5" strokeWidth={2} />
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="eyebrow flex min-w-0 items-center gap-1.5">
             <span className="shrink-0">{KIND_LABEL[block.kind]}</span>
+            {from && (
+              <>
+                <span className="text-line-strong">·</span>
+                <span className="truncate text-ink-2">{from}</span>
+              </>
+            )}
             {block.goalTitle && (
               <>
                 <span className="text-line-strong">·</span>
@@ -201,15 +217,29 @@ function BlockDetail({
         </div>
       )}
 
-      {!done && !skipped && (
-        <Link href={primary.href} className={buttonClass("accent", "lg", "mt-6")}>
-          <Play className="size-4 fill-current" />
-          {primary.label}
-        </Link>
-      )}
+      {from
+        ? block.externalUrl && (
+            <a href={block.externalUrl} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary", "lg", "mt-6")}>
+              Open in {from}
+              <ArrowUpRight className="size-4" />
+            </a>
+          )
+        : !done &&
+          !skipped && (
+            <Link href={primary.href} className={buttonClass("accent", "lg", "mt-6")}>
+              <Play className="size-4 fill-current" />
+              {primary.label}
+            </Link>
+          )}
 
-      <div className={cn("grid grid-cols-4 gap-2", done || skipped ? "mt-6" : "mt-3")}>
-        {[...actions, { key: "edit", label: "Edit", icon: Pencil, fn: null }].map((a) => {
+      <div
+        className={cn(
+          "grid gap-2",
+          from ? "grid-cols-2" : "grid-cols-4",
+          done || skipped || (from && !block.externalUrl) ? "mt-6" : "mt-3",
+        )}
+      >
+        {buttons.map((a) => {
           const AIcon = a.icon;
           const loading = pending && busy === a.key;
           return (
@@ -227,18 +257,22 @@ function BlockDetail({
         })}
       </div>
 
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() => (confirm ? run("delete", () => deleteBlock(block.id)) : setConfirm(true))}
-        className={cn(
-          "tap mx-auto mt-4 mb-1 flex h-11 items-center gap-1.5 rounded-full px-4 text-[14px] font-medium disabled:opacity-60",
-          confirm ? "border border-line-strong text-ink" : "text-ink-2",
-        )}
-      >
-        {pending && busy === "delete" ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-        {confirm ? "Delete? Tap again" : "Delete block"}
-      </button>
+      {from ? (
+        <p className="mt-4 mb-1 text-center text-[13px] text-ink-3">Change or remove it in {from}.</p>
+      ) : (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => (confirm ? run("delete", () => deleteBlock(block.id)) : setConfirm(true))}
+          className={cn(
+            "tap mx-auto mt-4 mb-1 flex h-11 items-center gap-1.5 rounded-full px-4 text-[14px] font-medium disabled:opacity-60",
+            confirm ? "border border-line-strong text-ink" : "text-ink-2",
+          )}
+        >
+          {pending && busy === "delete" ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+          {confirm ? "Delete? Tap again" : "Delete block"}
+        </button>
+      )}
     </div>
   );
 }

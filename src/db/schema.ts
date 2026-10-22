@@ -30,27 +30,34 @@ const userId = () =>
 
 // ───────────────────────────── Auth ─────────────────────────────
 
-export const users = sqliteTable("users", {
-  id: id(),
-  email: text("email").notNull().unique(),
-  name: text("name").notNull(),
-  passwordHash: text("password_hash").notNull(),
-  timezone: text("timezone").notNull().default("UTC"),
-  // first hour of the working day shown in the planner
-  dayStartMin: integer("day_start_min").notNull().default(6 * 60),
-  dayEndMin: integer("day_end_min").notNull().default(23 * 60),
-  // AI command bar: OpenCode model id and reasoning effort
-  aiModel: text("ai_model").notNull().default("deepseek-v4.1-flash"),
-  aiEffort: text("ai_effort").notNull().default("low"),
-  // program-wide training notes, e.g. "Aim for ~2 reps in reserve"
-  trainingNotes: text("training_notes"),
-  // Appearance: colour theme id (src/lib/themes.ts) and light/dark/system
-  theme: text("theme").notNull().default("paper"),
-  colorMode: text("color_mode", { enum: ["system", "light", "dark"] }).notNull().default("system"),
-  // Which reminders to push (see src/lib/push/types.ts)
-  notifyPrefs: text("notify_prefs", { mode: "json" }).$type<NotifyPrefs>(),
-  createdAt: createdAt(),
-});
+export const users = sqliteTable(
+  "users",
+  {
+    id: id(),
+    email: text("email").notNull().unique(),
+    name: text("name").notNull(),
+    // "" for accounts that only sign in with Google
+    passwordHash: text("password_hash").notNull(),
+    // the Google account ("sub") that can sign in to this one
+    googleId: text("google_id"),
+    timezone: text("timezone").notNull().default("UTC"),
+    // first hour of the working day shown in the planner
+    dayStartMin: integer("day_start_min").notNull().default(6 * 60),
+    dayEndMin: integer("day_end_min").notNull().default(23 * 60),
+    // AI command bar: OpenCode model id and reasoning effort
+    aiModel: text("ai_model").notNull().default("deepseek-v4.1-flash"),
+    aiEffort: text("ai_effort").notNull().default("low"),
+    // program-wide training notes, e.g. "Aim for ~2 reps in reserve"
+    trainingNotes: text("training_notes"),
+    // Appearance: colour theme id (src/lib/themes.ts) and light/dark/system
+    theme: text("theme").notNull().default("paper"),
+    colorMode: text("color_mode", { enum: ["system", "light", "dark"] }).notNull().default("system"),
+    // Which reminders to push (see src/lib/push/types.ts)
+    notifyPrefs: text("notify_prefs", { mode: "json" }).$type<NotifyPrefs>(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("users_google_idx").on(t.googleId)],
+);
 
 export const sessions = sqliteTable(
   "sessions",
@@ -198,11 +205,22 @@ export const tasks = sqliteTable(
     estimateMin: integer("estimate_min"),
     doneAt: integer("done_at", { mode: "number" }),
     sortOrder: integer("sort_order").notNull().default(0),
+    // Imported from a connected app: which app, the connection, its id and link there, and what
+    // the copy there looked like at the last sync ("open|<hash>" or "done|<hash>"), so a sync can
+    // tell a change made there from one made here.
+    source: text("source"),
+    integrationId: text("integration_id").references(() => integrations.id, {
+      onDelete: "set null",
+    }),
+    externalId: text("external_id"),
+    externalUrl: text("external_url"),
+    externalState: text("external_state"),
     createdAt: createdAt(),
   },
   (t) => [
     index("tasks_user_due_idx").on(t.userId, t.dueDate),
     index("tasks_goal_idx").on(t.goalId),
+    uniqueIndex("tasks_external_idx").on(t.integrationId, t.externalId),
   ],
 );
 
@@ -240,9 +258,20 @@ export const blocks = sqliteTable(
       .default(false),
     doneAt: integer("done_at", { mode: "number" }),
     skippedAt: integer("skipped_at", { mode: "number" }),
+    // An event from a connected calendar: read only here, replaced on every sync and
+    // removed with the connection. externalId is "<calendar>/<event>/<day>".
+    source: text("source"),
+    integrationId: text("integration_id").references(() => integrations.id, {
+      onDelete: "cascade",
+    }),
+    externalId: text("external_id"),
+    externalUrl: text("external_url"),
     createdAt: createdAt(),
   },
-  (t) => [index("blocks_user_date_idx").on(t.userId, t.date)],
+  (t) => [
+    index("blocks_user_date_idx").on(t.userId, t.date),
+    uniqueIndex("blocks_external_idx").on(t.integrationId, t.externalId),
+  ],
 );
 
 export const focusSessions = sqliteTable(
@@ -643,6 +672,43 @@ export const notificationLog = sqliteTable(
   (t) => [uniqueIndex("notification_log_unique").on(t.userId, t.key)],
 );
 
+// ─────────────────────────── Integrations ───────────────────────────
+
+/** A connection's choices, set in Settings → Integrations. */
+export type IntegrationSettings = {
+  /** Calendars whose events show in the planner. Unset: the app's own default. */
+  calendars?: string[];
+  /** Tasks to bring in: ones due in the next two weeks (and overdue), or everything open. */
+  scope?: "dated" | "all";
+  /** Notion: the database tasks come from and which of its properties mean what. */
+  notion?: import("@/lib/integrations/providers/notion").NotionMapping;
+  /** Ids of tasks deleted here, so a sync doesn't bring them back. */
+  hidden?: string[];
+};
+
+// Calendars and task apps a user connected (src/lib/integrations). One per app.
+export const integrations = sqliteTable(
+  "integrations",
+  {
+    id: id(),
+    userId: userId(),
+    // provider id, e.g. "google-calendar", "todoist" (src/lib/integrations/catalog.ts)
+    provider: text("provider").notNull(),
+    // who is connected, e.g. "you@gmail.com" or a workspace name
+    account: text("account"),
+    // AES-GCM sealed JSON: tokens, expiry and provider ids (src/lib/integrations/crypto.ts)
+    credentials: text("credentials").notNull(),
+    settings: text("settings", { mode: "json" }).$type<IntegrationSettings>().notNull().default({}),
+    // reconnect: the app revoked access or the token expired for good
+    status: text("status", { enum: ["ok", "error", "reconnect"] }).notNull().default("ok"),
+    error: text("error"),
+    // when the last sync started; doubles as the lock between overlapping syncs
+    syncedAt: integer("synced_at", { mode: "number" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("integrations_unique").on(t.userId, t.provider)],
+);
+
 // ─────────────────────────── AI commands ───────────────────────────
 
 // Each "tell Timi" command: what was typed, what the model did, and the rows
@@ -680,6 +746,7 @@ export type AiPart =
   | { type: "tool"; name: string; state: "done" | "error"; input?: unknown; output?: unknown; error?: string };
 
 export type User = typeof users.$inferSelect;
+export type Integration = typeof integrations.$inferSelect;
 export type AiCommand = typeof aiCommands.$inferSelect;
 export type UserTheme = typeof userThemes.$inferSelect;
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;

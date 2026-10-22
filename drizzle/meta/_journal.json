@@ -71,6 +71,13 @@
       "when": 1792518968479,
       "tag": "0009_cloudy_nitro",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792672842685,
+      "tag": "0010_integrations",
+      "breakpoints": true
     }
   ]
 }

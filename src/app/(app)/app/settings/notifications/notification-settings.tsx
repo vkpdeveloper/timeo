@@ -4,10 +4,10 @@ import { Bell, BellOff, Share, SquarePlus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { removePushSubscription, saveNotifyPrefs, savePushSubscription, sendTestPush } from "@/actions/push";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/controls";
 import { TimePicker } from "@/components/ui/pickers";
 import { Card, RowIcon, Section } from "@/components/ui/primitives";
 import { toTimeInput, parseTime } from "@/lib/dates";
-import { cn } from "@/lib/cn";
 import { currentSubscription, pushSupport, subscribePush, unsubscribePush, type PushSupport } from "@/lib/push/client";
 import type { NotifyPrefs } from "@/lib/push/types";
 
@@ -195,25 +195,5 @@ export function NotificationSettings({
         Nothing is sent outside your planner day, except blocks you scheduled. Timi also tells you when a background task finishes.
       </p>
     </div>
-  );
-}
-
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      className={cn("tap relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors duration-200", checked ? "bg-ok" : "bg-line-strong")}
-    >
-      <span
-        className={cn(
-          "absolute top-[3px] left-[3px] size-6 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.2)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-          checked && "translate-x-5",
-        )}
-      />
-    </button>
   );
 }

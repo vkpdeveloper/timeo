@@ -3,7 +3,8 @@
 import { CircleAlert, Eye, EyeOff, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useActionState, useId, useState, type ComponentProps, type ReactNode } from "react";
+import { useActionState, useEffect, useId, useMemo, useState, type ComponentProps, type ReactNode } from "react";
+import { GoogleMark } from "@/components/integrations/google-mark";
 import { Button } from "@/components/ui/button";
 import { springs, useReducedMotion } from "@/components/ui/motion";
 import { cn } from "@/lib/cn";
@@ -190,6 +191,41 @@ export function AuthSwitch({
   );
 }
 
+/** "Continue with Google": a plain outlined button with Google's mark. A link, so the browser leaves for Google. */
+export function GoogleButton({ timezone }: { timezone: string }) {
+  const [leaving, setLeaving] = useState(false);
+  return (
+    <a
+      href={`/api/auth/google?tz=${encodeURIComponent(timezone)}`}
+      onClick={() => setLeaving(true)}
+      aria-busy={leaving}
+      className="tap flex h-12 w-full items-center justify-center gap-2.5 rounded-[12px] border border-line-strong bg-surface text-[16px] font-medium tracking-tight text-ink hover:bg-surface-2"
+    >
+      {leaving ? <Loader2 className="size-[18px] animate-spin text-ink-3" /> : <GoogleMark size={18} />}
+      Continue with Google
+    </a>
+  );
+}
+
+function OrLine() {
+  return (
+    <div className="my-6 flex items-center gap-3 text-[13px] text-ink-3" aria-hidden>
+      <span className="h-px flex-1 bg-line" />
+      or
+      <span className="h-px flex-1 bg-line" />
+    </div>
+  );
+}
+
+/** ?error=google after a Google sign-in that didn't finish; ?link=google&email= when the email already has an account. */
+function useGoogleReturn() {
+  const search = useClientValue(() => window.location.search, "");
+  return useMemo(() => {
+    const sp = new URLSearchParams(search);
+    return { error: sp.get("error") === "google", link: sp.get("link") === "google", email: sp.get("email") ?? "" };
+  }, [search]);
+}
+
 /* ─────────────────────────── Sign in / sign up ─────────────────────────── */
 
 type FieldKey = "name" | "email" | "password" | "form";
@@ -206,7 +242,7 @@ function fieldFor(error: string): FieldKey {
  * Sign in and sign up in one form. Switching keeps what was typed, slides the
  * name field in or out and swaps the URL without a page load.
  */
-export function AuthForm({ mode: initialMode }: { mode: Mode }) {
+export function AuthForm({ mode: initialMode, google = false }: { mode: Mode; google?: boolean }) {
   const reduce = useReducedMotion();
   const ids = useId();
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -220,6 +256,13 @@ export function AuthForm({ mode: initialMode }: { mode: Mode }) {
   const [email, setEmail] = useState("");
   const pending = mode === "login" ? loginPending : signupPending;
   const copy = COPY[mode];
+  const back = useGoogleReturn();
+  const linking = mode === "login" && back.link;
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fill in the email Google just confirmed, once it's readable
+    if (back.link && back.email) setEmail((e) => e || back.email);
+  }, [back.link, back.email]);
 
   // An error stays until its field is edited.
   const [dismissed, setDismissed] = useState<AuthState>(undefined);
@@ -239,7 +282,19 @@ export function AuthForm({ mode: initialMode }: { mode: Mode }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <AuthHeading id={mode} title={copy.title} body={copy.body} />
+      <AuthHeading
+        id={linking ? "link" : mode}
+        title={linking ? "Link your Google account" : copy.title}
+        body={linking ? "You already have a Timeo account with this email. Sign in with your password once, and Google works from then on." : copy.body}
+      />
+
+      {google && !linking && (
+        <>
+          <GoogleButton timezone={timezone} />
+          <FormError error={back.error ? "Google sign-in didn't finish. Try again." : null} />
+          <OrLine />
+        </>
+      )}
 
       <form action={mode === "login" ? loginAction : signupAction} noValidate className="flex flex-col gap-4">
         <input type="hidden" name="timezone" value={timezone} />

@@ -17,19 +17,11 @@ import {
 import { clientIp, rateLimit, rateLimitReset } from "@/lib/rate-limit";
 import { appUrl, resetPasswordEmail, sendEmail } from "@/lib/email";
 import { DEFAULT_AI_MODEL } from "@/lib/ai/shared";
+import { validTimezone } from "@/lib/dates";
+import { takeGoogleLink } from "@/lib/google-auth";
 import { seedNewUser } from "@/lib/seed";
 
 export type AuthState = { error?: string; email?: string; name?: string } | undefined;
-
-const validTimezone = (tz: unknown) => {
-  if (typeof tz !== "string" || !tz) return "UTC";
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: tz });
-    return tz;
-  } catch {
-    return "UTC";
-  }
-};
 
 export async function signup(_: AuthState, formData: FormData): Promise<AuthState> {
   const name = String(formData.get("name") ?? "").trim().slice(0, 80);
@@ -65,13 +57,20 @@ export async function login(_: AuthState, formData: FormData): Promise<AuthState
     return { error: "Too many attempts. Try again in a few minutes.", email };
   }
   const user = await db.select().from(t.users).where(eq(t.users.email, email)).get();
-  if (!user) await verifyPasswordDummy(password);
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  // Google-only accounts have no password; they take as long to refuse as a wrong one
+  if (!user?.passwordHash) await verifyPasswordDummy(password);
+  if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
     return { error: "Email or password is incorrect.", email };
   }
   rateLimitReset(key);
   if (timezone !== "UTC" && timezone !== user.timezone) {
     await db.update(t.users).set({ timezone }).where(eq(t.users.id, user.id));
+  }
+  // "Continue with Google" found this account by email: the password proves it's theirs, so link it
+  const google = await takeGoogleLink();
+  if (google && google.email === user.email && !user.googleId) {
+    const owner = await db.select({ id: t.users.id }).from(t.users).where(eq(t.users.googleId, google.sub)).get();
+    if (!owner) await db.update(t.users).set({ googleId: google.sub }).where(eq(t.users.id, user.id));
   }
   await createSession(user.id);
   redirect("/app");

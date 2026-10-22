@@ -1,15 +1,20 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { db, t } from "@/db";
 import { BLOCK_KINDS } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { syncBlockTask } from "@/lib/block-task";
 import { addDays, isValidISODate } from "@/lib/dates";
+import { pushTaskChanges } from "@/lib/integrations/sync";
 import { clamp, date, oneOf, reqStr, str, time } from "@/lib/form";
 import { ownGoalId, ownTaskId } from "@/lib/queries";
 import { findFreeSlot } from "@/lib/schedule";
+
+/** Events from a connected calendar are changed there; the next sync would undo it here. */
+const SYNCED = "Change this event in its calendar";
 
 function readTimes(fd: FormData) {
   const start = time(fd, "start");
@@ -46,6 +51,7 @@ export async function updateBlock(fd: FormData) {
     .where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id)))
     .get();
   if (!existing) throw new Error("Block not found");
+  if (existing.integrationId) throw new Error(SYNCED);
   const { startMin, endMin } = readTimes(fd);
   const newDate = date(fd, "date") ?? existing.date;
   const moved = newDate !== existing.date || startMin !== existing.startMin;
@@ -75,6 +81,7 @@ export async function moveBlock(id: string, newDate: string, rawStart: number) {
     .where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id)))
     .get();
   if (!b) throw new Error("Block not found");
+  if (b.integrationId) throw new Error(SYNCED);
   const duration = b.endMin - b.startMin;
   await db
     .update(t.blocks)
@@ -105,6 +112,8 @@ export async function setBlockDone(id: string, done: boolean) {
   const doneAt = done ? Date.now() : null;
   await db.update(t.blocks).set({ doneAt, skippedAt: null }).where(eq(t.blocks.id, id));
   await syncBlockTask(user.id, b, doneAt);
+  // the task it stands for may come from a connected app
+  if (b.taskId) after(() => pushTaskChanges(user.id));
   refresh();
 }
 
@@ -113,12 +122,13 @@ export async function skipBlock(id: string) {
   const b = await ownBlock(user.id, id);
   await db.update(t.blocks).set({ skippedAt: Date.now(), doneAt: null }).where(eq(t.blocks.id, id));
   await syncBlockTask(user.id, b, null);
+  if (b.taskId) after(() => pushTaskChanges(user.id));
   refresh();
 }
 
 export async function deleteBlock(id: string) {
   const user = await requireUser();
-  await db.delete(t.blocks).where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id)));
+  await db.delete(t.blocks).where(and(eq(t.blocks.id, id), eq(t.blocks.userId, user.id), isNull(t.blocks.integrationId)));
   refresh();
 }
 
